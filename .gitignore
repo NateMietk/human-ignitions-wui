@@ -4,6 +4,10 @@
 
 # Session Data files
 .RData
+/data/
+data/
+/*.pptx
+*.pptx
 
 # Example code in package build process
 *-Ex.R
@@ -31,3 +35,4 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+.Rproj.user
