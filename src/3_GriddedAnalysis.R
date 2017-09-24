@@ -174,7 +174,7 @@ p105 <- GA_FireMetrics %>%
   transform(Class = factor(Class, levels=c("WUI", "VLD", "Wildlands"))) %>%
   ggplot(aes(x, y)) +
   geom_polygon(data=states, aes(x=long,y=lat,group=group), 
-               colour='black', fill = "gray99", size = .25)+
+               colour='black', fill = "gray99", size = .25) +
   geom_point(aes(colour = factor(FPY), size = ptsz_n), stroke = 0) +
   scale_color_manual(values = c("0 - 2" = "#1F77B4", 
                                 "2 - 5" = "#2CA02C", 

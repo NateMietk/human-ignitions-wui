@@ -8,6 +8,8 @@
 data/
 /*.pptx
 *.pptx
+/papers/
+papers/
 
 # Example code in package build process
 *-Ex.R

@@ -25,6 +25,50 @@ wuw_eco_bae %>%
 
 eco_sum_bae2 <- mean(eco_sum_bae2$yrly_burn)
 
+# Number of human related costs in the WUI
+allfires <- wuw_eco_ICS %>% 
+  group_by(Year) %>%
+  summarise(tot_costs = sum(costs))
+
+yrly_costs_wui_h <- wuw_eco_ICS %>%
+  filter(Class == "WUI" & Ignition == "Human" & Year > "2001") %>%
+  group_by(Year) %>%
+  summarise(costs = sum(costs)) %>%
+  left_join(., allfires, by = "Year") %>%
+  mutate(yrly_costs = (costs/tot_costs)*100)
+
+mean_costs_wui_h <- mean(yrly_costs_wui_h$yrly_costs)
+
+# Number of human related homes destroyed in the WUI
+allfires <- wuw_eco_ICS %>% 
+  group_by(Year) %>%
+  summarise(tot_destroy = sum(destroy))
+
+yrly_destroy_wui_h <- wuw_eco_ICS %>%
+  filter(Class == "WUI" & Ignition == "Human" & Year > "2001") %>%
+  group_by(Year) %>%
+  summarise(destroy = sum(destroy)) %>%
+  left_join(., allfires, by = "Year") %>%
+  mutate(yrly_destroy = (destroy/tot_destroy)*100)
+
+sum_destroy_wui_h <- sum(yrly_destroy_wui_h$destroy)
+mean_destroy_wui_h <- mean(yrly_destroy_wui_h$yrly_destroy)
+
+# Number of human related fatalities in the WUI
+allfires <- wuw_eco_ICS %>% 
+  group_by(Year) %>%
+  summarise(tot_fatalities = sum(deaths))
+
+yrly_fatalities_wui_h <- wuw_eco_ICS %>%
+  filter(Class == "WUI" & Ignition == "Human" & Year > "2001") %>%
+  group_by(Year) %>%
+  summarise(deaths = sum(deaths)) %>%
+  left_join(., allfires, by = "Year") %>%
+  mutate(yrly_fatalities = (deaths/tot_fatalities)*100)
+
+sum_fatalities_wui_h <- sum(yrly_fatalities_wui_h$deaths)
+mean_fatalities_wui_h <- mean(yrly_fatalities_wui_h$yrly_fatalities)
+
 # Number of human related ignitions in the WUI
 allfires <- wuw_eco_poly %>% 
   summarise(tot_fire = n())
@@ -51,7 +95,8 @@ t <- wuw_eco_wui %>%
   distinct(., BLK10, .keep_all = TRUE) %>%
   group_by(Class) %>%
   summarise(pop = sum(POP10),
-            homes = sum(HHU10))
+            homes = sum(HHU10),
+            area = sum(AREA_km2))
 
 # For the level 1 ecoregions --------------------------------------------
 wui_stat <- wuw_eco_wui %>%
