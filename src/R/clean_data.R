@@ -29,7 +29,6 @@ mtbs_out <- file.path("data", "fire", "mtbs_fod_perimeter_data")
 # Check if directory exists for all variable aggregate outputs, if not then create
 var_dir <- list(bounds_crt, conus_crt, ecoreg_crt, anthro_crt, fire_crt,
                 us_out, ecoregion_out, wui_out, fpa_out, mtbs_out)
-
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
 
 usa_shp <- st_read(dsn = us_prefix,
@@ -77,7 +76,8 @@ fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
 
 # Intersects the region
 state_eco_fish <- st_intersection(usa_shp, ecoreg) %>%
-  dplyr::select(STUSPS, NAME, StArea_km2, US_L3CODE, US_L3NAME, EcoArea_km2, NA_L2NAME, NA_L1CODE, NA_L1NAME, geometry) %>%
+  dplyr::select(STUSPS, NAME, StArea_km2, US_L3CODE, US_L3NAME, EcoArea_km2, 
+                NA_L2NAME, NA_L1CODE, NA_L1NAME, geometry) %>%
   st_intersection(., fishnet_50k) %>%
   st_intersection(., fishnet_25k) %>%
   st_intersection(., fishnet_10k)
@@ -87,7 +87,7 @@ wui <- st_read(dsn = wui_gdb,
                layer = "us_wui_2010") %>%
   st_simplify(., preserveTopology = TRUE, dTolerance = 0.001) %>%
   mutate(Class = classify_wui(WUICLASS10)) %>%
-  filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") %>%
+  filter(Class %in% c("Urban" ,"WUI", "VLD", "Wildlands")) %>%
   st_transform("+init=epsg:2163") %>%
   st_make_valid()
 
@@ -156,39 +156,3 @@ if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
            driver = "GPKG",
            update=TRUE)}
 
-# Create the distance variable to create the simple buffers
-fpa_bae <- fpa_fire %>%
-  filter(DISCOVERY_YEAR >= 2001) %>%
-  st_transform("+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs") %>% #USA_Contiguous_Equidistant_Conic
-  mutate(radius = sqrt(FIRE_SIZE_m2/pi))
-
-# Buffer FPA points based on radius, remove MTBS present in FPA, replace with the actual MTBS polygons
-fpa_bae <- fpa_bae %>%
-  st_buffer(., dist = fpa_bae$radius) %>%
-  st_transform("+init=epsg:2163") %>%
-  filter(MTBS_ID == "<NA>") %>%
-  st_union(., mtbs_fire) %>%
-  st_intersection(., wui) %>%
-  st_intersection(., state_eco) %>%
-  mutate(area_m2 = as.numeric(st_area(geometry)),
-         ClArea_km2 = area_m2/1000000)
-
-# Calculate the distance of each fire point to WUI boundary.
-wui_only <- wui_state_eco %>%
-  st_transform("+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs") %>% #USA_Contiguous_Equidistant_Conic
-  filter(Class == "WUI") %>%
-  group_by(group) %>%
-  summarize()
-
-fpa_fire_dist <- fpa_fire %>%
-  st_transform("+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs") #USA_Contiguous_Equidistant_Conic
-
-dist_tbl <- mapply(st_distance, st_geometry(fpa_fire_dist), st_geometry(wui_only)) %>%
-  as.tibble() %>%
-  mutate(dis_to_wui_m = value,
-         dis_to_wui_km = (dis_to_wui_m)*0.001,
-         FPA_ID = fpa_fire_dist$FPA_ID) %>%
-  select(FPA_ID, dis_to_wui_m, dis_to_wui_km)
-
-fpa_wui_dist <- fpa_fire_dist %>%
-  right_join(., dist_tbl, by = "FPA_ID")
