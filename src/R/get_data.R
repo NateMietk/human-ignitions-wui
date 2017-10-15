@@ -1,26 +1,5 @@
 
-library(tidyverse)
-library(assertthat)
-library(rvest)
-library(httr)
-library(purrr)
-
-raw_prefix <- file.path("data", "raw")
-us_prefix <- file.path(raw_prefix, "cb_2016_us_state_20m")
-ecoregion_prefix <- file.path(raw_prefix, "us_eco_l3")
-wui_prefix <- file.path(raw_prefix, "us_wui_2010")
-fpa_prefix <- file.path(raw_prefix, "fpa-fod")
-mtbs_prefix <- file.path(raw_prefix, "mtbs_fod_perimeter_data")
-
-# Check if directory exists for all variable aggregate outputs, if not then create
-var_dir <- list(raw_prefix,
-                us_prefix,
-                ecoregion_prefix,
-                wui_prefix,
-                fpa_prefix,
-                mtbs_prefix)
-
-lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
+source("src/R/create_folders.R")
 
 #Download the USA States layer
 
@@ -51,9 +30,10 @@ if (!file.exists(ecoregion_shp)) {
 wui_gdb <- file.path(wui_prefix, "us_wui_2010.gdb")
 if (!file.exists(wui_gdb)) {
   loc <- "http://silvis.forest.wisc.edu/sites/default/files/maps/wui/2010/gis/us_wui_2010.zip"
-  dest <- paste0(wui_prefix, ".zip")
+  dest <- paste0(wui_prefix, "/us_wui_2010", ".zip")
   download.file(loc, dest)
-  unlink(dest)
+  unzip(dest, exdir = wui_prefix)
+  unlink(wui_prefix)
   assert_that(file.exists(wui_gdb))
 }
 
@@ -62,9 +42,9 @@ if (!file.exists(wui_gdb)) {
 fpa_gdb <- file.path(fpa_prefix, "Data", "FPA_FOD_20170508.gdb")
 if (!file.exists(fpa_gdb)) {
   pg <- read_html("https://www.fs.usda.gov/rds/archive/Product/RDS-2013-0009.4/")
-  fils <- html_nodes(pg, xpath=".//dd[@class='product']//li/a[contains(., 'zip') and contains(., 'GDB')]") 
+  fils <- html_nodes(pg, xpath=".//dd[@class='product']//li/a[contains(., 'zip') and contains(., 'GDB')]")
   dest <- paste0(fpa_prefix, ".zip")
-  walk2(html_attr(fils, 'href'),  html_text(fils), 
+  walk2(html_attr(fils, 'href'),  html_text(fils),
         ~GET(sprintf("https:%s", .x), write_disk(dest), progress()))
   unzip(dest, exdir = fpa_prefix)
   unlink(dest)
