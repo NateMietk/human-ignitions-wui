@@ -1,11 +1,5 @@
-# This script is the first step in the WUI project.
-# Here we import, project, intersect, organize data layers
-# Key layers are the Short ignitions, Radeloff WUI product, MTBS data
-
 # Load helper functions for external script
 source("src/R/helper_functions.R")
-# Get the data and create all
-source("src/R/get_data.R")
 
 usa_shp <- st_read(dsn = us_prefix,
                    layer = "cb_2016_us_state_20m", quiet= TRUE) %>%
@@ -59,29 +53,32 @@ state_eco_fish <- st_intersection(usa_shp, ecoreg) %>%
   st_intersection(., fishnet_10k)
 
 #Import the Wildland-Urban Interface and process
-wui <- st_read(dsn = wui_gdb,
-               layer = "us_wui_2010") %>%
-  st_simplify(., preserveTopology = TRUE, dTolerance = 0.001) %>%
-  mutate(Class = classify_wui(WUICLASS10)) %>%
-  filter(Class %in% c("Urban" ,"WUI", "VLD", "Wildlands")) %>%
-  st_transform("+init=epsg:2163") %>%
-  st_make_valid()
+# wui <- st_read(dsn = file.path(wui_prefix, "us_wui_2010.gdb"),
+#                layer = "us_wui_2010") %>%
+#   st_simplify(., preserveTopology = TRUE, dTolerance = 0.001) %>%
+#   mutate(Class = classify_wui(WUICLASS10)) %>%
+#   filter(Class %in% c("Urban" ,"WUI", "VLD", "Wildlands")) %>%
+#   st_transform("+init=epsg:2163") %>%
+#   st_make_valid()
+#
+# if (!file.exists(file.path(wui_out, "wui_conus.gpkg"))) {
+#   st_write(wui, file.path(wui_out, "wui_conus.gpkg"),
+#          driver = "GPKG",
+#          update=TRUE)}
 
-if (!file.exists(file.path(wui_out, "wui_conus.gpkg"))) {
-  st_write(wui, file.path(wui_out, "wui_conus.gpkg"),
-         driver = "GPKG",
-         update=TRUE)}
-
+wui <- st_read(file.path(wui_out, "wui_conus.gpkg"))
 wui_state_eco <- st_intersection(state_eco_fish, wui) %>%
+  st_make_valid() %>%
   mutate(Area_km2 = (as.numeric(st_area(geometry))/1000000))
 
 if (!file.exists(file.path(wui_out, "wui_state_eco.gpkg"))) {
-  st_write(wui_state_eco, file.path(wui_out, "wui_state_eco.gpkg"),
+  st_write(wui_state_eco,
+           file.path(wui_out, "wui_state_eco.gpkg"),
          driver = "GPKG",
          update=TRUE)}
 
 # Clean the FPA database class
-fpa_fire <- st_read(dsn = file.path(fpa_gdb),
+fpa_fire <- st_read(dsn = file.path(fpa_prefix, "Data", "FPA_FOD_20170508.gdb"),
                      layer = "Fires", quiet= FALSE) %>%
   filter(!(STATE %in% c("Alaska", "Hawaii", "Puerto Rico") & FIRE_SIZE >= 0.1)) %>%
   dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME,
@@ -92,7 +89,8 @@ fpa_fire <- st_read(dsn = file.path(fpa_gdb),
          FIRE_SIZE_ha = FIRE_SIZE_m2*10000,
          DISCOVERY_DAY = day(DISCOVERY_DATE),
          DISCOVERY_MONTH = month(DISCOVERY_DATE),
-         DISCOVERY_YEAR = FIRE_YEAR)
+         DISCOVERY_YEAR = FIRE_YEAR)  %>%
+  st_make_valid()
 fpa_fire <- st_transform(fpa_fire, "+init=epsg:2163")
 
 if (!file.exists(file.path(fpa_out, "fpa_conus.gpkg"))) {
@@ -125,7 +123,8 @@ mtbs_fire <- st_read(dsn = mtbs_prefix,
   merge(., as.data.frame(fpa_fire), by = c("MTBS_ID", "MTBS_FIRE_NAME"), all = FALSE) %>%
   dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
                 MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, MTBS_DISCOVERY_DOY, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
-                MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION)
+                MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION)  %>%
+  st_make_valid()
 
 if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
   st_write(mtbs_fire, file.path(mtbs_out, "mtbs_conus.gpkg"),
