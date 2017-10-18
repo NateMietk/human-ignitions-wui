@@ -24,11 +24,11 @@ ecoreg <- st_read(dsn = ecoregion_prefix, layer = "us_eco_l3", quiet= TRUE) %>%
 
 # Create Fishnets ---------------------------------------------------------
 # 50k Fishnet
-fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
-  st_sf('geometry' = ., data.frame('FishID50k' = 1:length(.))) %>%
-  st_intersection(., conus) %>%
-  mutate(Area_FishID50k_m2 = as.numeric(st_area(geometry)),
-         Area_FishID50k_km2 = Area_FishID50k_m2/1000000)
+# fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
+#   st_sf('geometry' = ., data.frame('FishID50k' = 1:length(.))) %>%
+#   st_intersection(., conus) %>%
+#   mutate(Area_FishID50k_m2 = as.numeric(st_area(geometry)),
+#          Area_FishID50k_km2 = Area_FishID50k_m2/1000000)
 
 # 25k Fishnet
 fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
@@ -48,34 +48,39 @@ fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
 state_eco_fish <- st_intersection(usa_shp, ecoreg) %>%
   dplyr::select(STUSPS, NAME, StArea_km2, US_L3CODE, US_L3NAME, EcoArea_km2,
                 NA_L2NAME, NA_L1CODE, NA_L1NAME, geometry) %>%
-  st_intersection(., fishnet_50k) %>%
+  #st_intersection(., fishnet_50k) %>%
   st_intersection(., fishnet_25k) %>%
   st_intersection(., fishnet_10k)
 
 #Import the Wildland-Urban Interface and process
-# wui <- st_read(dsn = file.path(wui_prefix, "us_wui_2010.gdb"),
-#                layer = "us_wui_2010") %>%
-#   st_simplify(., preserveTopology = TRUE, dTolerance = 0.001) %>%
-#   mutate(Class = classify_wui(WUICLASS10)) %>%
-#   filter(Class %in% c("Urban" ,"WUI", "VLD", "Wildlands")) %>%
-#   st_transform("+init=epsg:2163") %>%
-#   st_make_valid()
-#
-# if (!file.exists(file.path(wui_out, "wui_conus.gpkg"))) {
-#   st_write(wui, file.path(wui_out, "wui_conus.gpkg"),
-#          driver = "GPKG",
-#          update=TRUE)}
-
-wui <- st_read(file.path(wui_out, "wui_conus.gpkg"))
-wui_state_eco <- st_intersection(state_eco_fish, wui) %>%
+wui <- st_read(dsn = file.path(wui_prefix, "us_wui_2010.gdb"),
+               layer = "us_wui_2010") %>%
+  st_simplify(., preserveTopology = TRUE, dTolerance = 0.001) %>%
+  mutate(Class = classify_wui(WUICLASS10)) %>%
+  filter(Class %in% c("Urban" ,"WUI", "VLD", "Wildlands")) %>%
+  st_transform("+init=epsg:2163") %>%
   st_make_valid() %>%
-  mutate(Area_km2 = (as.numeric(st_area(geometry))/1000000))
+  mutate(ClArea_m2 = as.numeric(st_area(geom)),
+         ClArea_km2 = ClArea_m2/1000000)
 
-if (!file.exists(file.path(wui_out, "wui_state_eco.gpkg"))) {
-  st_write(wui_state_eco,
-           file.path(wui_out, "wui_state_eco.gpkg"),
+if (!file.exists(file.path(wui_out, "wui_conus.gpkg"))) {
+  st_write(wui, file.path(wui_out, "wui_conus.gpkg"),
          driver = "GPKG",
          update=TRUE)}
+
+wui <- st_read(dsn = file.path(wui_out, "wui_conus.gpkg")) %>%
+  mutate(ClArea_m2 = as.numeric(st_area(geom)),
+         ClArea_km2 = ClArea_m2/1000000)
+
+# wui_state_eco <- st_intersection(state_eco_fish, wui) %>%
+#   st_make_valid() %>%
+#   mutate(Area_km2 = (as.numeric(st_area(geometry))/1000000))
+#
+# if (!file.exists(file.path(wui_out, "wui_state_eco.gpkg"))) {
+#   st_write(wui_state_eco,
+#            file.path(wui_out, "wui_state_eco.gpkg"),
+#          driver = "GPKG",
+#          update=TRUE)}
 
 # Clean the FPA database class
 fpa_fire <- st_read(dsn = file.path(fpa_prefix, "Data", "FPA_FOD_20170508.gdb"),
@@ -99,8 +104,9 @@ if (!file.exists(file.path(fpa_out, "fpa_conus.gpkg"))) {
          update=TRUE)}
 
 fpa_wui <- fpa_fire %>%
-  #filter(DISCOVERY_YEAR >= 2001) %>%
-  st_intersection(., wui_state_eco)
+  st_intersection(., wui) %>%
+  st_intersection(., state_eco_fish) %>%
+  st_make_valid()
 
 if (!file.exists(file.path(fpa_out, "fpa_wui_conus.gpkg"))) {
   st_write(fpa_fire, file.path(fpa_out, "fpa_wui_conus.gpkg"),
@@ -132,9 +138,12 @@ if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
            update=TRUE)}
 
 mtbs_wui <- mtbs_fire %>%
+   st_intersection(., wui) %>%
   st_make_valid() %>%
-  st_intersection(., wui_state_eco) %>%
-  st_make_valid()
+  st_intersection(., state_eco_fish) %>%
+  st_make_valid() %>%
+  mutate(ClArea_m2 = as.numeric(st_area(Shape)),
+         ClArea_km2 = ClArea_m2/1000000)
 
 if (!file.exists(file.path(mtbs_out, "mtbs_wui.gpkg"))) {
   st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),

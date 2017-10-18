@@ -12,11 +12,12 @@ fpa_bae <- st_buffer(fpa_bae, dist = fpa_bae$radius) %>%
   st_transform("+init=epsg:2163") %>%
   st_union(., mtbs_fire) %>%
   st_make_valid() %>%
-  st_intersection(., wui_state_eco) %>%
+  st_intersection(., wui) %>%
+  st_intersection(., state_eco_fish) %>%
   st_make_valid()
 
 fpa_bae <- fpa_bae %>%
-  mutate(Area_km2 = (as.numeric(st_area(geometry))/1000000))
+  mutate(Area_km2 = (as.numeric(st_area(Shape))/1000000))
 
 if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))) {
   st_write(fpa_mtbs_bae, file.path(fpa_out, "fpa_mtbs_bae.gpkg"),
