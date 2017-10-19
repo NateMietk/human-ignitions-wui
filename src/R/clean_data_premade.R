@@ -22,14 +22,6 @@ ecoreg <- st_read(dsn = ecoregion_prefix, layer = "us_eco_l3", quiet= TRUE) %>%
   mutate(area_m2 = as.numeric(st_area(geometry)),
          EcoArea_km2 = area_m2/1000000)
 
-# Create Fishnets ---------------------------------------------------------
-# 50k Fishnet
-# fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
-#   st_sf('geometry' = ., data.frame('FishID50k' = 1:length(.))) %>%
-#   st_intersection(., conus) %>%
-#   mutate(Area_FishID50k_m2 = as.numeric(st_area(geometry)),
-#          Area_FishID50k_km2 = Area_FishID50k_m2/1000000)
-
 # 25k Fishnet
 fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
   st_sf('geometry' = ., data.frame('FishID25k' = 1:length(.))) %>%

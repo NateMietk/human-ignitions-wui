@@ -14,14 +14,19 @@ bae <- st_buffer(bae, dist = bae$RADIUS) %>%
 fire_list <- list(bae, mtbs_fire)
 bae <- do.call(rbind, fire_list)
 
+if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))) {
+  st_write(bae, file.path(fpa_out, "fpa_mtbs_bae.gpkg"),
+           driver = "GPKG",
+           update=TRUE)}
+
 fpa_bae <- bae %>%
   st_intersection(., wui) %>%
   st_intersection(., state_eco_fish) %>%
   st_make_valid() %>%
   mutate(Area_km2 = (as.numeric(st_area(geom))/1000000))
 
-if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))) {
-  st_write(fpa_bae, file.path(fpa_out, "fpa_mtbs_bae.gpkg"),
+if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))) {
+  st_write(fpa_bae, file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"),
            driver = "GPKG",
            update=TRUE)}
 
