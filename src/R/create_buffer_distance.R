@@ -2,25 +2,26 @@
 proj_ed <- "+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs" #USA_Contiguous_Equidistant_Conic
 
 # Create the distance variable to create the simple buffers
-fpa_bae <- fpa_fire %>%
+bae <- fpa_fire %>%
   st_transform(proj_ed) %>%
-  mutate(radius = sqrt(FIRE_SIZE_m2/pi)) %>%
+  mutate(RADIUS = sqrt(FIRE_SIZE_m2/pi)) %>%
   filter(is.na(MTBS_ID))
 
 # Buffer FPA points based on radius, remove MTBS present in FPA, replace with the actual MTBS polygons
-fpa_bae <- st_buffer(fpa_bae, dist = fpa_bae$radius) %>%
-  st_transform("+init=epsg:2163") %>%
-  st_union(., mtbs_fire) %>%
-  st_make_valid() %>%
+bae <- st_buffer(bae, dist = bae$RADIUS) %>%
+  st_transform("+init=epsg:2163")
+
+fire_list <- list(bae, mtbs_fire)
+bae <- do.call(rbind, fire_list)
+
+fpa_bae <- bae %>%
   st_intersection(., wui) %>%
   st_intersection(., state_eco_fish) %>%
-  st_make_valid()
-
-fpa_bae <- fpa_bae %>%
-  mutate(Area_km2 = (as.numeric(st_area(Shape))/1000000))
+  st_make_valid() %>%
+  mutate(Area_km2 = (as.numeric(st_area(geom))/1000000))
 
 if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))) {
-  st_write(fpa_mtbs_bae, file.path(fpa_out, "fpa_mtbs_bae.gpkg"),
+  st_write(fpa_bae, file.path(fpa_out, "fpa_mtbs_bae.gpkg"),
            driver = "GPKG",
            update=TRUE)}
 

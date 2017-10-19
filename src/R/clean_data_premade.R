@@ -56,10 +56,17 @@ wui <- st_read(dsn = file.path(wui_out, "wui_conus.gpkg")) %>%
   mutate(ClArea_m2 = as.numeric(st_area(geom)),
          ClArea_km2 = ClArea_m2/1000000)
 
-fpa_fire <- st_read(dsn = file.path(fpa_out, "fpa_conus.gpkg"))
+fpa_fire <- st_read(dsn = file.path(fpa_out, "fpa_conus.gpkg")) %>%
+  mutate(MTBS_DISCOVERY_YEAR = "NA",
+         MTBS_DISCOVERY_DOY = "NA",
+         MTBS_DISCOVERY_MONTH = "NA",
+         MTBS_DISCOVERY_DAY = "NA") %>%
+  select(-FIRE_YEAR, -DISCOVERY_DATE)
 
 fpa_wui <- st_read(dsn = file.path(fpa_out, "fpa_wui_conus.gpkg"))
 
-mtbs_fire <- st_read(dsn = file.path(mtbs_out, "mtbs_conus.gpkg"))
+mtbs_fire <- st_read(dsn = file.path(mtbs_out, "mtbs_conus.gpkg")) %>%
+  mutate(RADIUS = "NA") %>%
+  st_transform("+init=epsg:2163")
 
 mtbs_wui <- st_read(dsn = file.path(mtbs_out, "mtbs_wui.gpkg"))
