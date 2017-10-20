@@ -7,6 +7,7 @@ library(gridExtra)
 library(rgdal)
 library(sf)
 library(lubridate)
+library(parallel)
 
 source("src/R/helper_functions.R")
 
