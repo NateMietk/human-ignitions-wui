@@ -1,5 +1,6 @@
 
 proj_ed <- "+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs" #USA_Contiguous_Equidistant_Conic
+ncores <- detectCores(logical = FALSE)
 
 # Create the distance variable to create the simple buffers
 bae <- fpa_fire %>%
@@ -8,7 +9,7 @@ bae <- fpa_fire %>%
   filter(is.na(MTBS_ID))
 
 # Buffer FPA points based on radius, remove MTBS present in FPA, replace with the actual MTBS polygons
-bae <- st_par(bae, st_buffer, dist = bae$RADIUS) %>%
+bae <- st_par(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS) %>%
   st_transform("+init=epsg:2163")
 
 fire_list <- list(bae, mtbs_fire)
@@ -19,9 +20,9 @@ if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))) {
            driver = "GPKG",
            update=TRUE)}
 
-fpa_bae <- st_par(bae, st_intersection,y = wui) %>%
-  st_par(., st_intersection, y = state_eco_fish) %>%
-  st_par(., st_make_valid) %>%
+fpa_bae <- st_par(bae, st_intersection, n_cores = ncores, y = wui) %>%
+  st_par(., st_intersection, y = state_eco_fish, n_cores = ncores) %>%
+  st_par(., st_make_valid, n_cores = ncores) %>%
   mutate(Area_km2 = (as.numeric(st_area(geom))/1000000))
 
 if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))) {
@@ -32,15 +33,15 @@ if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))) {
 # Calculate the distance of each fire point to Urban boundary.
 urban_only <- wui %>%
   filter(Class == "Urban") %>%
-  st_par(., st_make_valid)  %>%
-  st_par(., st_transform, crs = proj_ed) %>%
+  st_par(., st_make_valid, n_cores = ncores)  %>%
+  st_par(., st_transform, crs = proj_ed, n_cores = ncores) %>%
   group_by(Class) %>%
   summarize()
 
 wui_only <- wui %>%
   filter(Class == "WUI") %>%
-  st_par(., st_make_valid) %>%
-  st_par(., st_transform, crs = proj_ed) %>%
+  st_par(., st_make_valid, n_cores = ncores) %>%
+  st_par(., st_transform, crs = proj_ed, n_cores = ncores) %>%
   group_by(Class) %>%
   summarize()
 
@@ -58,7 +59,7 @@ fpa_fire_dist <- fpa_fire %>%
   st_transform(proj_ed)
 
 # Create distance to urban layers
-dist_tbl_urban <- st_par(st_geometry(fpa_fire_dist), st_distance, y = st_geometry(urban_only)) %>%
+dist_tbl_urban <- st_par(st_geometry(fpa_fire_dist), st_distance,  n_cores = ncores, y = st_geometry(urban_only)) %>%
   as.tibble() %>%
   mutate(dis_to_urban_m = value,
          dis_to_urban_km = (dis_to_urban_m)*0.001,
@@ -74,7 +75,7 @@ if (!file.exists(file.path(wui_out, "fpa_urban_dist.gpkg"))) {
            update=TRUE)}
 
 # Create distance to wui layers
-dist_tbl_wui <- st_par(st_geometry(fpa_fire_dist), st_distance, y = st_geometry(wui_only)) %>%
+dist_tbl_wui <- st_par(st_geometry(fpa_fire_dist), st_distance,  n_cores = ncores, y = st_geometry(wui_only)) %>%
   as.tibble() %>%
   mutate(dis_to_wui_m = value,
          dis_to_wui_km = (dis_to_wui_m)*0.001,
