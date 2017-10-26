@@ -1,6 +1,6 @@
 # Load helper functions for external script
 source("src/R/helper_functions.R")
-ncores <- detectCores(logical = FALSE)
+ncores <- detectCores()/4
 
 usa_shp <- st_read(dsn = us_prefix,
                    layer = "cb_2016_us_state_20m", quiet= TRUE) %>%
@@ -31,19 +31,18 @@ fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
          Area_FishID25k_km2 = Area_FishID25k_m2/1000000)
 
 # 10k Fishnet
-fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
-  st_sf('geometry' = ., data.frame('FishID10k' = 1:length(.))) %>%
-  st_par(., st_intersection, n_cores = ncores, y = conus) %>%
-  mutate(Area_FishID10k_m2 = as.numeric(st_area(geometry)),
-         Area_FishID10k_km2 = Area_FishID10k_m2/1000000)
+# fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
+#   st_sf('geometry' = ., data.frame('FishID10k' = 1:length(.))) %>%
+#   st_par(., st_intersection, n_cores = ncores, y = conus) %>%
+#   mutate(Area_FishID10k_m2 = as.numeric(st_area(geometry)),
+#          Area_FishID10k_km2 = Area_FishID10k_m2/1000000)
 
 # Intersects the region
 state_eco_fish <- st_intersection(usa_shp, ecoreg) %>%
   dplyr::select(STUSPS, NAME, StArea_km2, US_L3CODE, US_L3NAME, EcoArea_km2,
                 NA_L2NAME, NA_L1CODE, NA_L1NAME, geometry) %>%
-  #st_intersection(., fishnet_50k) %>%
-  st_par(., st_intersection, n_cores = ncores, y = fishnet_25k) %>%
-  st_par(., st_intersection, n_cores = ncores, y = fishnet_10k)
+  st_par(., st_intersection, n_cores = ncores, y = fishnet_25k)
+rm(fishnet_25k)
 
 wui <- st_read(dsn = file.path(wui_out, "wui_conus.gpkg")) %>%
   mutate(ClArea_m2 = as.numeric(st_area(geom)),
@@ -65,7 +64,5 @@ mtbs_fire <- st_read(dsn = file.path(mtbs_out, "mtbs_conus.gpkg")) %>%
 mtbs_wui <- st_read(dsn = file.path(mtbs_out, "mtbs_wui.gpkg"))
 
 bae <- st_read(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))
-
-fpa_bae <- st_read(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))
 
 urban_only <- st_read(file.path(wui_out, "urban_only.gpkg"))

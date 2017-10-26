@@ -25,30 +25,101 @@ wuw_eco_bae %>%
 
 eco_sum_bae2 <- mean(eco_sum_bae2$yrly_burn)
 
+# Human related consequences
+humcost_cause <- wuw_eco_ICS %>% 
+  group_by(cause) %>%
+  summarise(totcosts = sum(costs)) %>%
+  as.data.frame(.) %>%
+  select(-geom) %>%
+  mutate(pct_t = totcosts/t)
+wuw_eco_ICS %>% 
+     group_by(Class, cause) %>%
+     summarise(costs = sum(costs)) %>%
+     left_join(., humcost_cause, by = "Class") %>%
+  as.data.frame(.) %>%
+  mutate(pct = costs/totcosts)
+
+humdestroy_cause <- wuw_eco_ICS %>% 
+  filter(cause != "Unk") %>%
+  group_by(cause) %>%
+  summarise(totdestroyed = sum(home.destroyed)) %>%
+  as.data.frame(.) %>%
+  select(-geom)
+
+humdeath_cause <- wuw_eco_ICS %>% 
+  filter(cause != "Unk") %>%
+  group_by(cause) %>%
+  summarise(totdeath = sum(fatalities)) %>%
+  as.data.frame(.) %>%
+  select(-geom)
+
+person_cause <- wuw_eco_ICS %>% 
+  filter(cause != "Unk") %>%
+  group_by(cause) %>%
+  summarise(totperson = sum(tot.pers)) %>%
+  as.data.frame(.) %>%
+  select(-geom)
+
+wuw_eco_ICS %>% 
+  group_by(Class, cause) %>%
+  summarise(person = sum(tot.pers)) %>%
+  left_join(., person_cause, by = "cause")
+
+aerial_cause <- wuw_eco_ICS %>% 
+  filter(cause != "Unk") %>%
+  group_by(cause) %>%
+  summarise(totaerial = sum(tot.aerial)) %>%
+  as.data.frame(.) %>%
+  select(-geom)
+
+wuw_eco_ICS %>% 
+  group_by(Class, cause) %>%
+  summarise(aerial = sum(tot.aerial)) %>%
+  left_join(., aerial_cause, by = "cause")
+
+agency_cause <- wuw_eco_ICS %>% 
+  filter(cause != "Unk") %>%
+  group_by(cause) %>%
+  summarise(totagency = sum(max.agency.support)) %>%
+  as.data.frame(.) %>%
+  select(-geom)
+
+wuw_eco_ICS %>% 
+  group_by(Class, cause) %>%
+  summarise(agency = sum(max.agency.support)) %>%
+  left_join(., agency_cause, by = "cause")
+
 # Number of human related costs in the WUI
+
 allfires <- wuw_eco_ICS %>% 
-  group_by(Year) %>%
+  group_by(syear) %>%
   summarise(tot_costs = sum(costs))
 
+allfires <- as.data.frame(allfires) %>%
+  select(-geom)
+
 yrly_costs_wui_h <- wuw_eco_ICS %>%
-  filter(Class == "WUI" & Ignition == "Human" & Year > "2001") %>%
-  group_by(Year) %>%
+  filter(Class == "WUI" & cause == "Human") %>%
+  group_by(syear) %>%
   summarise(costs = sum(costs)) %>%
-  left_join(., allfires, by = "Year") %>%
+  left_join(., allfires, by = "syear") %>%
   mutate(yrly_costs = (costs/tot_costs)*100)
 
 mean_costs_wui_h <- mean(yrly_costs_wui_h$yrly_costs)
 
 # Number of human related homes destroyed in the WUI
 allfires <- wuw_eco_ICS %>% 
-  group_by(Year) %>%
-  summarise(tot_destroy = sum(destroy))
+  group_by(syear) %>%
+  summarise(tot_destroy = sum(home.destroyed))
+
+allfires <- as.data.frame(allfires) %>%
+  select(-geom)
 
 yrly_destroy_wui_h <- wuw_eco_ICS %>%
-  filter(Class == "WUI" & Ignition == "Human" & Year > "2001") %>%
-  group_by(Year) %>%
-  summarise(destroy = sum(destroy)) %>%
-  left_join(., allfires, by = "Year") %>%
+  filter(Class == "WUI" & cause == "Human") %>%
+  group_by(syear) %>%
+  summarise(destroy = sum(home.destroyed)) %>%
+  left_join(., allfires, by = "syear") %>%
   mutate(yrly_destroy = (destroy/tot_destroy)*100)
 
 sum_destroy_wui_h <- sum(yrly_destroy_wui_h$destroy)
@@ -56,14 +127,17 @@ mean_destroy_wui_h <- mean(yrly_destroy_wui_h$yrly_destroy)
 
 # Number of human related fatalities in the WUI
 allfires <- wuw_eco_ICS %>% 
-  group_by(Year) %>%
-  summarise(tot_fatalities = sum(deaths))
+  group_by(syear) %>%
+  summarise(tot_fatalities = sum(fatalities))
+
+allfires <- as.data.frame(allfires) %>%
+  select(-geom)
 
 yrly_fatalities_wui_h <- wuw_eco_ICS %>%
-  filter(Class == "WUI" & Ignition == "Human" & Year > "2001") %>%
-  group_by(Year) %>%
-  summarise(deaths = sum(deaths)) %>%
-  left_join(., allfires, by = "Year") %>%
+  filter(Class == "WUI" & cause == "Human") %>%
+  group_by(syear) %>%
+  summarise(deaths = sum(fatalities)) %>%
+  left_join(., allfires, by = "syear") %>%
   mutate(yrly_fatalities = (deaths/tot_fatalities)*100)
 
 sum_fatalities_wui_h <- sum(yrly_fatalities_wui_h$deaths)
@@ -84,11 +158,11 @@ PctWUIHuamn <- (humanWUIfires$tot_fire/allfires$tot_fire)*100
 # Social Impact of human started fires in the WUI
 
 wuw_eco_ICS %>%
-  group_by(Class, Ignition) %>%
+  group_by( cause) %>%
   summarise(costs = sum(costs),
-            destory = sum(destroy),
-            threat = sum(threat),
-            lives = sum(deaths))
+            destory = sum(home.destroyed),
+            threat = sum(home.threat),
+            lives = sum(fatalities))
 
 # number of people living in the WUI
 t <- wuw_eco_wui %>%

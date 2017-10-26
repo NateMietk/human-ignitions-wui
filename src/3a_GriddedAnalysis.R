@@ -66,15 +66,15 @@ p101 <- GA_CONUS_bae %>%
   facet_grid(Class ~ IGNITION, switch = "y")
 
 p102 <- GA_CONUS_ICS %>%
-  filter(Ignition != "Lightning") %>%
-  filter(Class != "VLD") %>%
+  filter(cause.x != "Lightning") %>%
+  filter(Class.x != "VLD") %>%
   filter(sum_costs != "NA") %>%
   filter(ptsz_sc != "NA") %>%
   transform(ptsz_sc = factor(ptsz_sc, levels=c("0.01 - 10,000","10,000 - 50,000", "50,000 - 1,000,000",
                                                "1,000,000 - 10,000,000","10,000,000 - 20,000,000","30,000,000 - 40,000,000","> 40,000,001"))) %>%
   transform(ptsz_s = factor(ptsz_s, levels=c("0 - 2", "3 - 10", "11 - 100", "> 100"))) %>%
   transform(ptsz_t = factor(ptsz_t, levels=c("0 - 100", "100 - 500", "500 - 1000","> 1000"))) %>%
-  transform(Class = factor(Class, levels=c("WUI", "VLD", "Wildlands"))) %>%
+  transform(Class.x = factor(Class.x, levels=c("WUI", "VLD", "Wildlands"))) %>%
   ggplot(aes(x, y)) +
   geom_polygon(data=states, aes(x=long,y=lat,group=group), color='black', fill = "gray99", size = .25) +
   geom_point(aes(colour = as.factor(ptsz_sc), size = ptsz_t), stroke = 0) +
@@ -91,7 +91,7 @@ p102 <- GA_CONUS_ICS %>%
         strip.text.x = element_blank(),
         strip.text.y = element_blank(),
         legend.key = element_rect(fill = "white")) +
-  facet_grid(Class ~ Ignition, switch = "y")
+  facet_grid(Class.x ~ cause.x, switch = "y")
 
 
 p101a <- p100 + theme(legend.position="none")

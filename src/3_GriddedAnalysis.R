@@ -1259,19 +1259,6 @@ ggsave(file = "./legend/Gridded_WUI_BAE_Legend.png", legend, width = 2, height =
 
 # Aggregate by FishID ****Homes destroyed****------------------------------
 
-eco_sum_ICS <- wuw_eco_ICS %>%
-  group_by(FishID_25k, Class, Ignition) %>%
-  summarize(f_cnt = n(),
-            sum_costs = sum(SuppressCo),
-            avg_costs = mean(SuppressCo),
-            fire_size_km2 = sum(Size),
-            sum_homethreat = sum(as.numeric(ResThreat))) %>%
-  ungroup()  %>%
-  mutate(ptsz_sc = classify_suppresscosts(sum_costs),
-         ptsz_s = classify_fire_size(fire_size_km2),
-         ptsz_t = classify_homesthreat(sum_homethreat))
-
-GA_CONUS_ICS <- left_join(fs25_df, eco_sum_ICS, by = "FishID_25k")
 
 # Total fire size (km2)
 p102 <- GA_CONUS_ICS %>%

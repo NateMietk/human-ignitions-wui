@@ -1,17 +1,4 @@
-# Libraries ---------------------------------------------------------------
-library(tidyverse)
-library(gridExtra)
-library(gpclib)
-library(rgeos)
-library(rgdal)
-library(sp)
-library(RColorBrewer)
-library(data.table)
-library(bit64)
-library(mblm)
-library(ggmap)
 
-source("src/R/helper_functions.R")
 
 # Import data from CSVs -------------------------------------------------------------
 econorm <- read.csv('./data/EcoRegion_Normalization.csv', header = TRUE, stringsAsFactors = TRUE)
@@ -222,12 +209,6 @@ wuw_eco_wui <- wui %>%
          Class = classify_new_categories(WUICLASS10)) %>%
   filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") 
 
-wuw_eco_ICS <- ICS %>%
-  mutate(AREA_km2 = as.numeric(AREA_km2),
-         Class = classify_new_categories(WUICLASS10),
-         costs = ifelse(is.na(as.numeric(SuppressCo)), 0 , as.numeric(SuppressCo)),
-         destroy = ifelse(is.na(as.numeric(ResDestroy)), 0 , as.numeric(ResDestroy)),
-         threat = ifelse(is.na(as.numeric(ResThreat)), 0 , as.numeric(ResThreat)),
-         deaths = ifelse(is.na(as.numeric(Fatalities)), 0 , as.numeric(Fatalities)),
-         Seasons = classify_seasons(SrtDOY)) %>%
+wuw_eco_ICS <- wui_209 %>%
+  mutate(Seasons = classify_seasons(sdoy)) %>%
   filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") 

@@ -10,6 +10,25 @@ usa_shp <- st_read(dsn = us_prefix,
          group = 1) %>%
   st_simplify(., preserveTopology = TRUE)
 
+states_shp = readOGR(dsn=us_prefix, layer="cb_2016_us_state_20m")
+states_shp <- spTransform(states_shp,
+                       CRS("+init=epsg:2163"))
+
+simple_state = rgeos::gSimplify(states_shp, tol = 1000, topologyPreserve = TRUE)
+(object.size(simple_state)/object.size(states_shp))[1]
+states <- SpatialPolygonsDataFrame(simple_state, states_shp@data)
+states$id <- row.names(states)
+st_df <- fortify(states, region = 'id')
+st_df <- left_join(st_df, states@data, by = 'id')
+names(st_df) <- tolower(names(st_df))
+
+
+states <- as(usa_shp, "Spatial")
+states$id <- row.names(states)
+st_df <- fortify(states, region = 'id')
+st_df <- left_join(st_df, states@data, by = 'id')
+names(st_df) <- tolower(names(st_df))
+
 # Dissolve to the USA Boundary
 conus <- usa_shp %>%
   group_by(group) %>%
@@ -35,20 +54,21 @@ fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
   st_sf('geometry' = ., data.frame('FishID25k' = 1:length(.))) %>%
   st_intersection(., conus) %>%
   mutate(Area_FishID25k_m2 = as.numeric(st_area(geometry)),
-         Area_FishID25k_km2 = Area_FishID25k_m2/1000000)
+         Area_FishID25k_km2 = Area_FishID25k_m2/1000000,
+         id = row_number())
 
 # 10k Fishnet
 fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
-  st_sf('geometry' = ., data.frame('FishID10k' = 1:length(.))) %>%
+  st_sf('geometry' = ., data.frame('FishID_10k' = 1:length(.))) %>%
   st_intersection(., conus) %>%
   mutate(Area_FishID10k_m2 = as.numeric(st_area(geometry)),
-         Area_FishID10k_km2 = Area_FishID10k_m2/1000000)
+         Area_FishID10k_km2 = Area_FishID10k_m2/1000000,
+         id = row_number())
 
 # Intersects the region
 state_eco_fish <- st_intersection(usa_shp, ecoreg) %>%
   dplyr::select(STUSPS, NAME, StArea_km2, US_L3CODE, US_L3NAME, EcoArea_km2,
                 NA_L2NAME, NA_L1CODE, NA_L1NAME, geometry) %>%
-  #st_intersection(., fishnet_50k) %>%
   st_intersection(., fishnet_25k) %>%
   st_intersection(., fishnet_10k)
 

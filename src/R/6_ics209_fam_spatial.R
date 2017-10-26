@@ -27,3 +27,5 @@ wui_209 <- st_intersection(conus_209, wui_shp)
 st_write(wui_209, file.path(prefix, "anthro", "ics209_wui_conus.gpkg"),
          driver = "GPKG",
          update=TRUE)
+
+

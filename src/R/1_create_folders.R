@@ -1,6 +1,9 @@
+# Libraries ---------------------------------------------------------------
 library(tidyverse)
 library(assertthat)
 library(rvest)
+library(gpclib)
+library(rgeos)
 library(httr)
 library(purrr)
 library(gridExtra)
@@ -8,6 +11,11 @@ library(rgdal)
 library(sf)
 library(lubridate)
 library(parallel)
+library(sp)
+library(RColorBrewer)
+library(data.table)
+library(bit64)
+library(ggmap)
 
 source("src/R/helper_functions.R")
 

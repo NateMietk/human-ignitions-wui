@@ -59,12 +59,3 @@ wuw_eco_wui <- wui_state_eco %>%
          Class = classify_new_categories(WUICLASS10)) %>%
   filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") 
 
-wuw_eco_ICS <- ICS %>%
-  mutate(AREA_km2 = as.numeric(AREA_km2),
-         Class = classify_new_categories(WUICLASS10),
-         costs = ifelse(is.na(as.numeric(SuppressCo)), 0 , as.numeric(SuppressCo)),
-         destroy = ifelse(is.na(as.numeric(ResDestroy)), 0 , as.numeric(ResDestroy)),
-         threat = ifelse(is.na(as.numeric(ResThreat)), 0 , as.numeric(ResThreat)),
-         deaths = ifelse(is.na(as.numeric(Fatalities)), 0 , as.numeric(Fatalities)),
-         Seasons = classify_seasons(SrtDOY)) %>%
-  filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") 
