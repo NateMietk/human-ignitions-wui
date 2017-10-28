@@ -65,6 +65,13 @@ fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
          Area_FishID10k_km2 = Area_FishID10k_m2/1000000,
          id = row_number())
 
+hex_grid_25k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width = 25000,
+                          cell_area = 625000000, clip = FALSE) %>%
+  st_as_sf(hex_grid_c) %>%
+  mutate(hex25k_id = row_number()) %>%
+  mutate(Area_Hex25k_m2 = as.numeric(st_area(geometry)),
+         Area_HexID25k_km2 = Area_Hex25k_m2/1000000)
+
 # Intersects the region
 state_eco_fish <- st_intersection(usa_shp, ecoreg) %>%
   dplyr::select(STUSPS, NAME, StArea_km2, US_L3CODE, US_L3NAME, EcoArea_km2,
@@ -92,15 +99,19 @@ wui <- st_read(dsn = file.path(wui_out, "wui_conus.gpkg")) %>%
   mutate(ClArea_m2 = as.numeric(st_area(geom)),
          ClArea_km2 = ClArea_m2/1000000)
 
-# wui_state_eco <- st_intersection(state_eco_fish, wui) %>%
-#   st_make_valid() %>%
-#   mutate(Area_km2 = (as.numeric(st_area(geometry))/1000000))
-#
-# if (!file.exists(file.path(wui_out, "wui_state_eco.gpkg"))) {
-#   st_write(wui_state_eco,
-#            file.path(wui_out, "wui_state_eco.gpkg"),
-#          driver = "GPKG",
-#          update=TRUE)}
+wui_hex <- hex_grid_25k %>%
+  st_intersection(., state_eco_fish) %>%
+  st_make_valid() %>%
+  st_intersection(., wui) %>%
+  st_make_valid() %>%
+  mutate(Area_m2 = as.numeric(st_area( geometry)),
+         Area_km2 = Area_m2/1000000)
+
+if (!file.exists(file.path(wui_out, "wui_state_eco_hex.gpkg"))) {
+  st_write(wui_hex,
+           file.path(wui_out, "wui_state_eco_hex.gpkg"),
+         driver = "GPKG",
+         update=TRUE)}
 
 # Clean the FPA database class
 fpa_fire <- st_read(dsn = file.path(fpa_prefix, "Data", "FPA_FOD_20170508.gdb"),
@@ -129,7 +140,7 @@ fpa_wui <- fpa_fire %>%
   st_make_valid()
 
 if (!file.exists(file.path(fpa_out, "fpa_wui_conus.gpkg"))) {
-  st_write(fpa_fire, file.path(fpa_out, "fpa_wui_conus.gpkg"),
+  st_write(fpa_wui, file.path(fpa_out, "fpa_wui_conus.gpkg"),
            driver = "GPKG",
            update=TRUE)}
 

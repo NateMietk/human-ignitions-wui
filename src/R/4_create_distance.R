@@ -1,3 +1,14 @@
+proj_ed <- "+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs" #USA_Contiguous_Equidistant_Conic
+
+
+# Calculate the distance of each fire point to Urban boundary.
+urban_only <- wui %>%
+  filter(Class == "Urban") %>%
+  st_par(., st_make_valid, n_cores = ncores)  %>%
+  st_par(., st_transform, n_cores = ncores, crs = proj_ed) %>%
+  group_by(Class) %>%
+  summarize()
+
 wui_only <- wui %>%
   filter(Class == "WUI") %>%
   st_make_valid() %>%

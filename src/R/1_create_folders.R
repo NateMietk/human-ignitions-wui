@@ -2,7 +2,7 @@
 library(tidyverse)
 library(assertthat)
 library(rvest)
-#library(gpclib)
+library(raster)
 library(rgeos)
 library(httr)
 library(purrr)
@@ -17,7 +17,8 @@ library(data.table)
 #library(bit64)
 library(ggmap)
 
-source("src/R/helper_functions.R")
+source("src/functions/helper_functions.R")
+source("src/functions/make_grid.R")
 
 # Raw data folders
 prefix <- ifelse(Sys.getenv("LOGNAME") == "NateM", file.path("data"),

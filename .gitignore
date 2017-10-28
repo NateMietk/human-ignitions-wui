@@ -4,8 +4,6 @@
 
 # Session Data files
 .RData
-/data/
-data/
 /*.pptx
 *.pptx
 /papers/
