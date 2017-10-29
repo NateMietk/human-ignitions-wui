@@ -1,5 +1,5 @@
 # Load helper functions for external script
-source("src/R/helper_functions.R")
+source("src/functions/helper_functions.R")
 
 usa_shp <- st_read(dsn = us_prefix,
                    layer = "cb_2016_us_state_20m", quiet= TRUE) %>%
