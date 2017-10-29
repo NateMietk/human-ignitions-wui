@@ -14,15 +14,6 @@ states_shp = readOGR(dsn=us_prefix, layer="cb_2016_us_state_20m")
 states_shp <- spTransform(states_shp,
                        CRS("+init=epsg:2163"))
 
-simple_state = rgeos::gSimplify(states_shp, tol = 1000, topologyPreserve = TRUE)
-(object.size(simple_state)/object.size(states_shp))[1]
-states <- SpatialPolygonsDataFrame(simple_state, states_shp@data)
-states$id <- row.names(states)
-st_df <- fortify(states, region = 'id')
-st_df <- left_join(st_df, states@data, by = 'id')
-names(st_df) <- tolower(names(st_df))
-
-
 states <- as(usa_shp, "Spatial")
 states$id <- row.names(states)
 st_df <- fortify(states, region = 'id')
@@ -43,11 +34,11 @@ ecoreg <- st_read(dsn = ecoregion_prefix, layer = "us_eco_l3", quiet= TRUE) %>%
 
 # Create Fishnets ---------------------------------------------------------
 # 50k Fishnet
-# fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
-#   st_sf('geometry' = ., data.frame('FishID50k' = 1:length(.))) %>%
-#   st_intersection(., conus) %>%
-#   mutate(Area_FishID50k_m2 = as.numeric(st_area(geometry)),
-#          Area_FishID50k_km2 = Area_FishID50k_m2/1000000)
+fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
+  st_sf('geometry' = ., data.frame('FishID50k' = 1:length(.))) %>%
+  st_intersection(., conus) %>%
+  mutate(Area_FishID50k_m2 = as.numeric(st_area(geometry)),
+         Area_FishID50k_km2 = Area_FishID50k_m2/1000000)
 
 # 25k Fishnet
 fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
@@ -65,6 +56,13 @@ fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
          Area_FishID10k_km2 = Area_FishID10k_m2/1000000,
          id = row_number())
 
+hex_grid_50k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width = 50000,
+                          cell_area = 1250000000, clip = FALSE) %>%
+  st_as_sf(hex_grid_c) %>%
+  mutate(hex50k_id = row_number()) %>%
+  mutate(Area_Hex50k_m2 = as.numeric(st_area(geometry)),
+         Area_HexID50k_km2 = Area_Hex50k_m2/1000000)
+
 hex_grid_25k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width = 25000,
                           cell_area = 625000000, clip = FALSE) %>%
   st_as_sf(hex_grid_c) %>%
@@ -72,12 +70,24 @@ hex_grid_25k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width =
   mutate(Area_Hex25k_m2 = as.numeric(st_area(geometry)),
          Area_HexID25k_km2 = Area_Hex25k_m2/1000000)
 
+# Try to summarize distance from WUI using hexagonal
+hex_grid_big <- make_grid(as(conus, "Spatial"), type = "hexagonal",
+                          cell_area = 1000000000000, clip = TRUE)%>%
+  st_as_sf(hex_grid_c) %>%
+  mutate(hex25k_id = row_number()) %>%
+  mutate(Area_Hexb_m2 = as.numeric(st_area(geometry)),
+         Area_Hexb_km2 = Area_Hexb_m2/1000000)
+
 # Intersects the region
 state_eco_fish <- st_intersection(usa_shp, ecoreg) %>%
   dplyr::select(STUSPS, NAME, StArea_km2, US_L3CODE, US_L3NAME, EcoArea_km2,
                 NA_L2NAME, NA_L1CODE, NA_L1NAME, geometry) %>%
+  st_intersection(., fishnet_50k) %>%
   st_intersection(., fishnet_25k) %>%
-  st_intersection(., fishnet_10k)
+  st_intersection(., fishnet_10k) %>%
+  st_intersection(., hex_grid_big) %>%
+  st_intersection(., hex_grid_50k) %>%
+  st_intersection(., hex_grid_25k) %>%
 
 #Import the Wildland-Urban Interface and process
 wui <- st_read(dsn = file.path(wui_prefix, "us_wui_2010.gdb"),
