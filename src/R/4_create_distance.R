@@ -3,7 +3,7 @@ proj_ed <- "+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +d
 
 # Calculate the distance of each fire point to Urban boundary.
 urban_only <- wui %>%
-  filter(Class == "Urban") %>%
+  filter(class == "Urban") %>%
   st_par(., st_make_valid, n_cores = ncores)  %>%
   st_par(., st_transform, n_cores = ncores, crs = proj_ed) %>%
   group_by(Class) %>%
@@ -11,10 +11,9 @@ urban_only <- wui %>%
 
 wui_only <- wui %>%
   filter(Class == "WUI") %>%
+  st_union() %>%
   st_make_valid() %>%
-  st_transform(crs = proj_ed) %>%
-  group_by(Class) %>%
-  summarize()
+  st_transform(crs = proj_ed)
 
 if (!file.exists(file.path(wui_out, "urban_only.gpkg"))) {
   st_write(urban_only, file.path(wui_out, "urban_only.gpkg"),
