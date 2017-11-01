@@ -1,4 +1,4 @@
-source("src/R/helper_functions.R")
+source("src/functions/helper_functions.R")
 
 x <- c("data.table", "tidyverse", "tidyverse", "magrittr", "sf",
        "assertthat", "purrr", "httr", "rvest", "lubridate", "parallel")
@@ -49,7 +49,7 @@ latlong <- fread("data/ics209/input_tbls/latlong/ics209Incidents-cleaned_ll.csv"
 
 names(fam_rep) %<>% tolower
 
-fam <- fam_rep %>%
+fam <- fam_rep %>% 
   filter(!(un_ustate %in% c("AK", "HI", "PR"))) %>%
   filter(type_inc != "RX") %>%
   mutate(long = -longitude,
@@ -72,8 +72,9 @@ fam <- fam_rep %>%
          area_km2 = area_ha*0.01,
          est_final_costs = dollarToNumber_vectorised(clean_estimated_costs(incident_unique_id, est_final_costs)),
          costs_to_date_c = dollarToNumber_vectorised(clean_costs_to_date(incident_unique_id, costs_to_date)),
-         cause_binary = ifelse(cause == "H", "2",
-                               ifelse(cause =="L", "1", "0")),
+         cause_binary = ifelse(cause == "H", "2", 
+                               ifelse(cause == "O", "2", 
+                                      ifelse(cause =="L", "1", "0"))),
          confi = "H") %>%
   left_join(est_lookup, by = c("incident_unique_id", "est_final_costs")) %>%
   mutate(est_final_costs_c = ifelse(is.na(est_final_costs_c), est_final_costs, est_final_costs_c),
@@ -84,8 +85,6 @@ fam_clean <- fam %>%
   group_by(incident_unique_id, eyear, state) %>%
   summarise(incidentnum = last(incidentnum),
             incidentname = last(incidentname),
-            lat = max(lat),
-            long = min(long),
             emonth = max(rmonth),
             eday = max(rday),
             edoy = max(rdoy),
@@ -104,7 +103,7 @@ fam_clean <- fam %>%
             tot.aerial = sum(imsr_num_aerial),
             max.agency.support = max(imsr_num_agencies),
             cause = max(cause_binary),
-            cause = ifelse(cause == "2", "Human",
+            cause = ifelse(cause == "2", "Human", 
                            ifelse(cause =="1", "Lightning", "Unk")),
             confi = last(confi)) %>%
   left_join(., latlong, by = "incident_unique_id") %>%

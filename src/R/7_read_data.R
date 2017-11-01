@@ -9,6 +9,17 @@ wui_209 <- st_read("data/ics209/spatial/ics209_wui_conus.gpkg") %>%
 
 names(wui_209) %<>% tolower
 
+hex_209 <- hex_grid_25k %>%
+  st_join(., wui_209, join = st_intersects, left = TRUE) 
+
+fpa_209_sum <- hex_209 %>%
+  group_by(hex25k_id, class, cause) %>%
+  summarize(n_fire = n(),
+            sum_costs = sum(costs),
+            avg_costs = mean(costs),
+            fire_size_km2 = mean(area_km2),
+            sum_homethreat = sum(as.numeric(home.threat)))
+
 # ICS 209 database from 2001 - 2015
 fpa_wui <- st_read("data/fpa-fod/fpa_wui_conus.gpkg") %>%
   mutate(Seasons = classify_seasons(DISCOVERY_DOY)) %>%
@@ -18,11 +29,11 @@ fpa_wui <- st_read("data/fpa-fod/fpa_wui_conus.gpkg") %>%
 
 names(fpa_wui) %<>% tolower
 
-fpa_209 <- hex_grid_25k %>%
+hex_fpa <- hex_grid_25k %>%
   st_join(., fpa_wui, join = st_intersects, left = TRUE) 
   
-fpa_tots <- fpa_209 %>%
-  group_by(hex25k_id.x, class.x) %>%
+fpa_tots <- hex_fpa %>%
+  group_by(hex25k, class) %>%
   summarize(tot_fire = n(),
             sum_totfire = sum(fire_size_km2),
             avg_totfire = mean(fire_size_km2)) %>%
@@ -31,23 +42,18 @@ fpa_tots <- fpa_209 %>%
          ptsz_s = classify_fire_size(sum_totfire))
   
 fpa_209_sum <- fpa_209 %>%
-  group_by(hex25k_id.x, class.x, ignition) %>%
+  group_by(hex25k, class, ignition) %>%
   summarize(n_fire = n(),
-            sum_costs = sum(costs),
-            avg_costs = mean(costs),
-            fire_size_km2 = mean(fire_size_km2),
-            sum_homethreat = sum(as.numeric(home.threat))) %>%
+            fire_size_km2 = mean(fire_size_km2)) %>%
   ungroup()  %>%
   spread(ignition, n_fire) %>%
-  left_join(., fpa_tots, by = c("class.x", "hex25k_id.x")) %>%
+  left_join(., fpa_tots, by = c("class", "hex25k")) %>%
   mutate(ff_h = ifelse(is.na(Human), 0, Human), 
          ff_l = ifelse(is.na(Lightning), 0, Lightning),
          fd_h = (tot_fire-ff_h),
          fd_l = (tot_fire-ff_l),
          tot_den = (1-(fd_h/(fd_h+fd_l)))*100) %>%
-  mutate(ptsz_sc = classify_suppresscosts(sum_costs),
-         ptsz_s = classify_fire_size(fire_size_km2),
-         ptsz_t = classify_homesthreat(sum_homethreat)) 
+  mutate(pptsz_s = classify_fire_size(fire_size_km2)) 
 
 hx25_df <- fortify(as(hex_grid_25k, "Spatial"), region = "hex25k_id") %>%
   mutate(hex25k_id = as.numeric(id))

@@ -26,46 +26,47 @@ wuw_eco_bae %>%
 eco_sum_bae2 <- mean(eco_sum_bae2$yrly_burn)
 
 # Human related consequences
-humcost_cause <- wuw_eco_ICS %>% 
+humcost_cause <- wui_209 %>% 
   group_by(cause) %>%
   summarise(totcosts = sum(costs)) %>%
   as.data.frame(.) %>%
-  select(-geom) %>%
+  dplyr::select(-geom) %>%
   mutate(pct_t = totcosts/t)
-wuw_eco_ICS %>% 
+
+wui_209 %>% 
      group_by(Class, cause) %>%
      summarise(costs = sum(costs)) %>%
      left_join(., humcost_cause, by = "Class") %>%
   as.data.frame(.) %>%
   mutate(pct = costs/totcosts)
 
-humdestroy_cause <- wuw_eco_ICS %>% 
+humdestroy_cause <- wui_209 %>% 
   filter(cause != "Unk") %>%
   group_by(cause) %>%
   summarise(totdestroyed = sum(home.destroyed)) %>%
   as.data.frame(.) %>%
   select(-geom)
 
-humdeath_cause <- wuw_eco_ICS %>% 
+humdeath_cause <- wui_209 %>% 
   filter(cause != "Unk") %>%
   group_by(cause) %>%
   summarise(totdeath = sum(fatalities)) %>%
   as.data.frame(.) %>%
   select(-geom)
 
-person_cause <- wuw_eco_ICS %>% 
+person_cause <- wui_209 %>% 
   filter(cause != "Unk") %>%
   group_by(cause) %>%
   summarise(totperson = sum(tot.pers)) %>%
   as.data.frame(.) %>%
   select(-geom)
 
-wuw_eco_ICS %>% 
+wui_209 %>% 
   group_by(Class, cause) %>%
   summarise(person = sum(tot.pers)) %>%
   left_join(., person_cause, by = "cause")
 
-aerial_cause <- wuw_eco_ICS %>% 
+aerial_cause <- wui_209 %>% 
   filter(cause != "Unk") %>%
   group_by(cause) %>%
   summarise(totaerial = sum(tot.aerial)) %>%
