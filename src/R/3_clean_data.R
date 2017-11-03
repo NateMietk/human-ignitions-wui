@@ -20,12 +20,52 @@ names(st_df) <- tolower(names(st_df))
 conus <- usa_shp %>%
   st_union()
 
-# Import the Level 3 Ecoregions
-ecoreg <- st_read(dsn = ecoregion_prefix, layer = "us_eco_l3", quiet= TRUE) %>%
-  st_transform("+init=epsg:2163") %>%  # e.g. US National Atlas Equal Area
-  st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
-  dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME)
-names(ecoreg) %<>% tolower
+  # Import the Level 1 Ecoregions
+  ecoreg1 <- st_read(dsn = ecoregion_prefix, layer = "NA_CEC_Eco_Level1", quiet= TRUE) %>%
+    st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
+    st_buffer(0) %>%
+    st_par(., st_transform, n_cores = ncores, crs = proj_ea) %>%
+    st_intersection(., st_union(usa_shp)) %>%
+    select(NA_L1CODE, NA_L1NAME) %>%
+    mutate(ecoreg1.code = NA_L1CODE,
+           ecoreg1.name = NA_L1NAME,
+           ecoreg1_km2 = as.numeric(st_area(geometry))/1000000) %>%
+    select(ecoreg1.code, ecoreg1.name, ecoreg1_km2)
+
+  # Import the Level 2 Ecoregions
+  ecoreg2 <- st_read(dsn = ecoregion_prefix, layer = "NA_CEC_Eco_Level2", quiet= TRUE) %>%
+    st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
+    st_buffer(0) %>%
+    st_par(., st_transform, n_cores = ncores, crs = proj_ea) %>%
+    st_intersection(., st_union(usa_shp)) %>%
+    select(NA_L2CODE, NA_L2NAME) %>%
+    mutate(ecoreg2.code = NA_L2CODE,
+           ecoreg2.name = NA_L2NAME,
+           ecoreg2_km2 = as.numeric(st_area(geometry))/1000000) %>%
+    select(ecoreg2.code, ecoreg2.name, ecoreg2_km2)
+
+  # Import the Level 3 Ecoregions
+  ecoreg3 <- st_read(dsn = ecoregion_prefix, layer = "us_eco_l3", quiet= TRUE) %>%
+    st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
+    st_buffer(0) %>%
+    st_par(., st_transform, n_cores = ncores, crs = proj_ea) %>%
+    st_intersection(., st_union(usa_shp)) %>%
+    select(US_L3CODE, US_L3NAME) %>%
+    mutate(ecoreg3.code = US_L3CODE,
+           ecoreg3.name = US_L3NAME,
+           ecoreg3_km2 = as.numeric(st_area(geometry))/1000000) %>%
+    st_par(., st_intersection, n_cores = ncores, y = st_union(usa_shp)) %>%
+    select(ecoreg3.code, ecoreg3.name, ecoreg3_km2)
+
+  names(usa_shp) %<>% tolower
+  names(ecoreg1) %<>% tolower
+  names(ecoreg2) %<>% tolower
+  names(ecoreg3) %<>% tolower
+
+  state_ecoregion <- st_par(usa_shp, st_intersection, n_cores = ncores, y = ecoreg1) %>%
+    st_par(., st_intersection, n_cores = ncores, y = ecoreg2) %>%
+    st_par(., st_intersection, n_cores = ncores, y = ecoreg3)
+
 
 # Create Fishnets ---------------------------------------------------------
 # 50k Fishnet
