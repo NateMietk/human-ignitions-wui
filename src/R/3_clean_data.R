@@ -1,18 +1,14 @@
 # Load helper functions for external script
 source("src/functions/helper_functions.R")
+source("src/functions/make_grid.R")
 
 usa_shp <- st_read(dsn = us_prefix,
                    layer = "cb_2016_us_state_20m", quiet= TRUE) %>%
   st_transform("+init=epsg:2163") %>%  # e.g. US National Atlas Equal Area
   filter(!(NAME %in% c("Alaska", "Hawaii", "Puerto Rico"))) %>%
-  mutate(area_m2 = as.numeric(st_area(geometry)),
-         StArea_km2 = area_m2/1000000,
-         group = 1) %>%
-  st_simplify(., preserveTopology = TRUE)
+  dplyr::select(STUSPS)
 
-states_shp = readOGR(dsn=us_prefix, layer="cb_2016_us_state_20m")
-states_shp <- spTransform(states_shp,
-                       CRS("+init=epsg:2163"))
+names(usa_shp) %<>% tolower
 
 states <- as(usa_shp, "Spatial")
 states$id <- row.names(states)
@@ -22,72 +18,55 @@ names(st_df) <- tolower(names(st_df))
 
 # Dissolve to the USA Boundary
 conus <- usa_shp %>%
-  group_by(group) %>%
-  summarize()
+  st_union()
 
 # Import the Level 3 Ecoregions
 ecoreg <- st_read(dsn = ecoregion_prefix, layer = "us_eco_l3", quiet= TRUE) %>%
   st_transform("+init=epsg:2163") %>%  # e.g. US National Atlas Equal Area
   st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
-  mutate(area_m2 = as.numeric(st_area(geometry)),
-         EcoArea_km2 = area_m2/1000000)
+  dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME)
+names(ecoreg) %<>% tolower
 
 # Create Fishnets ---------------------------------------------------------
 # 50k Fishnet
 fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
-  st_sf('geometry' = ., data.frame('FishID50k' = 1:length(.))) %>%
-  st_intersection(., conus) %>%
-  mutate(Area_FishID50k_m2 = as.numeric(st_area(geometry)),
-         Area_FishID50k_km2 = Area_FishID50k_m2/1000000)
+  st_sf('geometry' = ., data.frame('fish50' = 1:length(.))) %>%
+  st_intersection(., conus)
 
 # 25k Fishnet
 fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
-  st_sf('geometry' = ., data.frame('FishID25k' = 1:length(.))) %>%
-  st_intersection(., conus) %>%
-  mutate(Area_FishID25k_m2 = as.numeric(st_area(geometry)),
-         Area_FishID25k_km2 = Area_FishID25k_m2/1000000,
-         id = row_number())
+  st_sf('geometry' = ., data.frame('fish25' = 1:length(.))) %>%
+  st_intersection(., conus)
 
 # 10k Fishnet
 fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
-  st_sf('geometry' = ., data.frame('FishID_10k' = 1:length(.))) %>%
-  st_intersection(., conus) %>%
-  mutate(Area_FishID10k_m2 = as.numeric(st_area(geometry)),
-         Area_FishID10k_km2 = Area_FishID10k_m2/1000000,
-         id = row_number())
+  st_sf('geometry' = ., data.frame('fish10' = 1:length(.))) %>%
+  st_intersection(., conus)
 
 hex_grid_50k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width = 50000,
                           cell_area = 1250000000, clip = FALSE) %>%
   st_as_sf(hex_grid_c) %>%
-  mutate(hex50k_id = row_number()) %>%
-  mutate(Area_Hex50k_m2 = as.numeric(st_area(geometry)),
-         Area_HexID50k_km2 = Area_Hex50k_m2/1000000)
+  mutate(hex50 = row_number())
 
 hex_grid_25k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width = 25000,
                           cell_area = 625000000, clip = FALSE) %>%
   st_as_sf(hex_grid_c) %>%
-  mutate(hex25k_id = row_number()) %>%
-  mutate(Area_Hex25k_m2 = as.numeric(st_area(geometry)),
-         Area_HexID25k_km2 = Area_Hex25k_m2/1000000)
+  mutate(hex25 = row_number())
 
 # Try to summarize distance from WUI using hexagonal
-hex_grid_big <- make_grid(as(conus, "Spatial"), type = "hexagonal",
+hex_grid_400k <- make_grid(as(conus, "Spatial"), type = "hexagonal",
                           cell_area = 1000000000000, clip = TRUE)%>%
   st_as_sf(hex_grid_c) %>%
-  mutate(hex25k_id = row_number()) %>%
-  mutate(Area_Hexb_m2 = as.numeric(st_area(geometry)),
-         Area_Hexb_km2 = Area_Hexb_m2/1000000)
+  mutate(hex400 = row_number())
 
 # Intersects the region
-state_eco_fish <- st_intersection(usa_shp, ecoreg) %>%
-  dplyr::select(STUSPS, NAME, StArea_km2, US_L3CODE, US_L3NAME, EcoArea_km2,
-                NA_L2NAME, NA_L1CODE, NA_L1NAME, geometry) %>%
+bounds <- st_intersection(usa_shp, ecoreg) %>%
   st_intersection(., fishnet_50k) %>%
   st_intersection(., fishnet_25k) %>%
   st_intersection(., fishnet_10k) %>%
-  st_intersection(., hex_grid_big) %>%
+  st_intersection(., hex_grid_400k) %>%
   st_intersection(., hex_grid_50k) %>%
-  st_intersection(., hex_grid_25k) %>%
+  st_intersection(., hex_grid_25k)
 
 #Import the Wildland-Urban Interface and process
 wui <- st_read(dsn = file.path(wui_prefix, "us_wui_2010.gdb"),
@@ -96,30 +75,25 @@ wui <- st_read(dsn = file.path(wui_prefix, "us_wui_2010.gdb"),
   mutate(Class = classify_wui(WUICLASS10)) %>%
   filter(Class %in% c("Urban" ,"WUI", "VLD", "Wildlands")) %>%
   st_transform("+init=epsg:2163") %>%
-  st_make_valid() %>%
-  mutate(ClArea_m2 = as.numeric(st_area(geom)),
-         ClArea_km2 = ClArea_m2/1000000)
+  st_make_valid()
 
-if (!file.exists(file.path(wui_out, "wui_conus.gpkg"))) {
-  st_write(wui, file.path(wui_out, "wui_conus.gpkg"),
+if (!file.exists(file.path(anthro_out, "wui_conus.gpkg"))) {
+  st_write(wui, file.path(anthro_out, "wui_conus.gpkg"),
          driver = "GPKG",
          update=TRUE)}
 
-wui <- st_read(dsn = file.path(wui_out, "wui_conus.gpkg")) %>%
-  mutate(ClArea_m2 = as.numeric(st_area(geom)),
-         ClArea_km2 = ClArea_m2/1000000)
+wui <- st_read(dsn = file.path(anthro_out, "wui_conus.gpkg")) %>%
+  mutate(area_km2 = as.numeric(st_area(geom))/1000000)
 
-wui_hex <- hex_grid_25k %>%
-  st_intersection(., state_eco_fish) %>%
+wui_bounds <- bounds %>%
   st_make_valid() %>%
   st_intersection(., wui) %>%
   st_make_valid() %>%
-  mutate(Area_m2 = as.numeric(st_area( geometry)),
-         Area_km2 = Area_m2/1000000)
+  mutate(wui_area_m2 = as.numeric(st_area(geometry))/1000000)
 
-if (!file.exists(file.path(wui_out, "wui_state_eco_hex.gpkg"))) {
-  st_write(wui_hex,
-           file.path(wui_out, "wui_state_eco_hex.gpkg"),
+if (!file.exists(file.path(anthro_out, "wui_bounds.gpkg"))) {
+  st_write(wui_bounds,
+           file.path(anthro_out, "wui_bounds.gpkg"),
          driver = "GPKG",
          update=TRUE)}
 

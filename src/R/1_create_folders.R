@@ -35,7 +35,7 @@ mtbs_prefix <- file.path(raw_prefix, "mtbs_fod_perimeter_data")
 bounds_crt <- file.path(prefix, "bounds")
 conus_crt <- file.path(bounds_crt, "conus")
 ecoreg_crt <- file.path(bounds_crt, "ecoregion")
-wui_out <- file.path(prefix, "anthro")
+anthro_out <- file.path(prefix, "anthro")
 fire_crt <- file.path(prefix, "fire")
 
 us_out <- file.path(conus_crt, "cb_2016_us_state_20m")
@@ -46,6 +46,6 @@ mtbs_out <- file.path(prefix, "fire", "mtbs_fod_perimeter_data")
 
 # Check if directory exists for all variable aggregate outputs, if not then create
 var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix,
-                bounds_crt, conus_crt, ecoreg_crt, wui_out, fire_crt,
+                bounds_crt, conus_crt, ecoreg_crt, anthro_out, fire_crt,
                 us_out, ecoregion_out, fpa_out, mtbs_out)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))

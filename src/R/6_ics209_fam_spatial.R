@@ -1,11 +1,16 @@
 source("src/R/ics209_fam_cleaning.R")
 
 # Make the cleaned ICS-209 data spatial
-fam_clean_pt <- st_as_sf(fam_clean, coords = c("long", "lat"),
-                         crs = "+proj=longlat +datum=WGS84")
+fam_clean_pt <- st_par(fam_clean, st_as_sf, n_cores = ncores,
+                       coords = c("long", "lat"),
+                       crs = "+proj=longlat +datum=WGS84") %>%
+  st_par(., st_transform, n_cores = ncores, crs = proj_ea)
 
 # Clip the ICS-209 data to the CONUS and remove unknown cause
-conus_209 <- st_par(fam_clean_pt, st_intersection, n_cores = ncores, y = st_union(usa_shp))
+conus_209 <- st_par(fam_clean_pt, st_intersection, n_cores = ncores, y = st_union(usa_shp)) %>%
+  dplyr::select(-state) %>%
+  st_par(., st_intersection, n_cores = ncores, y = bounds)
+plot(conus_209[1], pch = 20)
 
 erratics <- st_par(fam_clean_pt, st_difference, n_cores = ncores, y = st_union(usa_shp))
 
@@ -27,5 +32,3 @@ wui_209 <- st_intersection(conus_209, wui_shp)
 st_write(wui_209, file.path(prefix, "anthro", "ics209_wui_conus.gpkg"),
          driver = "GPKG",
          update=TRUE)
-
-
