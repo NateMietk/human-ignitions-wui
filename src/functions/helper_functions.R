@@ -45,7 +45,7 @@ clean_estimated_costs <- function(x, y, z) {
 clean_costs_to_date <- function(x, y) {
   # x = incident_unique_id
   # y = est_final_costs
-
+  
   costs_to_date_c <-
     ifelse(x == "CA-BTU-007660|2008|1"   & y == 876000000, 87600000,
            ifelse(x == "CA-STF-002857|2013|1"   & y == 1161000000, 116100000,
@@ -91,22 +91,22 @@ clean_costs_to_date <- function(x, y) {
 # http://www.spatialanalytics.co.nz/post/2017/09/11/a-parallel-function-for-spatial-analysis-in-r/
 # Paralise any simple features analysis.
 st_par <- function(sf_df, sf_func, n_cores, ...){
-
+  
   # Create a vector to split the data set up by.
   split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
-
+  
   # Perform GIS analysis
   split_results <- split(sf_df, split_vector) %>%
     mclapply(function(x) sf_func(x, ...), mc.cores = n_cores)
-
+  
   # Combine results back together. Method of combining depends on the output from the function.
-  if ( class(split_results[[1]]) == 'list' ){
+  if (class(split_results[[1]]) == 'list' ){
     result <- do.call("c", split_results)
     names(result) <- NULL
   } else {
-    result <- do.call("rbind", split_results)
+    result <- do.call(rbind, split_results)
   }
-
+  
   # Return result
   return(result)
 }
@@ -319,7 +319,7 @@ classify_suppresscosts <-  function(x) {
                                             ifelse(x >= 20000000 & x < 30000000, "20,000,000 - 30,000,000",
                                                    ifelse(x >= 30000000 & x < 40000000, "30,000,000 - 40,000,000",
                                                           "> 40,000,001"))))))))
-
+  
 }
 
 classify_pctbae <-  function(x) {
@@ -337,7 +337,7 @@ classify_pctbae <-  function(x) {
                                             ifelse(x >= 30 & x < 40, "30 - 40",
                                                    ifelse(x >= 40 & x < 50, "40 - 50",
                                                           "> 50"))))))))
-
+  
 }
 
 classify_suppresscosts2 <-  function(x) {
@@ -354,7 +354,7 @@ classify_suppresscosts2 <-  function(x) {
                                      ifelse(x >= 10000000 & x < 20000000, 20000000,
                                             ifelse(x >= 20000000 & x < 40000000, 40000000,
                                                    40000001)))))))
-
+  
 }
 
 classify_new_categories <-  function(x) {
@@ -454,25 +454,25 @@ theme_pub <- function(base_size=11, base_family="") {
   library(ggthemes)
   (theme_foundation(base_size=base_size, base_family=base_family)
     + theme(plot.title = element_text(hjust = 0.05, size = 13),
-
+            
             panel.border = element_rect(colour = NA),
             panel.background = element_rect(colour = NA),
             panel.grid.major = element_line(colour="#f0f0f0"),
             panel.grid.minor = element_blank(),
             plot.background = element_rect(colour = NA),
-
+            
             axis.line = element_line(colour="black"),
             axis.ticks = element_line(),
-
+            
             legend.title = element_text(size=11),
             legend.position = "right",
             legend.text = element_text(size=11),
             legend.direction = "vertical",
             legend.key = element_rect(colour = "transparent", fill = "white"),
-
+            
             strip.background=element_rect(colour=NA),
             strip.text.x = element_text(size = 10),
-
+            
             axis.title = element_text(size = 11),
             axis.text.x = element_text(size = 10, angle = 65, hjust = 1),
             axis.text.y = element_text(size = 11)))

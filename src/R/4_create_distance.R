@@ -10,11 +10,8 @@ urban_only <- wui %>%
   summarize()
 
 wui_only <- wui %>%
-  filter(Class == "WUI") %>%
-  st_union()
-
-wui_ed <- wui_only %>%
-  st_transform(crs = proj_ed)
+  filter(Class == "WUI")  %>%
+  st_transform(crs = proj_ed) 
 
 if (!file.exists(file.path(wui_out, "urban_only.gpkg"))) {
   st_write(urban_only, file.path(wui_out, "urban_only.gpkg"),

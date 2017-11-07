@@ -20,52 +20,12 @@ names(st_df) <- tolower(names(st_df))
 conus <- usa_shp %>%
   st_union()
 
-  # Import the Level 1 Ecoregions
-  ecoreg1 <- st_read(dsn = ecoregion_prefix, layer = "NA_CEC_Eco_Level1", quiet= TRUE) %>%
-    st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
-    st_buffer(0) %>%
-    st_par(., st_transform, n_cores = ncores, crs = proj_ea) %>%
-    st_intersection(., st_union(usa_shp)) %>%
-    select(NA_L1CODE, NA_L1NAME) %>%
-    mutate(ecoreg1.code = NA_L1CODE,
-           ecoreg1.name = NA_L1NAME,
-           ecoreg1_km2 = as.numeric(st_area(geometry))/1000000) %>%
-    select(ecoreg1.code, ecoreg1.name, ecoreg1_km2)
-
-  # Import the Level 2 Ecoregions
-  ecoreg2 <- st_read(dsn = ecoregion_prefix, layer = "NA_CEC_Eco_Level2", quiet= TRUE) %>%
-    st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
-    st_buffer(0) %>%
-    st_par(., st_transform, n_cores = ncores, crs = proj_ea) %>%
-    st_intersection(., st_union(usa_shp)) %>%
-    select(NA_L2CODE, NA_L2NAME) %>%
-    mutate(ecoreg2.code = NA_L2CODE,
-           ecoreg2.name = NA_L2NAME,
-           ecoreg2_km2 = as.numeric(st_area(geometry))/1000000) %>%
-    select(ecoreg2.code, ecoreg2.name, ecoreg2_km2)
-
-  # Import the Level 3 Ecoregions
-  ecoreg3 <- st_read(dsn = ecoregion_prefix, layer = "us_eco_l3", quiet= TRUE) %>%
-    st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
-    st_buffer(0) %>%
-    st_par(., st_transform, n_cores = ncores, crs = proj_ea) %>%
-    st_intersection(., st_union(usa_shp)) %>%
-    select(US_L3CODE, US_L3NAME) %>%
-    mutate(ecoreg3.code = US_L3CODE,
-           ecoreg3.name = US_L3NAME,
-           ecoreg3_km2 = as.numeric(st_area(geometry))/1000000) %>%
-    st_par(., st_intersection, n_cores = ncores, y = st_union(usa_shp)) %>%
-    select(ecoreg3.code, ecoreg3.name, ecoreg3_km2)
-
-  names(usa_shp) %<>% tolower
-  names(ecoreg1) %<>% tolower
-  names(ecoreg2) %<>% tolower
-  names(ecoreg3) %<>% tolower
-
-  state_ecoregion <- st_par(usa_shp, st_intersection, n_cores = ncores, y = ecoreg1) %>%
-    st_par(., st_intersection, n_cores = ncores, y = ecoreg2) %>%
-    st_par(., st_intersection, n_cores = ncores, y = ecoreg3)
-
+# Import the Level 3 Ecoregions
+ecoreg <- st_read(dsn = ecoregion_prefix, layer = "us_eco_l3", quiet= TRUE) %>%
+  st_transform("+init=epsg:2163") %>%  # e.g. US National Atlas Equal Area
+  st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
+  dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME)
+names(ecoreg) %<>% tolower
 
 # Create Fishnets ---------------------------------------------------------
 # 50k Fishnet
@@ -81,23 +41,23 @@ fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
 # 10k Fishnet
 fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
   st_sf('geometry' = ., data.frame('fish10' = 1:length(.))) %>%
-  st_intersection(., conus)
+  st_intersection(., conus) 
 
 hex_grid_50k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width = 50000,
                           cell_area = 1250000000, clip = FALSE) %>%
   st_as_sf(hex_grid_c) %>%
-  mutate(hex50 = row_number())
+  mutate(hex50 = row_number()) 
 
 hex_grid_25k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width = 25000,
                           cell_area = 625000000, clip = FALSE) %>%
   st_as_sf(hex_grid_c) %>%
-  mutate(hex25 = row_number())
+  mutate(hex25 = row_number()) 
 
 # Try to summarize distance from WUI using hexagonal
 hex_grid_400k <- make_grid(as(conus, "Spatial"), type = "hexagonal",
-                          cell_area = 1000000000000, clip = TRUE)%>%
+                           cell_area = 1000000000000, clip = TRUE)%>%
   st_as_sf(hex_grid_c) %>%
-  mutate(hex400 = row_number())
+  mutate(hex400 = row_number()) 
 
 # Intersects the region
 bounds <- st_intersection(usa_shp, ecoreg) %>%
@@ -117,12 +77,12 @@ wui <- st_read(dsn = file.path(wui_prefix, "us_wui_2010.gdb"),
   st_transform("+init=epsg:2163") %>%
   st_make_valid()
 
-if (!file.exists(file.path(anthro_out, "wui_conus.gpkg"))) {
-  st_write(wui, file.path(anthro_out, "wui_conus.gpkg"),
-         driver = "GPKG",
-         update=TRUE)}
+if (!file.exists(file.path(wui_out, "wui_conus.gpkg"))) {
+  st_write(wui, file.path(wui_out, "wui_conus.gpkg"),
+           driver = "GPKG",
+           update=TRUE)}
 
-wui <- st_read(dsn = file.path(anthro_out, "wui_conus.gpkg")) %>%
+wui <- st_read(dsn = file.path(wui_out, "wui_conus.gpkg")) %>%
   mutate(area_km2 = as.numeric(st_area(geom))/1000000)
 
 wui_bounds <- bounds %>%
@@ -131,15 +91,15 @@ wui_bounds <- bounds %>%
   st_make_valid() %>%
   mutate(wui_area_m2 = as.numeric(st_area(geometry))/1000000)
 
-if (!file.exists(file.path(anthro_out, "wui_bounds.gpkg"))) {
+if (!file.exists(file.path(wui_out, "wui_bounds.gpkg"))) {
   st_write(wui_bounds,
-           file.path(anthro_out, "wui_bounds.gpkg"),
-         driver = "GPKG",
-         update=TRUE)}
+           file.path(wui_out, "wui_bounds.gpkg"),
+           driver = "GPKG",
+           update=TRUE)}
 
 # Clean the FPA database class
 fpa_fire <- st_read(dsn = file.path(fpa_prefix, "Data", "FPA_FOD_20170508.gdb"),
-                     layer = "Fires", quiet= FALSE) %>%
+                    layer = "Fires", quiet= FALSE) %>%
   filter(!(STATE %in% c("Alaska", "Hawaii", "Puerto Rico") & FIRE_SIZE >= 0.1)) %>%
   dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME,
                 FIRE_YEAR, DISCOVERY_DATE, DISCOVERY_DOY, STAT_CAUSE_DESCR, FIRE_SIZE, STATE) %>%
@@ -155,8 +115,8 @@ fpa_fire <- st_transform(fpa_fire, "+init=epsg:2163")
 
 if (!file.exists(file.path(fpa_out, "fpa_conus.gpkg"))) {
   st_write(fpa_fire, file.path(fpa_out, "fpa_conus.gpkg"),
-         driver = "GPKG",
-         update=TRUE)}
+           driver = "GPKG",
+           update=TRUE)}
 
 fpa_wui <- fpa_fire %>%
   st_intersection(., wui) %>%
@@ -193,7 +153,7 @@ if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
            update=TRUE)}
 
 mtbs_wui <- mtbs_fire %>%
-   st_intersection(., wui) %>%
+  st_intersection(., wui) %>%
   st_make_valid() %>%
   st_intersection(., state_eco_fish) %>%
   st_make_valid() %>%
