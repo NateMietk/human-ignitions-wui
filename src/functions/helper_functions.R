@@ -262,7 +262,7 @@ classify_fire_size_cl <-  function(x) {
   ifelse(x < 0.4, "Very Small",
          ifelse(x >= 0.4 & x < 4, "Small",
                 ifelse(x >= 4 & x < 40, "Medium",
-                       "Large")))
+                       ifelse(x >= 40 & x < 500, "Large","Very Large"))))
 }
 
 classify_wuiburned <-  function(x) {

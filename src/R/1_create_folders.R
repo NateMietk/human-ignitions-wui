@@ -1,5 +1,6 @@
 # Libraries ---------------------------------------------------------------
 library(tidyverse)
+library(magrittr)
 library(assertthat)
 library(rvest)
 library(raster)
