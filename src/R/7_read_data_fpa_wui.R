@@ -43,12 +43,13 @@ totals_by_class <- fpa_wui %>%
             firesize_90 = quantile(fire_size_km2, 0.90),
             seasonlength = IQR(discovery_doy)) %>%
   mutate(pct_firefreq = (firefreq/totals_fpa$totfirefreq)*100,
-         pct_firearea = (firearea/totals_fpa$totfirearea)*100) 
+         pct_firearea = (firearea/totals_fpa$totfirearea)*100,
+         pct_allfreq = (firefreq/totals_fpa$totfirefreq)*100)
 
 totals_by_class_slim <- totals_by_class %>%
   mutate(totfirefreq = firefreq,
          totfirearea = firearea,
-         totseasonlength = IQR(discovery_doy)) %>%
+         totseasonlength = seasonlength) %>%
   dplyr::select(class, totfirefreq, totfirearea, totseasonlength)
 
 # Overall totals by CAUSE
@@ -59,13 +60,14 @@ totals_by_cause <- fpa_wui %>%
             firearea = sum(fire_size_km2),
             seasonlength = IQR(discovery_doy)) %>%
   mutate(pct_firefreq = (firefreq/totals_fpa$totfirefreq)*100,
-         pct_firearea = (firearea/totals_fpa$totfirearea)*100) 
+         pct_firearea = (firearea/totals_fpa$totfirearea)*100,
+         pct_allfreq = (firefreq/totals_fpa$totfirefreq)*100)
 
 totals_by_cause_slim <- totals_by_cause %>%
   mutate(totfirefreq = firefreq,
          totfirearea = firearea,
-         totseasonlength = IQR(discovery_doy)) %>%
-  dplyr::select(class, totfirefreq, totfirearea, totseasonlength)
+         totseasonlength = seasonlength) %>%
+  dplyr::select(ignition, totfirefreq, totfirearea, totseasonlength)
 
 # Overall totals by CAUSE AND CLASS
 totals_by_cause_class <- fpa_wui %>% 
@@ -83,7 +85,7 @@ totals_by_cause_class <- fpa_wui %>%
 totals_by_cause_class_slim <- totals_by_cause_class %>%
   mutate(totfirefreq = firefreq,
          totfirearea = firearea,
-         totseasonlength = IQR(discovery_doy)) %>%
+         totseasonlength = seasonlength) %>%
   dplyr::select(class, ignition, totfirefreq, totfirearea, totseasonlength)
 
 # Overall totals by CAUSE AND YEAR
@@ -148,10 +150,9 @@ totals_fpa_class_seasonal <- fpa_wui %>%
   summarise(firefreq = n(),
             firearea = sum(fire_size_km2),
             seasonlength = IQR(discovery_doy)) %>%
-  left_join(., totals_by_class_slim, by = "class") %>%
+  left_join(., totals_fpa_seasonal, by = "seasons") %>%
   mutate(pct_firefreq = (firefreq/totfirefreq)*100,
-         pct_firearea = (firearea/totfirearea)*100) %>%
-  filter(class == "Wildlands")
+         pct_firearea = (firearea/totfirearea)*100) 
 
 # Overall totals by SEASON AND CAUSE
 totals_fpa_cause_seasonal <- fpa_wui %>% 
@@ -160,7 +161,7 @@ totals_fpa_cause_seasonal <- fpa_wui %>%
   summarise(firefreq = n(),
             firearea = sum(fire_size_km2),
             seasonlength = IQR(discovery_doy)) %>%
-  left_join(., totals_by_cause_slim, by = "ignition") %>%
+  left_join(., totals_fpa_seasonal, by = "seasons") %>%
   mutate(pct_firefreq = (firefreq/totfirefreq)*100,
          pct_firearea = (firearea/totfirearea)*100)
 
@@ -170,10 +171,12 @@ totals_by_cause_class_season <- fpa_wui %>%
   group_by(seasons, class, ignition) %>%
   summarise(firefreq = n(),
             firearea = sum(fire_size_km2),
-            seasonlength = IQR(discovery_doy)) %>%
-  left_join(., totals_by_cause_class_slim, by = c("ignition", "class")) %>%
+            seasonlength = IQR(discovery_doy),
+            mediandoy = median(discovery_doy)) %>%
+  left_join(., totals_fpa_seasonal, by = "seasons") %>%
   mutate(pct_firefreq = (firefreq/totfirefreq)*100,
-         pct_firearea = (firearea/totfirearea)*100)
+         pct_firearea = (firearea/totfirearea)*100) %>%
+  filter(class == "Wildlands")
 
 # Summarize FPA point data by CAUSE AND CLASS AND DISCOVERY DOY
 # Will get at what is the most common discovery doy for human vs lightining ignitions
