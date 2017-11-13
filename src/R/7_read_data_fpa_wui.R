@@ -24,7 +24,7 @@ names(fpa_wui) %<>% tolower
 wuw_area <- data.table(class=c("WUI", "VLD", "Wildlands"), 
                        class_area = c(784320, 2260783, 2598246))
 
-# Summarize FPA point data 
+# Overall totals
 totals_fpa <- fpa_wui %>% 
   as.data.frame(.) %>%
   group_by() %>%
@@ -32,8 +32,8 @@ totals_fpa <- fpa_wui %>%
             totfirearea = sum(fire_size_km2),
             totseasonlength = IQR(discovery_doy)) 
 
-# Summarize FPA point data by CLASS
-totals_by_cause <- fpa_wui %>% 
+# Overall totals by CLASS
+totals_by_class <- fpa_wui %>% 
   as.data.frame(.) %>%
   group_by(class) %>%
   summarise(firefreq = n(),
@@ -45,58 +45,135 @@ totals_by_cause <- fpa_wui %>%
   mutate(pct_firefreq = (firefreq/totals_fpa$totfirefreq)*100,
          pct_firearea = (firearea/totals_fpa$totfirearea)*100) 
 
-# Summarize FPA point data by CAUSE
+totals_by_class_slim <- totals_by_class %>%
+  mutate(totfirefreq = firefreq,
+         totfirearea = firearea,
+         totseasonlength = IQR(discovery_doy)) %>%
+  dplyr::select(class, totfirefreq, totfirearea, totseasonlength)
+
+# Overall totals by CAUSE
 totals_by_cause <- fpa_wui %>% 
   as.data.frame(.) %>%
   group_by(ignition) %>%
   summarise(firefreq = n(),
             firearea = sum(fire_size_km2),
-            firesize = mean(fire_size_km2),
-            firesize_sd = sd(fire_size_km2),
-            firesize_90 = quantile(fire_size_km2, 0.90),
             seasonlength = IQR(discovery_doy)) %>%
   mutate(pct_firefreq = (firefreq/totals_fpa$totfirefreq)*100,
          pct_firearea = (firearea/totals_fpa$totfirearea)*100) 
 
-# Summarize FPA point data by CAUSE AND CLASS
-totals_fpa_class <- fpa_wui %>% 
-  as.data.frame(.) %>%
-  group_by(class) %>%
-  summarise(totfirefreq = n(),
-            totfirearea = sum(fire_size_km2),
-            totseasonlength = IQR(discovery_doy)) 
+totals_by_cause_slim <- totals_by_cause %>%
+  mutate(totfirefreq = firefreq,
+         totfirearea = firearea,
+         totseasonlength = IQR(discovery_doy)) %>%
+  dplyr::select(class, totfirefreq, totfirearea, totseasonlength)
 
+# Overall totals by CAUSE AND CLASS
 totals_by_cause_class <- fpa_wui %>% 
   as.data.frame(.) %>%
   group_by(class, ignition) %>%
   summarise(firefreq = n(),
             firearea = sum(fire_size_km2),
-            firesize = mean(fire_size_km2),
             seasonlength = IQR(discovery_doy),
             mediandoy = median(discovery_doy)) %>%
-  left_join(., totals_fpa_class, by = "class") %>%
+  left_join(., totals_by_class_slim, by = "class") %>%
   mutate(pct_firefreq = (firefreq/totfirefreq)*100,
          pct_firearea = (firearea/totfirearea)*100,
          pct_allfreq = (firefreq/totals_fpa$totfirefreq)*100)
 
-# Summarize FPA point data by SEASON
-totals_fpa_seasonal <- fpa_wui %>% 
+totals_by_cause_class_slim <- totals_by_cause_class %>%
+  mutate(totfirefreq = firefreq,
+         totfirearea = firearea,
+         totseasonlength = IQR(discovery_doy)) %>%
+  dplyr::select(class, ignition, totfirefreq, totfirearea, totseasonlength)
+
+# Overall totals by CAUSE AND YEAR
+totals_by_year <- fpa_wui %>% 
   as.data.frame(.) %>%
-  group_by(ignition) %>%
+  group_by(discovery_year) %>%
   summarise(totfirefreq = n(),
             totfirearea = sum(fire_size_km2),
             totseasonlength = IQR(discovery_doy)) 
 
-# Summarize FPA point data by CAUSE AND CLASS AND SEASON
-totals_by_cause_class_season <- fpa_wui %>% 
+totals_by_cause_year <- fpa_wui %>% 
   as.data.frame(.) %>%
-  group_by(class, ignition, seasons) %>%
+  group_by(discovery_year, ignition) %>%
   summarise(firefreq = n(),
             firearea = sum(fire_size_km2),
             firesize = mean(fire_size_km2),
             seasonlength = IQR(discovery_doy),
-            mediandoy = median(discovery_doy))  %>%
-  filter(class == "VLD")
+            mediandoy = median(discovery_doy)) %>%
+  left_join(., totals_by_year, by = "discovery_year") %>%
+  mutate(pct_firefreq = (firefreq/totfirefreq)*100,
+         pct_firearea = (firearea/totfirearea)*100)
+
+# Overall totals by CLASS AND YEAR
+totals_by_class_year <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  group_by(discovery_year, class) %>%
+  summarise(firefreq = n(),
+            firearea = sum(fire_size_km2),
+            firesize = mean(fire_size_km2),
+            seasonlength = IQR(discovery_doy),
+            mediandoy = median(discovery_doy)) %>%
+  left_join(., totals_by_year, by = "discovery_year") %>%
+  mutate(pct_firefreq = (firefreq/totfirefreq)*100,
+         pct_firearea = (firearea/totfirearea)*100)
+
+mean(totals_by_class_year$pct_firearea)
+
+# Overall totals by CAUSE AND CLASS AND YEAR
+totals_by_cause_class_year <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  group_by(discovery_year, class, ignition) %>%
+  summarise(firefreq = n(),
+            firearea = sum(fire_size_km2),
+            seasonlength = IQR(discovery_doy),
+            mediandoy = median(discovery_doy)) %>%
+  left_join(., totals_by_year, by = "discovery_year") %>%
+  mutate(pct_firefreq = (firefreq/totfirefreq)*100,
+         pct_firearea = (firearea/totfirearea)*100)
+
+# Overall totals by SEASON
+totals_fpa_seasonal <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  group_by(seasons) %>%
+  summarise(totfirefreq = n(),
+            totfirearea = sum(fire_size_km2),
+            totseasonlength = IQR(discovery_doy))
+
+# Overall totals by SEASON AND CLASS
+totals_fpa_class_seasonal <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  group_by(seasons, class) %>%
+  summarise(firefreq = n(),
+            firearea = sum(fire_size_km2),
+            seasonlength = IQR(discovery_doy)) %>%
+  left_join(., totals_by_class_slim, by = "class") %>%
+  mutate(pct_firefreq = (firefreq/totfirefreq)*100,
+         pct_firearea = (firearea/totfirearea)*100) %>%
+  filter(class == "Wildlands")
+
+# Overall totals by SEASON AND CAUSE
+totals_fpa_cause_seasonal <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  group_by(seasons, ignition) %>%
+  summarise(firefreq = n(),
+            firearea = sum(fire_size_km2),
+            seasonlength = IQR(discovery_doy)) %>%
+  left_join(., totals_by_cause_slim, by = "ignition") %>%
+  mutate(pct_firefreq = (firefreq/totfirefreq)*100,
+         pct_firearea = (firearea/totfirearea)*100)
+
+# Overall totals by CAUSE AND CLASS AND SEASON
+totals_by_cause_class_season <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  group_by(seasons, class, ignition) %>%
+  summarise(firefreq = n(),
+            firearea = sum(fire_size_km2),
+            seasonlength = IQR(discovery_doy)) %>%
+  left_join(., totals_by_cause_class_slim, by = c("ignition", "class")) %>%
+  mutate(pct_firefreq = (firefreq/totfirefreq)*100,
+         pct_firearea = (firearea/totfirearea)*100)
 
 # Summarize FPA point data by CAUSE AND CLASS AND DISCOVERY DOY
 # Will get at what is the most common discovery doy for human vs lightining ignitions
@@ -105,8 +182,17 @@ common_disc_doy <- fpa_wui %>%
   group_by(class, ignition, discovery_doy) %>%
   summarise(doyfreq = n())
 
-# What is the contribution of lots of small fires to the total burned area
+# Overall totals by SIZE
 totals_size <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  mutate(sizeclass = classify_fire_size_cl(fire_size_km2)) %>%
+  transform(sizeclass = factor(sizeclass, levels=c("Small", "Large", "Very Large"))) %>%
+  group_by(sizeclass) %>%
+  summarise(totfirefreq = n(),
+            totfirearea = sum(fire_size_km2)) 
+
+# Overall totals by SIZE AND CLASS
+totals_size_class <- fpa_wui %>% 
   as.data.frame(.) %>%
   mutate(sizeclass = classify_fire_size_cl(fire_size_km2)) %>%
   transform(sizeclass = factor(sizeclass, levels=c("Small", "Large", "Very Large"))) %>%
@@ -114,30 +200,51 @@ totals_size <- fpa_wui %>%
   summarise(totfirefreq = n(),
             totfirearea = sum(fire_size_km2)) 
 
-totals_by_sizeclass <- fpa_wui %>% 
+# Overall totals by SIZE AND CAUSE
+totals_size_cause <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  mutate(sizeclass = classify_fire_size_cl(fire_size_km2)) %>%
+  transform(sizeclass = factor(sizeclass, levels=c("Small", "Large", "Very Large"))) %>%
+  group_by(sizeclass, ignition) %>%
+  summarise(totfirefreq = n(),
+            totfirearea = sum(fire_size_km2)) 
+
+# Overall totals by SIZE AND CAUSE AND CLASS
+totals_by_size_cause_class <- fpa_wui %>% 
   as.data.frame(.) %>%
   mutate(sizeclass = classify_fire_size_cl(fire_size_km2)) %>%
   transform(sizeclass = factor(sizeclass, levels=c("Small", "Large", "Very Large"))) %>%
   group_by(sizeclass, ignition, class) %>%
   summarise(firefreq = n(),
-            firearea = sum(fire_size_km2),
-            firesize = mean(fire_size_km2),
-            firesize_sd = sd(fire_size_km2)) %>%
-  left_join(., totals_size, by = c("ignition", "class")) %>%
+            firearea = sum(fire_size_km2)) %>%
+  left_join(., totals_by_class_slim, by = c("class")) %>%
   mutate(pct_firefreq = (firefreq/totfirefreq)*100,
-         pct_firearea = (firearea/totfirearea)*100) %>%
-  filter(class == "VLD" & ignition == "Human")
+         pct_firearea = (firearea/totfirearea)*100) 
 
-# How different are the east and west in terms of ignitons and fire size?
-totals_fpa <- fpa_wui %>% 
-  as.data.frame(.) %>%
-  mutate(sizeclass = classify_fire_size_cl(fire_size_km2)) %>%
-  transform(sizeclass = factor(sizeclass, levels=c("Small", "Large", "Very Large"))) %>%
-  group_by(sizeclass, ignition, class) %>%
-  summarise(totfirefreq = n(),
-            totfirearea = sum(fire_size_km2)) 
-
+# Overall totals by IGNITIONS AND CLASS AND REGION
+ totals_by_cause_class_slim <- totals_by_cause_class %>%
+   mutate(totfirefreq = firefreq,
+          totfirearea = firearea ) %>%
+   dplyr::select(class, ignition, totfirefreq, totfirearea)
+ 
 totals_by_sizeclass <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  group_by(region, ignition, class) %>%
+  summarise(firefreq = n(),
+            firearea = sum(fire_size_km2),
+            firesize_sd = sd(fire_size_km2),
+            seasonlength = IQR(discovery_doy)) %>%
+  left_join(., totals_by_cause_class_slim, by = c("ignition", "class")) %>%
+  mutate(pct_firefreq = (firefreq/totfirefreq)*100,
+         pct_firearea = (firearea/totfirearea)*100) 
+
+# Overall totals by IGNITIONS AND CLASS AND REGION AND SIZE
+totals_by_size_cause_class_slim <- totals_by_size_cause_class %>%
+  mutate(totfirefreq = firefreq,
+         totfirearea = firearea ) %>%
+  dplyr::select(class, ignition, totfirefreq, totfirearea)
+
+fpa_wui %>% 
   as.data.frame(.) %>%
   mutate(sizeclass = classify_fire_size_cl(fire_size_km2)) %>%
   transform(sizeclass = factor(sizeclass, levels=c("Small", "Large", "Very Large"))) %>%
@@ -146,28 +253,6 @@ totals_by_sizeclass <- fpa_wui %>%
             firearea = sum(fire_size_km2),
             firesize_sd = sd(fire_size_km2),
             seasonlength = IQR(discovery_doy)) %>%
-  left_join(., totals_fpa, by = c("sizeclass", "ignition", "class")) %>%
+  left_join(., totals_by_size_cause_class, by = c("sizeclass", "ignition", "class")) %>%
   mutate(pct_firefreq = (firefreq/totfirefreq)*100,
-         pct_firearea = (firearea/totfirearea)*100)  %>%
-  filter(class == "WUI" & ignition == "Human")
-
-
-# How different are the east and west in terms of ignitons class?
-totals_fpa <- fpa_wui %>% 
-  as.data.frame(.) %>%
-  group_by( ignition, class) %>%
-  summarise(totfirefreq = n(),
-            totfirearea = sum(fire_size_km2)) 
-
-totals_by_sizeclass <- fpa_wui %>% 
-  as.data.frame(.) %>%
-  group_by(region, ignition, class) %>%
-  summarise(firefreq = n(),
-            firearea = sum(fire_size_km2),
-            firesize_sd = sd(fire_size_km2),
-            seasonlength = IQR(discovery_doy)) %>%
-  left_join(., totals_fpa, by = c("ignition", "class")) %>%
-  mutate(pct_firefreq = (firefreq/totfirefreq)*100,
-         pct_firearea = (firearea/totfirearea)*100)  %>%
-  filter(class == "VLD" & ignition == "Human")
-
+         pct_firearea = (firearea/totfirearea)*100) 
