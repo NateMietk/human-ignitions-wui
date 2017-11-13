@@ -210,14 +210,13 @@ totals_size_cause <- fpa_wui %>%
             totfirearea = sum(fire_size_km2)) 
 
 # Overall totals by SIZE AND CAUSE AND CLASS
-totals_by_size_cause_class <- fpa_wui %>% 
+totals_by_size_cause_class <- fpa_wui %>%
   as.data.frame(.) %>%
   mutate(sizeclass = classify_fire_size_cl(fire_size_km2)) %>%
   transform(sizeclass = factor(sizeclass, levels=c("Small", "Large", "Very Large"))) %>%
   group_by(sizeclass, ignition, class) %>%
   summarise(firefreq = n(),
             firearea = sum(fire_size_km2)) %>%
-  left_join(., totals_by_class_slim, by = c("class")) %>%
   mutate(pct_firefreq = (firefreq/totfirefreq)*100,
          pct_firearea = (firearea/totfirearea)*100) 
 
