@@ -1,4 +1,12 @@
-
+classify_fire_size_cl <-  function(x) {
+  # break out fires into small, med, large
+  # input:
+  #   - x: vector of fire sizes
+  # output:
+  #   - y: vector (same length) of classified fire sizes ----- Km2
+  ifelse(x < 4, "Small",
+         ifelse(x >= 4 & x < 500, "Large", "Very Large"))
+}
 
 # Helper functions --------------------------------------------------------
 
@@ -253,17 +261,17 @@ classify_fire_size <-  function(x) {
                        "> 100")))
 }
 
-classify_fire_size_cl <-  function(x) {
-  # break out fires into small, med, large
-  # input:
-  #   - x: vector of fire sizes
-  # output:
-  #   - y: vector (same length) of classified fire sizes ----- Km2
-  ifelse(x < 0.4, "Very Small",
-         ifelse(x >= 0.4 & x < 4, "Small",
-                ifelse(x >= 4 & x < 40, "Medium",
-                       ifelse(x >= 40 & x < 500, "Large","Very Large"))))
-}
+# classify_fire_size_cl <-  function(x) {
+#   # break out fires into small, med, large
+#   # input:
+#   #   - x: vector of fire sizes
+#   # output:
+#   #   - y: vector (same length) of classified fire sizes ----- Km2
+#   ifelse(x < 0.4, "Very Small",
+#          ifelse(x >= 0.4 & x < 4, "Small",
+#                 ifelse(x >= 4 & x < 40, "Medium",
+#                        ifelse(x >= 40 & x < 500, "Large","Very Large"))))
+# }
 
 classify_wuiburned <-  function(x) {
   # break out fires into small, med, large
