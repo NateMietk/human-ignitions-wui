@@ -72,7 +72,7 @@ totals_by_cause_slim <- totals_by_cause %>%
 # Overall totals by CAUSE AND CLASS
 totals_by_cause_class <- fpa_wui %>% 
   as.data.frame(.) %>%
-  group_by(class, ignition) %>%
+  group_by(class, ignition, na_l1name) %>%
   summarise(firefreq = n(),
             firearea = sum(fire_size_km2),
             seasonlength = IQR(discovery_doy),

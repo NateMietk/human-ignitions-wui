@@ -35,8 +35,20 @@ fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
 
 # 25k Fishnet
 fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
-  st_sf('geometry' = ., data.frame('fish25' = 1:length(.))) %>%
+  st_sf('geometry' = ., data.frame('fishid25k' = 1:length(.))) %>%
+  st_centroid(.) %>%
   st_intersection(., conus)
+
+t <- as(fishnet_25k, "Spatial")
+fs25_df <- SpatialPointsDataFrame(t, t@data)
+fs25_df$id <- row.names(fs25_df)
+fs25_df <- data.frame(fs25_df)
+
+fishnet_25k <- as(fishnet_25k, "Spatial")
+fishnet_25k$id <- row.names(fishnet_25k)
+fs25_df <- fortify(fishnet_25k, region = 'id')
+fs25_df <- left_join(fs25_df, fishnet_25k@data, by = 'id')
+names(fs25_df) <- tolower(names(fs25_df))
 
 # 10k Fishnet
 fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
