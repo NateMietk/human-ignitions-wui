@@ -35,29 +35,35 @@ fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
 
 # 25k Fishnet
 fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
-  st_sf('geometry' = ., data.frame('fish25' = 1:length(.))) %>%
+  st_sf('geometry' = ., data.frame('fishid25k' = 1:length(.))) %>%
+  st_centroid(.) %>%
   st_intersection(., conus)
+
+fishnet_25k <- as(fishnet_25k, "Spatial")
+fs25_df <- SpatialPointsDataFrame(fishnet_25k, fishnet_25k@data)
+fs25_df$id <- row.names(fs25_df)
+fs25_df <- data.frame(fs25_df)
 
 # 10k Fishnet
 fishnet_10k <- st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
   st_sf('geometry' = ., data.frame('fish10' = 1:length(.))) %>%
-  st_intersection(., conus) 
+  st_intersection(., conus)
 
 hex_grid_50k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width = 50000,
                           cell_area = 1250000000, clip = FALSE) %>%
   st_as_sf(hex_grid_c) %>%
-  mutate(hex50 = row_number()) 
+  mutate(hex50 = row_number())
 
 hex_grid_25k <- make_grid(as(conus, "Spatial"), type = "hexagonal", cell_width = 25000,
                           cell_area = 625000000, clip = FALSE) %>%
   st_as_sf(hex_grid_c) %>%
-  mutate(hex25 = row_number()) 
+  mutate(hex25 = row_number())
 
 # Try to summarize distance from WUI using hexagonal
 hex_grid_400k <- make_grid(as(conus, "Spatial"), type = "hexagonal",
                            cell_area = 1000000000000, clip = TRUE)%>%
   st_as_sf(hex_grid_c) %>%
-  mutate(hex400 = row_number()) 
+  mutate(hex400 = row_number())
 
 # Intersects the region
 bounds <- st_intersection(usa_shp, ecoreg) %>%
