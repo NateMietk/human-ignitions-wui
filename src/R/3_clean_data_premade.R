@@ -33,6 +33,11 @@ fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
   st_sf('geometry' = ., data.frame('fish50' = 1:length(.))) %>%
   st_intersection(., conus)
 
+fishnet_50k <- as(fishnet_50k, "Spatial")
+fs50_df <- SpatialPointsDataFrame(fishnet_50k, fishnet_50k@data)
+fs50_df$id <- row.names(fs50_df)
+fs50_df <- data.frame(fs50_df)
+
 # 25k Fishnet
 fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
   st_sf('geometry' = ., data.frame('fishid25k' = 1:length(.))) %>%
@@ -73,13 +78,6 @@ bounds <- st_intersection(usa_shp, ecoreg) %>%
   st_intersection(., hex_grid_400k) %>%
   st_intersection(., hex_grid_50k) %>%
   st_intersection(., hex_grid_25k)
-
-  wui <- st_read(dsn = file.path(wui_out, "wui_conus.gpkg")) %>%
-  mutate(ClArea_m2 = as.numeric(st_area(geom)),
-         ClArea_km2 = ClArea_m2/1000000)
-
-wui_hex <- st_read(dsn = file.path(wui_out, "wui_state_eco_hex.gpkg")) %>%
-  st_make_valid()
 
 fpa_fire <- st_read(dsn = file.path(fpa_out, "fpa_conus.gpkg")) %>%
   mutate(MTBS_DISCOVERY_YEAR = "NA",
