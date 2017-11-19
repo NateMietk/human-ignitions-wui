@@ -1,22 +1,3 @@
-eco_sum <- as.data.frame(fpa_wui) %>%
-  filter(seasons == "Summer" | seasons == "Spring") %>%
-  group_by(fishid25k, class, seasons) %>%
-  summarize(fire_freq = n()) %>%
-  ungroup() %>%
-  mutate(ptsz_n = classify_ptsize_breaks(fire_freq))
-
-seasonal_freq <- as.data.frame(fpa_wui) %>%
-  filter(seasons == "Summer" | seasons == "Spring") %>%
-  group_by(fishid25k, ignition, class, seasons) %>%
-  summarize(n_fire = n()) %>%
-  ungroup() %>%
-  spread(ignition, n_fire) %>%
-  left_join(., eco_sum, by = c("class", "fishid25k", "seasons")) %>%
-  mutate(n_Human = ifelse(is.na(Human), 0, Human), 
-         n_Lightning = ifelse(is.na(Lightning), 0, Lightning),
-         n_human_den = (fire_freq-n_Human),
-         n_light_den = (fire_freq-n_Lightning),
-         n_den = (1-(n_human_den/(n_human_den+n_light_den)))*100) 
 
 maxseasons <- as.data.frame(fpa_wui) %>%
   group_by(fishid25k, ignition, class, seasons) %>%
@@ -51,15 +32,6 @@ conus_maxseason <- left_join(fs25_df, maxseasons_full, by = "fishid25k") %>%
          lat = coords.x2) %>%
   dplyr::select(-coords.x1, -coords.x2) %>%
   na.omit()
-# 
-# #For Tableau blue
-# rgb(31,119,180, maxColorValue = 255)
-# #For Tableau orange
-# rgb(255,127,14, maxColorValue = 255)
-# #For Tableau red
-# rgb(214,39,40, maxColorValue = 255)
-# #For Tableau green
-# rgb(44,160,44, maxColorValue = 255)
 
 p1 <- conus_maxseason %>%
   filter(!(is.na(ptsz_n))) %>%
@@ -76,7 +48,7 @@ p1 <- conus_maxseason %>%
                      name="Max Season") + 
   scale_size_discrete(range = c(0.2, 1)) +
   coord_equal() + 
-  theme_nothing(legend = FALSE) +
+  theme_nothing(legend = TRUE) +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
         strip.text.x = element_blank(),
@@ -84,6 +56,12 @@ p1 <- conus_maxseason %>%
         legend.key = element_rect(fill = "white")) +
   facet_grid(class ~ ignition, switch ="y")
 
-ggsave(file = "figs/figs_main/drafts/figureS3.eps", p1, width = 7, height = 8, dpi=1200) #saves g
-ggsave(file = "figs/figs_main/drafts/figureS3.tiff", p1, width = 7, height = 8, dpi=1200) #saves g
+p1l <- p1 + theme(legend.position="none")
+
+ggsave(file = "figs/figs_main/drafts/figureS3.eps", p1l, width = 7, height = 8, dpi=1200) #saves g
+ggsave(file = "figs/figs_main/drafts/figureS3.tiff", p1l, width = 7, height = 8, dpi=1200) #saves g
+
+legend <- g_legend(p1) 
+ggsave(file = "figs/figs_main/drafts/figureS3_legend.eps", 
+       legend, width = 2, height = 4.5, dpi=1200) #saves g
 

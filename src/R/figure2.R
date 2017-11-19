@@ -77,7 +77,7 @@ p1 <- conus_ff %>%
   coord_equal() +
   scale_colour_manual(values = rev(brewer.pal(10,"RdYlBu"))) +
   scale_size_discrete(range = c(.2, 0.9), name="Fire size (km2)") +
-  theme_nothing(legend = FALSE) +
+  theme_nothing(legend = TRUE) +
   #ggtitle('(A) Fire frequency') +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
@@ -99,19 +99,28 @@ p2 <- conus_wui_burned %>%
   coord_equal() +
   scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
   scale_size_discrete(range = c(0.2, 0.9), name = "# Fires") +
-  theme_nothing(legend = FALSE) +
+  theme_nothing(legend = TRUE) +
   #ggtitle('(A) Burned arTRUE+
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
         strip.text.x = element_blank(),
         strip.text.y = element_blank(),
         legend.key = element_rect(fill = "white")) 
+p1l <- p1 + theme(legend.position="none")
+p2l <- p2 + theme(legend.position="none")
 
-grid.arrange(p1, p2, ncol = 1)
-g <- arrangeGrob(p1, p2, ncol = 1) #generates g
+grid.arrange(p1l, p2l, ncol = 1)
+g <- arrangeGrob(p1l, p2l, ncol = 1) #generates g
 
 ggsave(file = "figs/figs_main/drafts/figure2.eps", g, width = 5, height = 6, dpi=1200) #saves g
 ggsave(file = "figs/figs_main/drafts/figure2.tiff", g, width = 5, height = 6, dpi=1200) #saves g
+
+legend <- g_legend(p1) 
+ggsave(file = "figs/figs_main/drafts/figure2a_legend.eps", 
+       legend, width = 2, height = 4.5, dpi=1200) #saves g
+legend <- g_legend(p2) 
+ggsave(file = "figs/figs_main/drafts/figure2b_legend.eps", 
+       legend, width = 2, height = 4.5, dpi=1200) #saves g
 
 # Lightning ignition in the WUI
 p3 <- conus_wui_burned %>%
