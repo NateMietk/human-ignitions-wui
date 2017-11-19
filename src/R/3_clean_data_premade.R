@@ -30,7 +30,7 @@ names(ecoreg) %<>% tolower
 # Create Fishnets ---------------------------------------------------------
 # 50k Fishnet
 fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
-  st_sf('geometry' = ., data.frame('fish50' = 1:length(.))) %>%
+  st_sf('geometry' = ., data.frame('fish50k' = 1:length(.))) %>%
   st_intersection(., conus)
 
 fishnet_50k <- as(fishnet_50k, "Spatial")
@@ -44,8 +44,7 @@ fishnet_25k <- st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
   st_centroid(.) %>%
   st_intersection(., conus)
 
-fishnet_25k <- as(fishnet_25k, "Spatial")
-fs25_df <- SpatialPointsDataFrame(fishnet_25k, fishnet_25k@data)
+fs25_df <- SpatialPointsDataFrame(as(fishnet_25k, "Spatial"), fishnet_25k@data)
 fs25_df$id <- row.names(fs25_df)
 fs25_df <- data.frame(fs25_df)
 

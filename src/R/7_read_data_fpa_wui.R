@@ -24,6 +24,12 @@ names(fpa_wui) %<>% tolower
 wuw_area <- data.table(class=c("WUI", "VLD", "Wildlands"), 
                        class_area = c(784320, 2260783, 2598246))
 
+# Overall totals CLASS AND CAUSE AND FISHID25K
+fpa_wui_class_cause_fishnet25k <- fpa_wui %>% 
+  as.data.frame(.) %>%
+  group_by(fishid25k, ignition, class) %>%
+  summarise(fire_freq = n())
+
 # Overall totals
 totals_fpa <- fpa_wui %>% 
   as.data.frame(.) %>%
