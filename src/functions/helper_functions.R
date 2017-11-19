@@ -338,13 +338,12 @@ classify_pctbae <-  function(x) {
   #   - y: vector (same length) of classified fire sizes ----- Km2
   ifelse(is.na(x), 0,
          ifelse(x < 1, "< 1",
-                ifelse(x >= 0.01 & x < 5, "1 - 5",
-                       ifelse(x >= 5 & x < 10, "5 - 10",
+                ifelse(x >= 0.01 & x < 10, "1 - 10",
                               ifelse(x >= 10 & x < 20, "10 - 20",
                                      ifelse(x >= 20 & x < 30, "20 - 30",
                                             ifelse(x >= 30 & x < 40, "30 - 40",
                                                    ifelse(x >= 40 & x < 50, "40 - 50",
-                                                          "> 50"))))))))
+                                                          "> 50")))))))
   
 }
 

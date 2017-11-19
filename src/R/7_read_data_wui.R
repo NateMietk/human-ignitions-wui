@@ -32,9 +32,16 @@ wvw_by_class <- wui %>%
 
 
 # Overall totals by CLASS AND FISHNET 25K ID
-wvw_area_fish <-  wui %>% 
+wvw_area_fish25 <-  wui %>% 
   as.data.frame(.) %>%
   group_by(class, fishid25k) %>%
+  summarise(wvw = sum(wui_area_km2)) %>%
+  spread(class, wvw)
+
+# Overall totals by CLASS AND FISHNET 25K ID
+wvw_area_fish50 <-  wui %>% 
+  as.data.frame(.) %>%
+  group_by(class, fish50) %>%
   summarise(wvw = sum(wui_area_km2)) %>%
   spread(class, wvw)
 

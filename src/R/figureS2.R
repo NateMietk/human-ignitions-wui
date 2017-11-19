@@ -3,18 +3,21 @@ library(ggthemes)
 library(ggmap)
 
 class_totals <- as.data.frame(fpa_wui) %>%
+  filter(class != "Urban") %>%
   group_by(fishid25k, class) %>%
   summarize(tot_fire = n()) %>%
   ungroup() %>%
   mutate(ptsz_n = classify_ptsize_breaks(tot_fire))
 
 bae_totals <- as.data.frame(fpa_bae) %>%
+  filter(class != "Urban") %>%
   group_by(fishid25k, class) %>%
   summarise(fire_freq = n(),
             tot_burn_area = sum(fire_size_km2)) %>%
   mutate(ptsz_n = classify_ptsize_breaks(fire_freq))
 
 fire_density <- as.data.frame(fpa_wui) %>%
+  filter(class != "Urban") %>%
   group_by(fishid25k, ignition, class) %>%
   summarize(n_fire = n()) %>%
   ungroup() %>%
@@ -27,6 +30,7 @@ fire_density <- as.data.frame(fpa_wui) %>%
          n_den = (1-(n_human_den/(n_human_den+n_light_den)))*100)
 
 wui_burned_area <- as.data.frame(fpa_bae) %>%
+  filter(class != "Urban") %>%
   group_by(fishid25k, ignition, class) %>%
   summarize(wui_area = sum(wui_area_km2)) %>%
   left_join(., wvw_area_fish25k, by = "fishid25k") %>%
@@ -55,45 +59,50 @@ conus_ff <- left_join(fs25_df, fire_density, by = "fishid25k") %>%
 conus_wui_burned <- left_join(fs25_df, wui_burned_area, by = "fishid25k") %>%
   mutate(long = coords.x1,
          lat = coords.x2) %>%
-  dplyr::select(-coords.x1, -coords.x2) %>%
-  na.omit()
+  dplyr::select(-coords.x1, -coords.x2)
 
 conus_burn_area <- left_join(fs25_df, burn_area_density, by = "fishid25k")  %>%
   mutate(long = coords.x1,
          lat = coords.x2) %>%
-  dplyr::select(-coords.x1, -coords.x2) %>%
-  na.omit()
+  dplyr::select(-coords.x1, -coords.x2)
 
 # now create the map
 colourCount_ff = length(unique(bucket(conus_ff$n_den, 10)))
 getPalette_ff = colorRampPalette(c("royalblue4", "lightblue1", "pink1", "red"),
                                  space = "Lab")
 p1 <- conus_ff %>%
-  filter(class == "WUI") %>%
+  filter(class != "WUI") %>%
   filter(n_den >= 1) %>%
   mutate(buckets = bucket(n_den, 10)) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  transform(class = factor(class, levels=c("WUI", "Wildlands"))) %>%
+  transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray99", size = .25)+
   geom_point(aes(x = coords.x1, y = coords.x2,
                  colour = factor(buckets), size = ptsz_n), stroke = 0) +
   coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(10,"RdYlBu"))) +
+  scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
   #scale_colour_manual(values = getPalette_ff(colourCount_ff), name="Percent") +
   scale_size_discrete(range = c(.2, 0.9), name="Fire size (km2)") +
   theme_nothing(legend = FALSE) +
   #ggtitle('(A) Fire frequency') +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
-        strip.text.x = element_text(size = 12, face = "bold"),
-        strip.text.y = element_text(size = 12),
-        legend.key = element_rect(fill = "white"))
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+        legend.key = element_rect(fill = "white")) +
+  facet_wrap(~ class, ncol = 1)
+
+ggsave(file = "figs/figs_main/drafts/figureS2_A.eps", p1, width = 5, height = 6, dpi=1200) #saves g
+ggsave(file = "figs/figs_main/drafts/figureS2_A.tiff", p1, width = 5, height = 6, dpi=1200) #saves g
 
 #ManReds = brewer.pal(n = 9, "Reds")[3:10] #there are 9, I exluded the two lighter hues
 
 p2 <- conus_wui_burned %>%
   filter(ignition == "Human") %>%
+  filter(pct_burn != "NA") %>%
+  filter(pct_class != "NA") %>%
+  filter(ptsz_n != "NA") %>%
   filter(class == "WUI") %>%
   transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
   transform(pct_class = factor(pct_class, levels=c("< 1", "1 - 10", "10 - 20", 
@@ -120,34 +129,4 @@ g <- arrangeGrob(p1, p2, ncol = 1) #generates g
 
 ggsave(file = "figs/figs_main/drafts/figure2.eps", g, width = 5, height = 6, dpi=1200) #saves g
 ggsave(file = "figs/figs_main/drafts/figure2.tiff", g, width = 5, height = 6, dpi=1200) #saves g
-
-
-
-# now create the map
-colourCount_bae = length(unique(bucket(conus_burn_area$s_den, 10)))
-getPalette_bae = colorRampPalette(c("royalblue4", "lightblue1", "pink1", "red"),
-                                  space = "Lab")
-
-p100_bae <- conus_burn_area %>%
-  filter(s_den != "NA") %>%
-  filter(class != "VLD") %>%
-  mutate(buckets = bucket(s_den, 10)) %>%
-  transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  ggplot(aes(x = long, y = lat)) +
-  geom_polygon(data = st_df, aes(group = group), 
-               color='black', fill = "gray99", size = .25) +
-  geom_point(aes(colour = factor(buckets), size = ptsz_n)) +
-  coord_equal() +
-  scale_colour_manual(values = getPalette_bae(colourCount_bae), name="Percent") +
-  scale_size_discrete(range = c(.3,1.5), name="Class burned (%)") +
-  theme_nothing(legend = TRUE) +
-  ggtitle('(B) Burned area') +
-  theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background=element_blank(),
-        strip.text.x = element_text(size = 12, face = "bold"),
-        strip.text.y = element_text(size = 12),
-        legend.key = element_rect(fill = "white")) +
-  facet_wrap(~ class, ncol=1, strip.position = 'left')
-
 
