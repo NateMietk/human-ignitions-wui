@@ -64,10 +64,6 @@ conus_burn_area <- left_join(fs25_df, burn_area_density, by = "fishid25k")  %>%
   dplyr::select(-coords.x1, -coords.x2) %>%
   na.omit()
 
-# now create the map
-colourCount_ff = length(unique(bucket(conus_ff$n_den, 10)))
-getPalette_ff = colorRampPalette(c("royalblue4", "lightblue1", "pink1", "red"),
-                                 space = "Lab")
 p1 <- conus_ff %>%
   filter(class == "WUI") %>%
   filter(n_den >= 1) %>%
@@ -80,7 +76,6 @@ p1 <- conus_ff %>%
                  colour = factor(buckets), size = ptsz_n), stroke = 0) +
   coord_equal() +
   scale_colour_manual(values = rev(brewer.pal(10,"RdYlBu"))) +
-  #scale_colour_manual(values = getPalette_ff(colourCount_ff), name="Percent") +
   scale_size_discrete(range = c(.2, 0.9), name="Fire size (km2)") +
   theme_nothing(legend = FALSE) +
   #ggtitle('(A) Fire frequency') +
@@ -89,8 +84,6 @@ p1 <- conus_ff %>%
         strip.text.x = element_text(size = 12, face = "bold"),
         strip.text.y = element_text(size = 12),
         legend.key = element_rect(fill = "white"))
-
-#ManReds = brewer.pal(n = 9, "Reds")[3:10] #there are 9, I exluded the two lighter hues
 
 p2 <- conus_wui_burned %>%
   filter(ignition == "Human") %>%
@@ -105,7 +98,6 @@ p2 <- conus_wui_burned %>%
   geom_point(aes(x = long, y = lat, colour = factor(pct_class), size = ptsz_n), stroke = 0) +
   coord_equal() +
   scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
-  #scale_colour_manual(values = ManReds, name = "Percent") +  
   scale_size_discrete(range = c(0.2, 0.9), name = "# Fires") +
   theme_nothing(legend = FALSE) +
   #ggtitle('(A) Burned arTRUE+
@@ -121,33 +113,29 @@ g <- arrangeGrob(p1, p2, ncol = 1) #generates g
 ggsave(file = "figs/figs_main/drafts/figure2.eps", g, width = 5, height = 6, dpi=1200) #saves g
 ggsave(file = "figs/figs_main/drafts/figure2.tiff", g, width = 5, height = 6, dpi=1200) #saves g
 
-
-
-# now create the map
-colourCount_bae = length(unique(bucket(conus_burn_area$s_den, 10)))
-getPalette_bae = colorRampPalette(c("royalblue4", "lightblue1", "pink1", "red"),
-                                  space = "Lab")
-
-p100_bae <- conus_burn_area %>%
-  filter(s_den != "NA") %>%
-  filter(class != "VLD") %>%
-  mutate(buckets = bucket(s_den, 10)) %>%
+# Lightning ignition in the WUI
+p3 <- conus_wui_burned %>%
+  filter(ignition == "Lightning") %>%
+  filter(class == "WUI") %>%
   transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
+  transform(pct_class = factor(pct_class, levels=c("< 1", "1 - 10", "10 - 20", 
+                                                   "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  ggplot(aes(x = long, y = lat)) +
-  geom_polygon(data = st_df, aes(group = group), 
+  ggplot() +
+  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
                color='black', fill = "gray99", size = .25) +
-  geom_point(aes(colour = factor(buckets), size = ptsz_n)) +
+  geom_point(aes(x = long, y = lat, colour = factor(pct_class), size = ptsz_n), stroke = 0) +
   coord_equal() +
-  scale_colour_manual(values = getPalette_bae(colourCount_bae), name="Percent") +
-  scale_size_discrete(range = c(.3,1.5), name="Class burned (%)") +
-  theme_nothing(legend = TRUE) +
-  ggtitle('(B) Burned area') +
+  scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
+  scale_size_discrete(range = c(0.2, 0.9), name = "# Fires") +
+  theme_nothing(legend = FALSE) +
+  #ggtitle('(A) Burned arTRUE+
   theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background=element_blank(),
-        strip.text.x = element_text(size = 12, face = "bold"),
-        strip.text.y = element_text(size = 12),
-        legend.key = element_rect(fill = "white")) +
-  facet_wrap(~ class, ncol=1, strip.position = 'left')
+        strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+        legend.key = element_rect(fill = "white")) 
 
+ggsave(file = "figs/figs_main/drafts/figureS2b.eps", p3, width = 5, height = 5, dpi=1200) #saves g
+ggsave(file = "figs/figs_main/drafts/figureS2b.tiff", p3, width = 5, height = 5, dpi=1200) #saves g
 

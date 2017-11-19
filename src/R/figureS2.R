@@ -59,17 +59,16 @@ conus_ff <- left_join(fs25_df, fire_density, by = "fishid25k") %>%
 conus_wui_burned <- left_join(fs25_df, wui_burned_area, by = "fishid25k") %>%
   mutate(long = coords.x1,
          lat = coords.x2) %>%
-  dplyr::select(-coords.x1, -coords.x2)
+  dplyr::select(-coords.x1, -coords.x2) %>%
+  na.omit()
 
 conus_burn_area <- left_join(fs25_df, burn_area_density, by = "fishid25k")  %>%
   mutate(long = coords.x1,
          lat = coords.x2) %>%
-  dplyr::select(-coords.x1, -coords.x2)
+  dplyr::select(-coords.x1, -coords.x2) %>%
+  na.omit()
 
-# now create the map
-colourCount_ff = length(unique(bucket(conus_ff$n_den, 10)))
-getPalette_ff = colorRampPalette(c("royalblue4", "lightblue1", "pink1", "red"),
-                                 space = "Lab")
+
 p1 <- conus_ff %>%
   filter(class != "WUI") %>%
   filter(n_den >= 1) %>%
@@ -93,17 +92,9 @@ p1 <- conus_ff %>%
         legend.key = element_rect(fill = "white")) +
   facet_wrap(~ class, ncol = 1)
 
-ggsave(file = "figs/figs_main/drafts/figureS2_A.eps", p1, width = 5, height = 6, dpi=1200) #saves g
-ggsave(file = "figs/figs_main/drafts/figureS2_A.tiff", p1, width = 5, height = 6, dpi=1200) #saves g
-
-#ManReds = brewer.pal(n = 9, "Reds")[3:10] #there are 9, I exluded the two lighter hues
-
 p2 <- conus_wui_burned %>%
   filter(ignition == "Human") %>%
-  filter(pct_burn != "NA") %>%
-  filter(pct_class != "NA") %>%
-  filter(ptsz_n != "NA") %>%
-  filter(class == "WUI") %>%
+  filter(class != "WUI") %>%
   transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
   transform(pct_class = factor(pct_class, levels=c("< 1", "1 - 10", "10 - 20", 
                                                    "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
@@ -120,13 +111,38 @@ p2 <- conus_wui_burned %>%
   #ggtitle('(A) Burned arTRUE+
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
-        strip.text.x = element_blank(),
-        strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white")) 
+        # strip.text.x = element_blank(),
+        # strip.text.y = element_blank(),
+        legend.key = element_rect(fill = "white"))  +
+  facet_wrap(~ class, ncol = 1)
 
-grid.arrange(p1, p2, ncol = 1)
-g <- arrangeGrob(p1, p2, ncol = 1) #generates g
+p3 <- conus_wui_burned %>%
+  filter(ignition == "Lightning") %>%
+  filter(class != "WUI") %>%
+  transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
+  transform(pct_class = factor(pct_class, levels=c("< 1", "1 - 10", "10 - 20", 
+                                                   "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
+  transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
+  ggplot() +
+  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
+               color='black', fill = "gray99", size = .25) +
+  geom_point(aes(x = long, y = lat, colour = factor(pct_class), size = ptsz_n), stroke = 0) +
+  coord_equal() +
+  scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
+  #scale_colour_manual(values = ManReds, name = "Percent") +  
+  scale_size_discrete(range = c(0.2, 0.9), name = "# Fires") +
+  theme_nothing(legend = FALSE) +
+  #ggtitle('(A) Burned arTRUE+
+  theme(plot.title = element_text(hjust = 0, size = 12),
+        strip.background = element_blank(),
+        # strip.text.x = element_blank(),
+        # strip.text.y = element_blank(),
+        legend.key = element_rect(fill = "white"))  +
+  facet_wrap(~ class, ncol = 1)
 
-ggsave(file = "figs/figs_main/drafts/figure2.eps", g, width = 5, height = 6, dpi=1200) #saves g
-ggsave(file = "figs/figs_main/drafts/figure2.tiff", g, width = 5, height = 6, dpi=1200) #saves g
+grid.arrange(p1, p2,p3, nrow = 1)
+g <- arrangeGrob(p1, p2, p3, nrow = 1) #generates g
+
+ggsave(file = "figs/figs_main/drafts/figureS2.eps", g, width = 12, height = 6, dpi=1200) #saves g
+ggsave(file = "figs/figs_main/drafts/figureS2.tiff", g, width = 12, height = 6, dpi=1200) #saves g
 
