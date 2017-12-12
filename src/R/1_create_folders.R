@@ -1,30 +1,13 @@
 # Libraries ---------------------------------------------------------------
-library(tidyverse)
-library(magrittr)
-library(assertthat)
-library(rvest)
-library(raster)
-library(rgeos)
-library(httr)
-library(purrr)
-library(gridExtra)
-library(rgdal)
-library(sf)
-library(lubridate)
-library(parallel)
-library(sp)
-library(RColorBrewer)
-library(data.table)
-#library(bit64)
-library(ggmap)
+x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table",
+       "assertthat", "purrr", "httr", "rvest", "lubridate", "parallel", "sp", "RColorBrewer", "ggmap")
+lapply(x, library, character.only = TRUE, verbose = FALSE)
 
 source("src/functions/helper_functions.R")
 source("src/functions/make_grid.R")
 
 # Raw data folders
-prefix <- ifelse(Sys.getenv("LOGNAME") == "NateM", file.path("data"),
-                 ifelse(Sys.getenv("LOGNAME") == "nami1114", file.path("data"),
-                        file.path("../data")))
+prefix <- "data"
 raw_prefix <- file.path(prefix, "raw")
 us_prefix <- file.path(raw_prefix, "cb_2016_us_state_20m")
 ecoregion_prefix <- file.path(raw_prefix, "us_eco_l3")
@@ -40,13 +23,12 @@ anthro_out <- file.path(prefix, "anthro")
 fire_crt <- file.path(prefix, "fire")
 
 us_out <- file.path(conus_crt, "cb_2016_us_state_20m")
-ecoregion_out <- file.path(bounds_crt, "ecoregion", "us_eco_l3")
-
-fpa_out <- file.path(prefix, "fire", "fpa-fod")
-mtbs_out <- file.path(prefix, "fire", "mtbs_fod_perimeter_data")
+ecoregion_out <- file.path(ecoreg_crt, "us_eco_l3")
+fpa_out <- file.path(fire_crt, "fpa-fod")
+mtbs_out <- file.path(fire_crt, "mtbs_fod_perimeter_data")
 
 # Check if directory exists for all variable aggregate outputs, if not then create
-var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix,
-                bounds_crt, conus_crt, ecoreg_crt, anthro_out, fire_crt,
+var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, 
+                bounds_crt, conus_crt, ecoreg_crt, anthro_out, fire_crt, 
                 us_out, ecoregion_out, fpa_out, mtbs_out)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))

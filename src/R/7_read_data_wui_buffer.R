@@ -17,13 +17,13 @@ wui_only <- wui %>%
                                                              "MEDITERRANEAN CALIFORNIA",
                                                              "NORTHWESTERN FORESTED MOUNTAINS",
                                                              "MARINE WEST COAST FOREST"), "West", "Central"))),
-         regions = as.factor(if_else(region == "East" & stusps %in% c("FL", "GA", "AL", "MI", "LA", "AR", "TN", "NC", "SC"), "South East",
-                                     if_else(region == "East" & stusps %in% c("ME", "NH", "VT", "NY", "PA", "DE", "NJ", "RI", "CT",
-                                                                              "MA", "WI", "IL", "IN", "OH", "WV", "VA", "KY"), "North East",
+         regions = as.factor(if_else(region == "East" & stusps %in% c("FL", "GA", "AL", "MS", "LA", "AR", "TN", "NC", "SC", "TX", "OK"), "South East",
+                                     if_else(region == "East" & stusps %in% c("ME", "NH", "VT", "NY", "PA", "DE", "NJ", "RI", "CT", "MI", "MD",
+                                                                              "MA", "WI", "IL", "IN", "OH", "WV", "VA", "KY", "MO", "IA", "MN"), "North East",
                                              as.character(region)))),
-         region_dist = if_else(regions == "South East", 31000,
-                               if_else(regions == "North East", 72000,
-                                       if_else(regions == "West", 6000, 34000))))
+         region_dist = if_else(regions == "South East", 31,
+                               if_else(regions == "North East", 72,
+                                       if_else(regions == "West", 6, 34))))
 
 names(wui_only) %<>% tolower
 
