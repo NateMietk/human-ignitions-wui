@@ -16,14 +16,14 @@ wui <- fread('./data/PolyShp/us_wui_2010_laea_EcoSt.csv', header = T, sep = ',',
 bae <- fread('./data/PolyShp/CONUS_BAE_wMTBS.csv', header = T, sep = ',', stringsAsFactors = TRUE)
 
 #For the 4_NumFire_Per_Housing R script
-regionselect <- fread('./data/PointShp/CONUS_short_dis_VLDH_Wildlands_FishID.csv', header = T, sep = ',', stringsAsFactors = TRUE) %>%
+regionselect <- fread('data/PointShp/CONUS_short_dis_VLDH_Wildlands_FishID.csv', header = T, sep = ',', stringsAsFactors = TRUE) %>%
   mutate(NA_L1NAME = classify_reclass_lev1(NA_L1NAME)) %>%
   select(Region, NA_L1NAME) %>%
   group_by(NA_L1NAME) %>%
   summarise(Regions = first(Region)) %>%
   ungroup()
 
-fishdis <- fread('./data/PointShp/CONUS_short_dis_VLDH_Wildlands_FishID.csv', header = T, sep = ',', stringsAsFactors = TRUE) %>%
+fishdis <- fread('data/PointShp/CONUS_short_dis_VLDH_Wildlands_FishID.csv', header = T, sep = ',', stringsAsFactors = TRUE) %>%
   mutate(AREA_km2 = as.numeric(AREA_km2),
          Class = classify_new_categories(WUICLASS10),
          NA_L1NAME = classify_reclass_lev1(NA_L1NAME)) %>%
@@ -34,7 +34,7 @@ fishdis <- fread('./data/PointShp/CONUS_short_dis_VLDH_Wildlands_FishID.csv', he
             f_cnt = n()) %>%
   ungroup()
 
-fishdis_reg <- fread('./data/PointShp/CONUS_short_dis_VLDH_Wildlands_FishID.csv', header = T, sep = ',', stringsAsFactors = TRUE) %>%
+fishdis_reg <- fread('data/PointShp/CONUS_short_dis_VLDH_Wildlands_FishID.csv', header = T, sep = ',', stringsAsFactors = TRUE) %>%
   mutate(AREA_km2 = as.numeric(AREA_km2),
          Class = classify_new_categories(WUICLASS10)) %>%
   group_by(FishID_10k, Region, IGNITION) %>%
