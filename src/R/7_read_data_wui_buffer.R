@@ -29,4 +29,5 @@ names(wui_only) %<>% tolower
 
 wui_expanded <- st_buffer(wui_only, dist = wui_only$region_dist) %>%
   st_transform("+init=epsg:2163") %>%
-  mutate(wui_expanded_km2 = as.numeric(st_area(geom))/1000000)
+  mutate(wui_expanded_km2 = as.numeric(st_area(geom))/1000000) %>%
+  st_intersection(., st_union(usa_shp))
