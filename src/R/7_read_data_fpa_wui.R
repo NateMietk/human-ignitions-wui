@@ -245,7 +245,8 @@ totals_by_sizeclass <- fpa_wui %>%
             seasonlength = IQR(discovery_doy)) %>%
   left_join(., totals_by_cause_class_slim, by = c("ignition", "class")) %>%
   mutate(pct_firefreq = (firefreq/totfirefreq)*100,
-         pct_firearea = (firearea/totfirearea)*100)
+         pct_firearea = (firearea/totfirearea)*100) %>%
+  filter(class == "WUI")
 
 # Overall totals by IGNITIONS AND CLASS AND REGION AND SIZE
 totals_by_size_cause_class_slim <- totals_by_size_cause_class %>%
