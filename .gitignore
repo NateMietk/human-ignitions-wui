@@ -4,10 +4,6 @@
 
 # Session Data files
 .RData
-/*.pptx
-*.pptx
-/papers/
-papers/
 
 # Example code in package build process
 *-Ex.R
@@ -39,12 +35,4 @@ vignettes/*.pdf
 
 # General folders
 /data
-/figs
-<<<<<<< HEAD
 /results
-/data/
-/figs/
-/results/
-=======
-/results
->>>>>>> b5908d8d27d44bd6f34808bfac21cb8908d339c4
