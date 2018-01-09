@@ -1,8 +1,6 @@
-source("src/functions/ggplot_theme.R")
-source("src/functions/plot_theme.R")
 
 # FPA BAE database from 2001-2015
-fpa_bae <- st_read(file.path(prefix, "fire/fpa-fod/fpa_mtbs_bae_wui.gpkg")) %>%
+fpa_bae <- st_read(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg")) %>%
   filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") %>%
   filter(DISCOVERY_YEAR > 2000) %>%
   filter(FIRE_SIZE >= 0.1) %>%

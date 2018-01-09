@@ -8,9 +8,20 @@ classify_fire_size_cl <-  function(x) {
          ifelse(x >= 4 & x < 500, "Large", "Very Large"))
 }
 
+clean_class <- function(x, y) {
+  if_else(x %in% c("CA-BTU-007660|2008|1","MT-CES-000122|2012|1","WA-OWF-000346|2010|1","CO-PSF-000429|2013|1","CA-BDU-006570|2006|1",
+                   "CA-RRU-080142|2012|1","CA-SHF-1057|2008|1","WA-OWF-000583|2012|1","CA-SRF-1120|2008|1", "CA-HUU-003384|2008|1",
+                   "CA-LNF-3923|2009|1","MT-MCD-000035|2012|1","CA-LNU-006610|2003|1","CA-TGU-4245|2008|1","WA-WEF-709|2001|1",
+                   "CA-MMU-008107|2008|1"), "VLD",
+          if_else(x %in% c("OR-UPF-0000034|2003|1","CA-BDF-5749|2006|1","NV-HTF-3364|2004|1","OR-71S-044|2002|1","AZ-KNF-00872|2009|1",
+                           "CA-RRU-062519|2005|1","AZ-CNF-074|2007|1","NV-HTF-1111|2006|1","CA-MVU-1024|2002|1","ID-SCF-000003|2005|1",
+                           "OR-SIF-003|2002|1"), "Wildlands", 
+                  y))
+}
+
 # Helper functions --------------------------------------------------------
 
-dollarToNumber_vectorised <- function(vector) {
+remove_dollar <- function(vector) {
   # Want the vector as character rather than factor while
   # we're doing text processing operations
   vector <- as.character(vector)
@@ -156,74 +167,6 @@ g_legend<-function(a.gplot){
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
   legend <- tmp$grobs[[leg]]
   return(legend)}
-
-fit_mblm <- function(df) {
-  # estimate intercept and slope
-  # input:
-  #  - df (data.frame): has columns FIRE_YEAR & N
-  # return:
-  #  - data.frame with intercept and slope
-  y <- df$tot_fire
-  x <- df$FIRE_YEAR
-  m <- mblm(y ~ x, repeated = FALSE)
-  tmp <- summary(m)
-  data.frame(intercept = m$coefficients[1],
-             slope = m$coefficients[2],
-             pval = tmp$coefficients[8],
-             Class = df$Class[1],
-             IGNITION = df$IGNITION[1])
-}
-
-fit_mblm_bae <- function(df) {
-  # estimate intercept and slope
-  # input:
-  #  - df (data.frame): has columns FIRE_YEAR & N
-  # return:
-  #  - data.frame with intercept and slope
-  y <- df$bae
-  x <- df$FIRE_YEAR
-  m <- mblm(y ~ x, repeated = FALSE)
-  tmp <- summary(m)
-  data.frame(intercept = m$coefficients[1],
-             slope = m$coefficients[2],
-             pval = tmp$coefficients[8],
-             Class = df$Class[1],
-             IGNITION = df$IGNITION[1])
-}
-
-fit_mblm_fsl <- function(df) {
-  # estimate intercept and slope
-  # input:
-  #  - df (data.frame): has columns FIRE_YEAR & N
-  # return:
-  #  - data.frame with intercept and slope
-  y <- df$Fseas
-  x <- df$FIRE_YEAR
-  m <- mblm(y ~ x, repeated = FALSE)
-  tmp <- summary(m)
-  data.frame(intercept = m$coefficients[1],
-             slope = m$coefficients[2],
-             pval = tmp$coefficients[8],
-             Class = df$Class[1],
-             IGNITION = df$IGNITION[1])
-}
-
-fit_mblm_fpy <- function(df) {
-  # estimate intercept and slope
-  # input:
-  #  - df (data.frame): has columns FIRE_YEAR & N
-  # return:
-  #  - data.frame with intercept and slope
-  y <- df$FPY
-  x <- df$FIRE_YEAR
-  m <- mblm(y ~ x, repeated = FALSE)
-  tmp <- summary(m)
-  data.frame(intercept = m$coefficients[1],
-             slope = m$coefficients[2],
-             pval = tmp$coefficients[8],
-             Class = df$Class[1],
-             IGNITION = df$IGNITION[1])
-}
 
 classify_returninterval <-  function(x) {
   # break out fires into small, med, large
