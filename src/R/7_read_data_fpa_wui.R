@@ -1,8 +1,6 @@
-source("src/functions/ggplot_theme.R")
-source("src/functions/plot_theme.R")
 
 # FPA database from 2001-2015
-fpa_wui <- st_read(file.path(prefix, "fire/fpa-fod/fpa_wui_conus.gpkg")) %>%
+fpa_wui <- st_read(file.path(fpa_out, "fpa_wui_conus.gpkg")) %>%
   mutate(Seasons = classify_seasons(DISCOVERY_DOY),
          region = as.factor(if_else(NA_L1NAME %in% c("EASTERN TEMPERATE FORESTS",
                                                      "GREAT PLAINS",

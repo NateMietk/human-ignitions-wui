@@ -1,12 +1,10 @@
-source("src/R/get_clean_data.R")
-
 # Clean ICS-209 from 2001-2013 -----------------------------
 
-fam_rep <- fread("data/ics209/input_tbls/famweb/ics209_2001_2013_wfonlyv3.csv") %>%
+fam_rep <- fread(file.path(ics_famweb, "ics209_2001_2013_wfonlyv3.csv")) %>%
   mutate_all(funs(replace(., is.na(.), 0)))
 
-est_lookup <- fread("data/ics209/input_tbls/famweb/clean_estimated_costs.csv")
-latlong <- fread("data/ics209/input_tbls/latlong/ics209Incidents-cleaned_ll.csv")
+est_lookup <- fread(file.path(ics_famweb, "clean_estimated_costs.csv"))
+latlong <- fread(file.path(ics_latlong, "ics209Incidents-cleaned_ll.csv"))
 
 names(fam_rep) %<>% tolower
 
@@ -31,8 +29,8 @@ fam <- fam_rep %>%
          area_ha = ifelse(area_measurement == "SQ MILES", area*258.99903998855,
                           area*0.404686),
          area_km2 = area_ha*0.01,
-         est_final_costs = dollarToNumber_vectorised(clean_estimated_costs(incident_unique_id, est_final_costs)),
-         costs_to_date_c = dollarToNumber_vectorised(clean_costs_to_date(incident_unique_id, costs_to_date)),
+         est_final_costs = remove_dollar(clean_estimated_costs(incident_unique_id, est_final_costs)),
+         costs_to_date_c = remove_dollar(clean_costs_to_date(incident_unique_id, costs_to_date)),
          cause_binary = ifelse(cause == "H", "2",
                                ifelse(cause == "O", "2",
                                       ifelse(cause =="L", "1", "0"))),
@@ -79,7 +77,5 @@ fam_clean <- fam %>%
          long = ifelse(is.na(long_c), long.x, long_c),
          syear = syear.x,
          cause = cause.x) %>%
-  select(-lat_c, -long_c, -confi, -syear.y, -lat.y, -cause.x, -cause.y,
+  dplyr::select(-lat_c, -long_c, -confi, -syear.y, -lat.y, -cause.x, -cause.y,
          -long.y, -lat.x, -long.x, -syear.x, -syear.y)
-
-write_csv(fam_clean, path = "data/ics209/output_tbls/ics209_conus.csv")

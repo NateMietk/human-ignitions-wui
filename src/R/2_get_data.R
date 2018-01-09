@@ -1,6 +1,4 @@
 
-source("src/R/1_create_folders.R")
-
 #Download the USA States layer
 
 us_shp <- file.path(us_prefix, "cb_2016_us_state_20m.shp")
@@ -47,6 +45,7 @@ if (!file.exists(ecoregion_shp)) {
 }
 
 #Download the WUI shapefile
+# Unzip does not work with files >4GB, will need to download on your own.
 
 wui_gdb <- file.path(wui_prefix, "us_wui_2010.gdb")
 if (!file.exists(wui_gdb)) {
