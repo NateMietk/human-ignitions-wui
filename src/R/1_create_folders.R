@@ -23,6 +23,7 @@ mtbs_prefix <- file.path(raw_prefix, "mtbs_fod_perimeter_data")
 # Cleaned data output folders
 anthro_out <- file.path(prefix, "anthro")
 fire_crt <- file.path(prefix, "fire")
+nifc_crt <- file.path(fire_crt, "nifc")
 
 us_out <- file.path(conus_crt, "cb_2016_us_state_20m")
 ecoregion_out <- file.path(ecoreg_crt, "us_eco_l3")
