@@ -45,19 +45,17 @@ ec_df <- left_join(ec_df, ecoregs@data, by = 'id')
 names(ec_df) <- tolower(names(ec_df))
 
 p1 <- ggplot() +
-  geom_polygon(data = ec_df, aes(x = long,y = lat,group=group), color='black', fill = "gray99", size = .25)+
-  geom_point(aes(x = coords.x1, y = coords.x2,
-                 colour = factor(buckets), size = ptsz_n), stroke = 0) +
+  geom_polygon(data = ec_df, 
+               aes(x = long,y = lat,group=group), 
+               color='black', fill = "gray99", size = .25)+
   coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(10,"RdYlBu"))) +
-  scale_size_discrete(range = c(.2, 0.9), name="Fire size (km2)") +
   theme_nothing(legend = TRUE) +
-  #ggtitle('(A) Fire frequency') +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
         strip.text.x = element_text(size = 12, face = "bold"),
         strip.text.y = element_text(size = 12),
         legend.key = element_rect(fill = "white"))
+
 # Create Fishnets ---------------------------------------------------------
 # 50k Fishnet
 fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
