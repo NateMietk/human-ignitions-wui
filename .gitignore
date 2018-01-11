@@ -34,5 +34,5 @@ vignettes/*.pdf
 .Rproj.user
 
 # General folders
-/data
+/docs
 /results
