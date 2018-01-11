@@ -17,9 +17,47 @@ names(st_df) <- tolower(names(st_df))
 ecoreg <- st_read(dsn = ecoregion_prefix, layer = "us_eco_l3", quiet= TRUE) %>%
   st_transform("+init=epsg:2163") %>%  # e.g. US National Atlas Equal Area
   st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
-  dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME)
+  dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME) %>%
+  st_intersection(., usa_shp) %>%
+  mutate(region = as.factor(if_else(NA_L1NAME %in% c("EASTERN TEMPERATE FORESTS",
+                                                     "TROPICAL WET FORESTS",
+                                                     "NORTHERN FORESTS"), "East",
+                                    if_else(NA_L1NAME %in% c("NORTH AMERICAN DESERTS",
+                                                             "SOUTHERN SEMIARID HIGHLANDS",
+                                                             "TEMPERATE SIERRAS",
+                                                             "MEDITERRANEAN CALIFORNIA",
+                                                             "NORTHWESTERN FORESTED MOUNTAINS",
+                                                             "MARINE WEST COAST FOREST"), "West", "Central"))),
+         regions = as.factor(if_else(region == "East" & stusps %in% c("FL", "GA", "AL", "MS", "LA", "AR", "TN", "NC", "SC", "TX", "OK"), "South East",
+                                     if_else(region == "East" & stusps %in% c("ME", "NH", "VT", "NY", "PA", "DE", "NJ", "RI", "CT", "MI", "MD", 
+                                                                              "MA", "WI", "IL", "IN", "OH", "WV", "VA", "KY", "MO", "IA", "MN"), "North East",
+                                             as.character(region)))))
 names(ecoreg) %<>% tolower
 
+ecoreg_swse <- ecoreg %>%
+  group_by(regions) %>%
+  summarize()
+
+ecoregs <- as(ecoreg_swse, "Spatial")
+ecoregs$id <- row.names(ecoregs)
+ec_df <- fortify(ecoregs, region = 'id')
+ec_df <- left_join(ec_df, ecoregs@data, by = 'id')
+names(ec_df) <- tolower(names(ec_df))
+
+p1 <- ggplot() +
+  geom_polygon(data = ec_df, aes(x = long,y = lat,group=group), color='black', fill = "gray99", size = .25)+
+  geom_point(aes(x = coords.x1, y = coords.x2,
+                 colour = factor(buckets), size = ptsz_n), stroke = 0) +
+  coord_equal() +
+  scale_colour_manual(values = rev(brewer.pal(10,"RdYlBu"))) +
+  scale_size_discrete(range = c(.2, 0.9), name="Fire size (km2)") +
+  theme_nothing(legend = TRUE) +
+  #ggtitle('(A) Fire frequency') +
+  theme(plot.title = element_text(hjust = 0, size = 12),
+        strip.background=element_blank(),
+        strip.text.x = element_text(size = 12, face = "bold"),
+        strip.text.y = element_text(size = 12),
+        legend.key = element_rect(fill = "white"))
 # Create Fishnets ---------------------------------------------------------
 # 50k Fishnet
 fishnet_50k <- st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
