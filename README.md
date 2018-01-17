@@ -1,7 +1,10 @@
-Consequences of human-ignited wildfires from the WUI to the wildlands in the U.S. (2001-2013)
-=============================================================================================
+Costs of human-ignited wildfires in the U.S. (2001-2015)-from the Wildland-Urban Interface to wildlands  =======================================================================================================
 
-1. Run `get_data.R` to download, unpack, and organize all neccessary files.  The spatial data that are fetched are:
+All R code to run the analysis can be found in `src/R/analysis`
+
+1. Run `1_create_folder.R` 
+
+2.  Run `2_get_data.R` to download, unpack, and organize all neccessary files.  The spatial data that are fetched are:
 -   Contiguous US state boundaries
 -   Level 3 ecoregions
 -   Wildland-urban interface
