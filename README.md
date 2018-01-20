@@ -10,7 +10,7 @@ All R code to run the analysis can be found in `src/R/analysis`
 -   Fire Program Analysis Fire-Occurrence Database (1992-2015)
 -   Monitoring trends in burned severity (1984-2015)
 
-2. Run `helper_functions.R`.  This will load all of the neccessary functions used throughout the data cleaning and plotting applications.
+3. Run `3_clean_data.R`. 
+  All spatial database processing is accomplished. This particular script is extremely memory intensive due to the large WUI shapfiles and FPA-FOD database.  Because of this it can only be run on a 122 GB RAM EC2 instance on the Amazon Web Services. 
 
-3. Run `clean_data.R`.  All spatial database processing is accomplished in this R script.  The end results of this script are the basis for all figure creation.  This particular script is extremely memory intensive due to the large WUI shapfiles and FPA-FOD database.  Because of this it can only be run on a 122 GB RAM EC2 instance on the Amazon Web Services. 
-
+4.  
