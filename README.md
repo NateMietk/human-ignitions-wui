@@ -10,7 +10,6 @@ All R code to run the analysis can be found in `src/R/analysis`
 -   Fire Program Analysis Fire-Occurrence Database (1992-2015)
 -   Monitoring trends in burned severity (1984-2015)
 
-3. Run `3_clean_data.R`. 
-  All spatial database processing is accomplished. This particular script is extremely memory intensive due to the large WUI shapfiles and FPA-FOD database.  Because of this it can only be run on a 122 GB RAM EC2 instance on the Amazon Web Services. 
+3. Run `3_clean_data.R`.  All spatial database processing is accomplished. All intermediate results are written out so this step needs to be run only once.  This particular script is extremely memory intensive due to the large WUI shapfiles and FPA-FOD database.  Because of this it can only be run on a 122 GB RAM EC2 instance on the Amazon Web Services. 
 
-4.  
+4. Run `4_create_buffer.R`.  
