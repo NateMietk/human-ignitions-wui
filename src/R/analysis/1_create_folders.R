@@ -44,6 +44,6 @@ ics_spatial <- file.path(ics_out, "spatial")
 
 # Check if directory exists for all variable aggregate outputs, if not then create
 var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt,
-                bounds_crt, conus_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls,
-                swse_crt, ics_famweb, ics_latlong, ics_spatial, us_out, ecoregion_out, fpa_out, mtbs_out)
+                bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls,
+                swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
