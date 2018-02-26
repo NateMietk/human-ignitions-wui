@@ -43,4 +43,4 @@ multi_model <- td %>%
   transform(class = factor(class, levels= c("wui", "vld", "wild"))) %>%
   gather(variable, value, -class, -cause) %>%
   split(.$variable) %>%
-  do.call(get_expected(.))
+  map(~ get_expected(.))
