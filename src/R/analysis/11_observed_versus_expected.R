@@ -1,53 +1,78 @@
-library(tidyverse)
 
-raw <- read_csv("rawdata.csv") # Table 3 in the supplements
+if (!file.exists(file.path(summary_dir, 'class_cause_summary.csv'))) {
 
-td <- raw %>%
-  tidyr::gather(class, value, wui:wild) %>%
-  transform(class = factor(class, levels= c("wui", 'vld', "wild"))) %>%
-  tidyr::spread(var, value) 
+  stats_fpa <- fpa %>%
+    mutate(cause = ignition) %>%
+    group_by(cause, class) %>%
+    summarise(fire_frequency = n(),
+              burn_area = sum(fire_size_km2),
+              class_burn_area = sum(clarea_km2),
+              fire_season_length = IQR(discovery_doy)) %>%
+    as.data.frame() %>%
+    dplyr::select(-geom) %>%
+    as.tibble()
+
+  stats_209 <- wui_209 %>%
+    group_by(cause, class) %>%
+    summarise(aerial = sum(tot.aerial),
+              costs = sum(costs),
+              strucutres_destroyed = sum(home.destroyed) + sum(comm.destroyed),
+              fatalities = sum(fatalities),
+              strucutres_threatened = sum(home.threat) + sum(comm.threat)) %>%
+    as.data.frame() %>%
+    dplyr::select(-geom) %>%
+    as.tibble()
+
+  stats_df <- stats_fpa %>%
+    left_join(., stats_209, by = (c('class', 'cause'))) %>%
+    transform(class = factor(class, levels= c("WUI", 'VLD', "Wildlands"))) %>%
+    mutate(cause = as.factor(cause)) %>%
+    mutate_if(is.integer, as.numeric) %>%
+    as.tibble()
+
+  write_csv(stats_df, file.path(summary_dir, 'class_cause_summary.csv'))
+
+} else {
+
+  stats_df <- read_csv(file.path(summary_dir, 'class_cause_summary.csv'))  %>%
+    transform(class = factor(class, levels= c("WUI", 'VLD', "Wildlands"))) %>%
+    mutate(cause = as.factor(cause)) %>%
+    mutate_if(is.integer, as.numeric) %>%
+    as.tibble()
+}
 
 get_expected <- function(df) {
-  
+
   # Takes a 3x2 table of observed values and calculates expected
   # Pull out the variable name we are using
-  varname <- if_else(df$variable[1] == 'aer', 'aerial',
-                     if_else(df$variable[1] == 'ba', 'burn_area',
-                             if_else(df$variable[1] == 'cba', 'class_burn_area',
-                                     if_else(df$variable[1] == 'cost', 'costs',
-                                             if_else(df$variable[1] == 'des', 'home_destroyed',
-                                                     if_else(df$variable[1] == 'fat', 'fatalities',
-                                                             if_else(df$variable[1] == 'ff', 'fire_frequency',
-                                                                     if_else(df$variable[1] == 'fsl', 'fire_season_length',
-                                                                             if_else(df$variable[1] == 'thr', 'home_threat', 'unk')))))))))
-  
-  
+  varname <- df$variable[1]
+
   # Create new column names for the output dataframe
   colname1 <- paste0("human_expected")
   colname2 <- paste0("lightning_expected")
   colname3 <- paste0("human_observed")
   colname4 <- paste0("lightning_observed")
-  
-  
+
+
   # Reshape the dataframe to be entered into the for loop
   df_class <- df %>%
     tidyr::spread(cause, value) %>%
     dplyr::select(-variable)
-  
+
   d <- df_class %>%
     tibble::remove_rownames() %>%
     tibble::column_to_rownames(var = 'class')
-  
+
   # Empty dataframe
   expected_data <- tibble()
-  
+
   # Calculate the expected values
   for (i in 1:length(levels(df_class$class))){
     expected_data[i,1] <- (sum(d[i,]) * sum(d[,1])) / sum(d)
     expected_data[i,2] <- (sum(d[i,]) * sum(d[,2])) / sum(d)
   }
-  
-  # Write out the expected values to the dataframe and clean 
+
+  # Write out the expected values to the dataframe and clean
   expected_data <- expected_data %>%
     dplyr::mutate(!!colname1 := V1,
                   !!colname2 := V2,
@@ -56,10 +81,10 @@ get_expected <- function(df) {
                   class = df_class$class,
                   variable = as.factor(varname)) %>%
     dplyr::select(-V1, -V2)
-  
+
 }
 
-multi_model <- td %>%
+multi_model <- stats_df %>%
   gather(variable, value, -class, -cause) %>%
   split(.$variable) %>%
   map(~ get_expected(.)) %>%
@@ -74,11 +99,23 @@ multi_model <- td %>%
 
 chi_model <- multi_model %>%
   dplyr::select(row_id, observed, expected) %>%
-  rowwise() %>% 
-  mutate(chi_sq_p_val = chisq.test(., observed, expected, simulate.p.value = TRUE, B = 10)$p.value)
+  group_by(row_id) %>%
+  do(data_frame(row_id = first(.$row_id),
+                data = list(matrix(c(.$observed, .$expected), ncol = 2)))) %>%
+  mutate(chi_test = map(data, chisq.test, correct = FALSE, simulate.p.value = TRUE, B = 10000)) %>%
+  mutate(p.value = map_dbl(chi_test, "p.value")) %>%
+  mutate(statistic = map_dbl(chi_test, "statistic")) %>%
+  ungroup() %>%
+  dplyr::select(row_id, p.value, statistic) %>%
+  left_join(multi_model, ., by = 'row_id') %>%
+  dplyr::select(-row_id) %>%
+  mutate(row_id = row_number())
 
 
-,
-chi_sq_stat = chisq.test(x = observed, y = expected, simulate.p.value = TRUE, B = 100)$statistic))
+t1 <- multi_model %>%
+  dplyr::select( observed, expected)
 
 
+t2 <- bind_cols(lapply(split(t1, (1:nrow(t1) - 1)%/%2),
+            function(data) chisq.test(data, correct = FALSE, simulate.p.value = TRUE, B = 10000)$p.value)) %>%
+  as_tibble
