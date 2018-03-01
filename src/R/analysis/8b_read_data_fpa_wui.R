@@ -1,6 +1,6 @@
 
 # FPA database from 2001-2015
-fpa_wui <- st_read(file.path(fpa_out, "fpa_wui_conus.gpkg")) %>%
+fpa_wui <- st_read(file.path(fpa_out, "fpa_wui_conus.gpkg"))
 fpa <-  fpa_wui %>% mutate(Seasons = classify_seasons(DISCOVERY_DOY),
          region = as.factor(if_else(NA_L1NAME %in% c("EASTERN TEMPERATE FORESTS",
                                                      "GREAT PLAINS",
@@ -14,11 +14,9 @@ fpa <-  fpa_wui %>% mutate(Seasons = classify_seasons(DISCOVERY_DOY),
                                                              "MARINE WEST COAST FOREST"), "West", "Central")))) %>%
   mutate_all(funs(replace(., is.na(.), 0))) %>%
   filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") %>%
-  #filter(DISCOVERY_YEAR > 2000) %>%
-  #filter(FIRE_SIZE >= 0.1) %>%
+  filter(DISCOVERY_YEAR > 2000) %>%
+  filter(FIRE_SIZE >= 0.1) %>%
   rename_all(tolower)
-
-st_write(fpa, "data/fire/fpa-fod/fpa_wui_conus_9215.shp")
 
 wuw_area <- data.table(class=c("WUI", "VLD", "Wildlands"),
                        class_area = c(784320, 2260783, 2598246))
