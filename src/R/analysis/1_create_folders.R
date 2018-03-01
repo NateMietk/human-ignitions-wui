@@ -1,6 +1,6 @@
 # Libraries ---------------------------------------------------------------
 x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table",
-       "assertthat", "purrr", "httr", "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "tabulizer", "ggthemes")
+       "assertthat", "purrr", "httr", "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes")
 lapply(x, library, character.only = TRUE, verbose = FALSE)
 
 source("src/functions/helper_functions.R")
@@ -14,6 +14,7 @@ ncores <- detectCores()
 
 # Raw data folders
 prefix <- "data"
+summary_dir <- file.path(prefix, 'summaries')
 raw_prefix <- file.path(prefix, "raw")
 us_prefix <- file.path(raw_prefix, "cb_2016_us_state_20m")
 ecoregion_prefix <- file.path(raw_prefix, "ecoregions")
@@ -43,7 +44,7 @@ ics_spatial <- file.path(ics_out, "spatial")
 
 
 # Check if directory exists for all variable aggregate outputs, if not then create
-var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt,
+var_dir <- list(prefix, summary_dir, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt,
                 bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls,
                 swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
