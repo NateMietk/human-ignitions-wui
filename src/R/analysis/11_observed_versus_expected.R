@@ -97,25 +97,39 @@ multi_model <- stats_df %>%
   dplyr::select(class, cause, variable, observed, expected, pct_diff) %>%
   mutate(row_id = row_number())
 
-chi_model <- multi_model %>%
+chi_input <- stats_df %>%
+  gather(variable, value, -class, -cause) %>%
+  split(.$variable) %>%
+  map(~ get_expected(.)) %>%
+  bind_rows() %>%
+  mutate_if(is.list, simplify_all) %>%
+  gather(tmp, expected, human_expected:lightning_expected) %>%
+  gather(cause, observed, human_observed:lightning_observed) %>%
+  mutate(pct_diff = (expected/observed)*100) %>%
+  separate(cause, c('cause', 'other'), extra = 'drop') %>%
+  dplyr::select(class, cause, variable, observed, expected, pct_diff) %>%
+  mutate(row_id = row_number())
+
+
+# previous attempt that worked only when the simulation was not present
+chi_model <- chi_input %>%
+  filter(variable != 'costs') %>%
+  mutate(observed = if_else(observed == 0, 1, observed)) %>%
   dplyr::select(row_id, observed, expected) %>%
   group_by(row_id) %>%
   do(data_frame(row_id = first(.$row_id),
                 data = list(matrix(c(.$observed, .$expected), ncol = 2)))) %>%
-  mutate(chi_test = map(data, chisq.test, correct = FALSE, simulate.p.value = TRUE, B = 10000)) %>%
+  mutate(chi_test = map(data, chisq.test, correct = FALSE, simulate.p.value = TRUE, B = 100)) %>%
   mutate(p.value = map_dbl(chi_test, "p.value")) %>%
   mutate(statistic = map_dbl(chi_test, "statistic")) %>%
   ungroup() %>%
   dplyr::select(row_id, p.value, statistic) %>%
-  left_join(multi_model, ., by = 'row_id') %>%
+  left_join(chi_input, ., by = 'row_id') %>%
   dplyr::select(-row_id) %>%
   mutate(row_id = row_number())
 
+chi_name <- file.path(summary_dir, paste0('chi_model_statistics.csv'))
+write_csv(chi_model, chi_name)
 
-t1 <- multi_model %>%
-  dplyr::select( observed, expected)
 
-
-t2 <- bind_cols(lapply(split(t1, (1:nrow(t1) - 1)%/%2),
-            function(data) chisq.test(data, correct = FALSE, simulate.p.value = TRUE, B = 10000)$p.value)) %>%
-  as_tibble
+system('aws s3 sync data s3://earthlab-natem/human-ignitions-wui')
