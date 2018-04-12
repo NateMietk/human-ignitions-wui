@@ -11,17 +11,6 @@ if (!file.exists(us_shp)) {
   assert_that(file.exists(us_shp))
 }
 
-# Download the Level 3 Ecoregions
-ecoregion_shp <- file.path(ecoregion_prefix, "us_eco_l3.shp")
-if (!file.exists(ecoregion_shp)) {
-  loc <- "ftp://newftp.epa.gov/EPADataCommons/ORD/Ecoregions/us/us_eco_l3.zip"
-  dest <- paste0(ecoregion_prefix, ".zip")
-  download.file(loc, dest)
-  unzip(dest, exdir = ecoregion_prefix)
-  unlink(dest)
-  assert_that(file.exists(ecoregion_shp))
-}
-
 # Download the Level 2 Ecoregions
 ecoregion_shp <- file.path(ecoregion_prefix, "NA_CEC_Eco_Level2.shp")
 if (!file.exists(ecoregion_shp)) {
@@ -47,14 +36,20 @@ if (!file.exists(ecoregion_shp)) {
 #Download the WUI shapefile
 # Unzip does not work with files >4GB, will need to download on your own.
 
-wui_gdb <- file.path(wui_prefix, "us_wui_2010.gdb")
+wui_gdb <- file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb")
 if (!file.exists(wui_gdb)) {
-  loc <- "http://silvis.forest.wisc.edu/sites/default/files/maps/wui/2010/gis/us_wui_2010.zip"
-  dest <- paste0(wui_prefix, "/us_wui_2010", ".zip")
+  #loc <- "http://silvis.forest.wisc.edu/sites/default/files/maps/wui/2010/gis/us_wui_2010.zip"
+  loc <- 'http://silvis.forest.wisc.edu/GeoData/WUI_cp12/zip/fgdb/CONUS_WUI_cp12_fgdb.zip'
+  dest <- paste0(wui_prefix, "/us_wui", ".zip")
   download.file(loc, dest)
-  unzip(dest, exdir = wui_prefix)
-  unlink(wui_prefix)
+  system(paste0("unzip ",
+                dest,
+                " -d ",
+                wui_prefix))
+  unlink(dest)
   assert_that(file.exists(wui_gdb))
+
+  system(paste0("aws s3 sync ", raw_prefix, " ", s3_raw_prefix))
 }
 
 # Download the FPA-FOD data
@@ -69,6 +64,9 @@ if (!file.exists(fpa_gdb)) {
   unzip(dest, exdir = fpa_prefix)
   unlink(dest)
   assert_that(file.exists(fpa_gdb))
+  system(paste0("aws s3 sync ",
+                raw_prefix, " ",
+                s3_raw_prefix))
 }
 
 #Download the MTBS fire polygons
