@@ -1,5 +1,5 @@
 # Libraries ---------------------------------------------------------------
-x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table",
+x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom',
        "assertthat", "purrr", "httr", "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes")
 lapply(x, library, character.only = TRUE, verbose = FALSE)
 
@@ -18,7 +18,7 @@ summary_dir <- file.path(prefix, 'summaries')
 raw_prefix <- file.path(prefix, "raw")
 us_prefix <- file.path(raw_prefix, "cb_2016_us_state_20m")
 ecoregion_prefix <- file.path(raw_prefix, "ecoregions")
-wui_prefix <- file.path(raw_prefix, "us_wui_2010")
+wui_prefix <- file.path(raw_prefix, "us_wui")
 fpa_prefix <- file.path(raw_prefix, "fpa-fod")
 mtbs_prefix <- file.path(raw_prefix, "mtbs_fod_perimeter_data")
 
@@ -34,6 +34,7 @@ ecoregion_out <- file.path(ecoreg_crt, "us_eco_l3")
 
 fpa_out <- file.path(fire_crt, "fpa-fod")
 mtbs_out <- file.path(fire_crt, "mtbs_fod_perimeter_data")
+wui_out <- file.path(anthro_out, "wui")
 
 ics_out <- file.path(fire_crt, "ics_209")
 ics_outtbls <- file.path(ics_out, "output_tbls")
@@ -42,9 +43,16 @@ ics_famweb <- file.path(ics_intbls, "famweb")
 ics_latlong <- file.path(ics_intbls, "latlong")
 ics_spatial <- file.path(ics_out, "spatial")
 
+fishnet_path <- file.path(bounds_crt, "fishnet")
+
+# for pushing and pulling to s3 using the system function
+s3_bounds_prefix <- 's3://earthlab-natem/human-ignitions-wui/bounds'
+s3_anthro_prefix <- 's3://earthlab-natem/human-ignitions-wui/anthro'
+s3_fire_prefix <- 's3://earthlab-natem/human-ignitions-wui/fire'
+s3_raw_prefix <- 's3://earthlab-natem/human-ignitions-wui/raw'
 
 # Check if directory exists for all variable aggregate outputs, if not then create
 var_dir <- list(prefix, summary_dir, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt,
-                bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls,
-                swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out)
+                bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out,
+                swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
