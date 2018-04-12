@@ -1,3 +1,19 @@
+load_data <- function(url, dir, layer, outname) {
+  file <- paste0(dir, "/", layer, ".shp")
+
+  if (!file.exists(file)) {
+    download.file(url, destfile = paste0(dir, ".zip"))
+    unzip(paste0(dir, ".zip"),
+          exdir = dir)
+    unlink(paste0(dir, ".zip"))
+
+  }
+  name <- paste0(outname, "_shp")
+  name <- sf::st_read(dsn = dir, layer = layer)
+  name
+}
+
+
 classify_fire_size_cl <-  function(x) {
   # break out fires into small, med, large
   # input:
@@ -15,7 +31,7 @@ clean_class <- function(x, y) {
                    "CA-MMU-008107|2008|1"), "VLD",
           if_else(x %in% c("OR-UPF-0000034|2003|1","CA-BDF-5749|2006|1","NV-HTF-3364|2004|1","OR-71S-044|2002|1","AZ-KNF-00872|2009|1",
                            "CA-RRU-062519|2005|1","AZ-CNF-074|2007|1","NV-HTF-1111|2006|1","CA-MVU-1024|2002|1","ID-SCF-000003|2005|1",
-                           "OR-SIF-003|2002|1"), "Wildlands", 
+                           "OR-SIF-003|2002|1"), "Wildlands",
                   y))
 }
 
@@ -64,7 +80,7 @@ clean_estimated_costs <- function(x, y, z) {
 clean_costs_to_date <- function(x, y) {
   # x = incident_unique_id
   # y = est_final_costs
-  
+
   costs_to_date_c <-
     ifelse(x == "CA-BTU-007660|2008|1"   & y == 876000000, 87600000,
            ifelse(x == "CA-STF-002857|2013|1"   & y == 1161000000, 116100000,
@@ -110,14 +126,14 @@ clean_costs_to_date <- function(x, y) {
 # http://www.spatialanalytics.co.nz/post/2017/09/11/a-parallel-function-for-spatial-analysis-in-r/
 # Paralise any simple features analysis.
 st_par <- function(sf_df, sf_func, n_cores, ...){
-  
+
   # Create a vector to split the data set up by.
   split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
-  
+
   # Perform GIS analysis
   split_results <- split(sf_df, split_vector) %>%
     mclapply(function(x) sf_func(x, ...), mc.cores = n_cores)
-  
+
   # Combine results back together. Method of combining depends on the output from the function.
   if (class(split_results[[1]]) == 'list' ){
     result <- do.call("c", split_results)
@@ -125,7 +141,7 @@ st_par <- function(sf_df, sf_func, n_cores, ...){
   } else {
     result <- do.call(rbind, split_results)
   }
-  
+
   # Return result
   return(result)
 }
@@ -138,12 +154,12 @@ classify_wui <-  function(x) {
   #   - x: vector of fire sizes
   # output:
   #   - y: vector (same length) of classified fire sizes ----- Km2
-  as.factor(ifelse(x == "Low_Dens_Intermix", "WUI",
-                   ifelse(x == "Low_Dens_Interface", "WUI",
-                          ifelse(x == "Med_Dens_Intermix", "WUI",
-                                 ifelse(x == "Med_Dens_Interface", "WUI",
-                                        ifelse(x == "High_Dens_Interface", "WUI",
-                                               ifelse(x == "High_Dens_Intermix", "WUI",
+  as.factor(ifelse(x == "Low_Dens_Intermix", "Interface WUI",
+                   ifelse(x == "Low_Dens_Interface", "Interface WUI",
+                          ifelse(x == "Med_Dens_Intermix", "Intermix WUI",
+                                 ifelse(x == "Med_Dens_Interface", "Interface WUI",
+                                        ifelse(x == "High_Dens_Interface", "Interface WUI",
+                                               ifelse(x == "High_Dens_Intermix", "Intermix WUI",
                                                       ifelse(x == "Very_Low_Dens_Veg", "VLD",
                                                              ifelse(x == "Uninhabited_Veg", "Wildlands",
                                                                     ifelse(x == "Med_Dens_NoVeg", "Urban",
@@ -270,7 +286,7 @@ classify_suppresscosts <-  function(x) {
                                             ifelse(x >= 20000000 & x < 30000000, "20,000,000 - 30,000,000",
                                                    ifelse(x >= 30000000 & x < 40000000, "30,000,000 - 40,000,000",
                                                           "> 40,000,001"))))))))
-  
+
 }
 
 classify_pctbae <-  function(x) {
@@ -287,7 +303,7 @@ classify_pctbae <-  function(x) {
                                             ifelse(x >= 30 & x < 40, "30 - 40",
                                                    ifelse(x >= 40 & x < 50, "40 - 50",
                                                           "> 50")))))))
-  
+
 }
 
 classify_suppresscosts2 <-  function(x) {
@@ -304,7 +320,7 @@ classify_suppresscosts2 <-  function(x) {
                                      ifelse(x >= 10000000 & x < 20000000, 20000000,
                                             ifelse(x >= 20000000 & x < 40000000, 40000000,
                                                    40000001)))))))
-  
+
 }
 
 classify_new_categories <-  function(x) {
@@ -404,25 +420,25 @@ theme_pub <- function(base_size=11, base_family="") {
   library(ggthemes)
   (theme_foundation(base_size=base_size, base_family=base_family)
     + theme(plot.title = element_text(hjust = 0.05, size = 13),
-            
+
             panel.border = element_rect(colour = NA),
             panel.background = element_rect(colour = NA),
             panel.grid.major = element_line(colour="#f0f0f0"),
             panel.grid.minor = element_blank(),
             plot.background = element_rect(colour = NA),
-            
+
             axis.line = element_line(colour="black"),
             axis.ticks = element_line(),
-            
+
             legend.title = element_text(size=11),
             legend.position = "right",
             legend.text = element_text(size=11),
             legend.direction = "vertical",
             legend.key = element_rect(colour = "transparent", fill = "white"),
-            
+
             strip.background=element_rect(colour=NA),
             strip.text.x = element_text(size = 10),
-            
+
             axis.title = element_text(size = 11),
             axis.text.x = element_text(size = 10, angle = 65, hjust = 1),
             axis.text.y = element_text(size = 11)))
