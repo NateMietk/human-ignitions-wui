@@ -153,12 +153,6 @@ if (!exists('wui')) {
              Class10 = classify_wui(WUICLASS10)) %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       st_make_valid()
-    wui <- bounds %>%
-      st_make_valid() %>%
-      st_intersection(., wui) %>%
-      st_make_valid() %>%
-      mutate(wui_area_m2 = as.numeric(st_area(geometry))/1000000) %>%
-      setNames(tolower(names(.)))
 
     st_write(wui, file.path(wui_out, "wui_bounds.gpkg"),
              driver = "GPKG",
@@ -187,10 +181,8 @@ if (!exists('fpa_fire')) {
              DISCOVERY_DAY = day(DISCOVERY_DATE),
              DISCOVERY_MONTH = month(DISCOVERY_DATE),
              DISCOVERY_YEAR = FIRE_YEAR)  %>%
-      st_make_valid() %>%
       st_transform(st_crs(usa_shp)) %>%
-      st_intersection(., st_union(usa_shp)) %>%
-      setNames(tolower(names(.)))
+      st_intersection(., st_union(usa_shp))
 
     st_write(fpa_fire, file.path(fpa_out, "fpa_conus.gpkg"),
              driver = "GPKG",
@@ -210,8 +202,7 @@ if (!exists('fpa_wui')) {
     fpa_wui <- fpa_fire %>%
       st_intersection(., wui) %>%
       st_intersection(., bounds) %>%
-      st_make_valid() %>%
-      setNames(tolower(names(.)))
+      st_make_valid()
 
     st_write(fpa_wui, file.path(fpa_out, "fpa_wui_conus.gpkg"),
              driver = "GPKG",
@@ -228,24 +219,23 @@ if (!exists('fpa_wui')) {
 #Clean and prep the MTBS data to match the FPA database naming convention
 if (!exists('mtbs_fire')) {
   if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
-    mtbs_fire <- st_read(dsn = mtbs_prefix,
-                       layer = "mtbs_perims_1984-2015_DD_20170815", quiet= TRUE) %>%
-      st_transform(st_crs(usa_shp)) %>%
+    mtbs_fire <- st_read(dsn = file.path(mtbs_prefix, 'mtbs_perimeter_data_v2'),
+                       layer = "dissolve_mtbs_perims_1984-2015_DD_20170501", quiet= TRUE) %>%
       filter(Year >= 1992) %>%
+      st_transform(st_crs(usa_shp)) %>%
       mutate(MTBS_ID = Fire_ID,
              MTBS_FIRE_NAME = Fire_Name,
              MTBS_DISCOVERY_YEAR = Year,
-             MTBS_DISCOVERY_DAY = day(ig_date),
-             MTBS_DISCOVERY_MONTH = month(ig_date),
-             MTBS_DISCOVERY_DOY = yday(ig_date),
+             MTBS_DISCOVERY_DAY = StartDay,
+             MTBS_DISCOVERY_MONTH = StartMonth,
+             MTBS_ACRES = Acres,
              RADIUS = "NA") %>%
-      dplyr::select(MTBS_ID, MTBS_FIRE_NAME, MTBS_DISCOVERY_DOY, MTBS_DISCOVERY_DAY, MTBS_DISCOVERY_MONTH, MTBS_DISCOVERY_YEAR) %>%
+      dplyr::select(MTBS_ID, MTBS_FIRE_NAME, MTBS_DISCOVERY_DAY, MTBS_DISCOVERY_MONTH, MTBS_DISCOVERY_YEAR, MTBS_ACRES, RADIUS) %>%
       merge(., as.data.frame(fpa_fire), by = c("MTBS_ID", "MTBS_FIRE_NAME"), all = FALSE) %>%
-      dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
-                    MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, MTBS_DISCOVERY_DOY, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
+      dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
+                    MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
                     MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS)  %>%
-      st_make_valid() %>%
-      setNames(tolower(names(.)))
+      st_make_valid()
 
     st_write(mtbs_fire, file.path(mtbs_out, "mtbs_conus.gpkg"),
              driver = "GPKG",
@@ -263,15 +253,17 @@ if (!file.exists(file.path(mtbs_out, "mtbs_wui.gpkg"))) {
   mtbs_wui <- mtbs_fire %>%
     st_intersection(., wui) %>%
     st_make_valid() %>%
-    st_intersection(., state_eco_fish) %>%
+    st_intersection(., bounds) %>%
     st_make_valid() %>%
     mutate(ClArea_m2 = as.numeric(st_area(Shape)),
            ClArea_km2 = ClArea_m2/1000000)
-  names(mtbs_wui) %<>% tolower
 
   st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),
            driver = "GPKG",
            update=TRUE)
+  system(paste0("aws s3 sync ",
+                fire_crt, " ",
+                s3_fire_prefix))
 } else {
   mtbs_wui <- st_read(dsn = file.path(mtbs_out, "mtbs_wui.gpkg"))
 }
