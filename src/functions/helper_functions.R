@@ -100,7 +100,7 @@ clean_costs_to_date <- function(x, y) {
                                                                                                              ifelse(x == "CA-MVU-011019|2011|1"   & y == 12180000, 1518000,
                                                                                                                     ifelse(x == "CA-RRU-056869|2003|1"   & y == 29060700, 2996070,
                                                                                                                            ifelse(x == "CA-RRU-56851|2011|1"    & y == 1000000, 100000,
-                                                                                                                                  ifelse(x == "CA-SHF-002744|2012|1"   & y == 364000000, 36400000,
+                t_par                                                                                                                 ifelse(x == "CA-SHF-002744|2012|1"   & y == 364000000, 36400000,
                                                                                                                                          ifelse(x == "CA-SHF-2521|2012|1"     & y == 36000000, 3600000,
                                                                                                                                                 ifelse(x == "CA-VNC-03080298|2003|1" & y == 27500000, 27500000,
                                                                                                                                                        ifelse(x == "ID-CWF-050314|2005|1"   & y == 15000000, 1500000,
@@ -146,7 +146,26 @@ st_par <- function(sf_df, sf_func, n_cores, ...){
   return(result)
 }
 
+st_par_union <- function(sf_df, sf_func, n_cores, ...){
 
+  # Create a vector to split the data set up by.
+  split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
+
+  # Perform GIS analysis
+  split_results <- split(sf_df, split_vector) %>%
+    mclapply(function(x) sf_func(x), mc.cores = n_cores)
+
+  # Combine results back together. Method of combining depends on the output from the function.
+  if ( length(class(split_results[[1]]))>1 | class(split_results[[1]])[1] == 'list' ){
+    result <- do.call("c", split_results)
+    names(result) <- NULL
+  } else {
+    result <- do.call("rbind", split_results)
+  }
+
+  # Return result
+  return(result)
+}
 # Helper functions --------------------------------------------------------
 classify_wui <-  function(x) {
   # break out fires into small, med, large
