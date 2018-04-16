@@ -181,10 +181,10 @@ classify_wui <-  function(x) {
                                                ifelse(x == "High_Dens_Intermix", "Intermix WUI",
                                                       ifelse(x == "Very_Low_Dens_Veg", "VLD",
                                                              ifelse(x == "Uninhabited_Veg", "Wildlands",
-                                                                    ifelse(x == "Med_Dens_NoVeg", "Urban",
-                                                                           ifelse(x == "Low_Dens_NoVeg", "Urban",
-                                                                                  ifelse(x == "High_Dens_NoVeg", "Urban",
-                                                                                         "Other"))))))))))))
+                                                                    ifelse(x == "Med_Dens_NoVeg", "Med Urban",
+                                                                           ifelse(x == "Low_Dens_NoVeg", "Low Urban",
+                                                                                  ifelse(x == "High_Dens_NoVeg", "High Urban",
+                                                                                         x))))))))))))
 }
 
 # Helper functions --------------------------------------------------------
