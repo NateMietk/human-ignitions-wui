@@ -245,12 +245,10 @@ if (!exists('mtbs_fire')) {
                   fire_crt, " ",
                   s3_fire_prefix))
   } else {
-    mtbs_fire <- st_read(dsn = file.path(mtbs_out, "mtbs_conus.gpkg")) %>%
-      mutate(Class90 = classify_wui(WUICLASS90),
-             Class00 = classify_wui(WUICLASS00),
-             Class10 = classify_wui(WUICLASS10))
+    mtbs_fire <- st_read(dsn = file.path(mtbs_out, "mtbs_conus.gpkg"))
   }
 }
+
 # Spatially join the MTBS to WUI
 if (!file.exists(file.path(mtbs_out, "mtbs_wui.gpkg"))) {
   mtbs_wui <- mtbs_fire %>%
