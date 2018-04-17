@@ -1,4 +1,5 @@
 
+# Prep boundaries ---------------------------------------------------------
 # Download and import CONUS states
 # Download will only happen once as long as the file exists
 if (!exists("usa_shp")){
@@ -139,6 +140,8 @@ if (!exists("bounds")) {
   }
 }
 
+# Prep WUI ---------------------------------------------------------
+
 #Import the Wildland-Urban Interface and process
 if (!exists('wui')) {
   if (!file.exists(file.path(anthro_out, "wui_bounds.gpkg"))) {
@@ -166,6 +169,7 @@ if (!exists('wui')) {
   }
 }
 
+# Prep FPA-FOD ---------------------------------------------------------
 # Clean the FPA database class
 if (!exists('fpa_fire')) {
   if(!file.exists(file.path(fpa_out, "fpa_conus.gpkg"))) {
@@ -216,6 +220,7 @@ if (!exists('fpa_wui')) {
   }
 }
 
+# Prep MTBS ---------------------------------------------------------
 #Clean and prep the MTBS data to match the FPA database naming convention
 if (!exists('mtbs_fire')) {
   if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
@@ -250,22 +255,24 @@ if (!exists('mtbs_fire')) {
 }
 
 # Spatially join the MTBS to WUI
-if (!file.exists(file.path(mtbs_out, "mtbs_wui.gpkg"))) {
-  mtbs_wui <- mtbs_fire %>%
-    st_intersection(., wui) %>%
-    st_make_valid() %>%
-    st_intersection(., bounds) %>%
-    st_make_valid() %>%
-    mutate(ClArea_m2 = as.numeric(st_area(Shape)),
-           ClArea_km2 = ClArea_m2/1000000)
+if (!exists('mtbs_wui')) {
+  if (!file.exists(file.path(mtbs_out, "mtbs_wui.gpkg"))) {
+    mtbs_wui <- mtbs_fire %>%
+      st_intersection(., wui) %>%
+      st_make_valid() %>%
+      st_intersection(., bounds) %>%
+      st_make_valid() %>%
+      mutate(ClArea_m2 = as.numeric(st_area(Shape)),
+             ClArea_km2 = ClArea_m2/1000000)
 
-  st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),
-           driver = "GPKG",
-           delete_layer = TRUE)
+    st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),
+             driver = "GPKG",
+             delete_layer = TRUE)
 
-  system(paste0("aws s3 sync ",
-                fire_crt, " ",
-                s3_fire_prefix))
-} else {
-  mtbs_wui <- st_read(dsn = file.path(mtbs_out, "mtbs_wui.gpkg"))
+    system(paste0("aws s3 sync ",
+                  fire_crt, " ",
+                  s3_fire_prefix))
+  } else {
+    mtbs_wui <- st_read(dsn = file.path(mtbs_out, "mtbs_wui.gpkg"))
+  }
 }

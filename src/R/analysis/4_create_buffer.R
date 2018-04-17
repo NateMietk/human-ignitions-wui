@@ -6,17 +6,16 @@ if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))) {
     st_transform(proj_ed) %>%
     mutate(RADIUS = sqrt(FIRE_SIZE_m2/pi)) %>%
     filter(is.na(MTBS_ID))
-  
+
   bae <- st_par(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS) %>%
     st_transform("+init=epsg:2163")
-  
+
   fire_list <- list(bae, mtbs_fire)
   bae <- do.call(rbind, fire_list)
-  names(bae) %<>% tolower
 
   st_write(bae, file.path(fpa_out, "fpa_mtbs_bae.gpkg"),
            driver = "GPKG",
-           update=TRUE)
+           delete_layer = TRUE)
 } else {
   bae <- st_read(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))
 }
@@ -29,8 +28,8 @@ if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))) {
 
   st_write(fpa_bae_wui, file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"),
            driver = "GPKG",
-           update=TRUE)
+           delete_layer = TRUE)
 } else {
   fpa_bae_wui <- st_read(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))
-  
+
   }
