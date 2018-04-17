@@ -50,21 +50,12 @@ fpa_fire_ed <- fpa_wui %>%
 
 if (!file.exists(file.path(wui_out, "fpa_urban_dist_1990.gpkg"))) {
   # Create distance to urban layers
-  fpa_fire_ed90 <- fpa_fire_ed %>%
-    filter(FIRE_YEAR < 2000)
 
-  cl <- makeCluster(detectCores(logical=FALSE))
-  registerDoParallel(cl)
-
-  fpa_urban_dist_1990 <- foreach(j = 1:nrow(fpa_fire_ed90), .combine = rbind) %dopar% {
-    require(tidyverse)
-    require(sf)
-    fpa_urban_dist_1990 <- fpa_fire_ed90[j,] %>%
-      dplyr::mutate(dis_to_urban_m = st_distance(st_geometry(urban_1990), st_geometry(.)),
-                    dis_to_urban_km = (dis_to_urban_m)*0.001) %>%
-      dplyr::select(FPA_ID, dis_to_urban_m, dis_to_urban_km)
-  }
-  stopCluster(cl)
+  fpa_urban_dist_1990 <- fpa_fire_ed %>%
+    filter(FIRE_YEAR < 2000) %>%
+    dplyr::mutate(dis_to_urban_m = st_distance(st_geometry(urban_1990), st_geometry(.)),
+                  dis_to_urban_km = (dis_to_urban_m)*0.001) %>%
+    dplyr::select(FPA_ID, dis_to_urban_m, dis_to_urban_km)
 
   st_write(fpa_urban_dist_1990, file.path(wui_out, "fpa_urban_dist_1990.gpkg"),
            driver = "GPKG")
