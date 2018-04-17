@@ -184,7 +184,7 @@ classify_wui <-  function(x) {
                                                                     ifelse(x == "Med_Dens_NoVeg", "Med Urban",
                                                                            ifelse(x == "Low_Dens_NoVeg", "Low Urban",
                                                                                   ifelse(x == "High_Dens_NoVeg", "High Urban",
-                                                                                         x))))))))))))
+                                                                                         'Other'))))))))))))
 }
 
 # Helper functions --------------------------------------------------------

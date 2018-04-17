@@ -150,7 +150,7 @@ if (!exists('wui')) {
       st_simplify(., preserveTopology = TRUE, dTolerance = 0.001) %>%
       mutate(Class90 = classify_wui(WUICLASS90),
              Class00 = classify_wui(WUICLASS00),
-             Class10 = classify_wui(WUICLASS10)) %>%
+             Class10 = classify_wui(WUICLASS10))  %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       st_make_valid()
 
@@ -245,7 +245,10 @@ if (!exists('mtbs_fire')) {
                   fire_crt, " ",
                   s3_fire_prefix))
   } else {
-    mtbs_fire <- st_read(dsn = file.path(mtbs_out, "mtbs_conus.gpkg"))
+    mtbs_fire <- st_read(dsn = file.path(mtbs_out, "mtbs_conus.gpkg")) %>%
+      mutate(Class90 = classify_wui(WUICLASS90),
+             Class00 = classify_wui(WUICLASS00),
+             Class10 = classify_wui(WUICLASS10))
   }
 }
 # Spatially join the MTBS to WUI
