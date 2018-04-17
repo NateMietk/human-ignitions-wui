@@ -261,7 +261,8 @@ if (!file.exists(file.path(mtbs_out, "mtbs_wui.gpkg"))) {
 
   st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),
            driver = "GPKG",
-           update=TRUE)
+           delete_layer = TRUE)
+
   system(paste0("aws s3 sync ",
                 fire_crt, " ",
                 s3_fire_prefix))
