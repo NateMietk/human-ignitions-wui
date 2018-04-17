@@ -11,9 +11,9 @@ if (!file.exists(file.path(wui_out, "high_den_urban_1990.gpkg"))) {
   st_write(urban_1990, file.path(wui_out, "high_den_urban_1990.gpkg"),
            driver = "GPKG")
   system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
-  } else {
-    urban_1990 <- st_read(file.path(wui_out, "high_den_urban_1990.gpkg"))
-  }
+} else {
+  urban_1990 <- st_read(file.path(wui_out, "high_den_urban_1990.gpkg"))
+}
 
 if (!file.exists(file.path(wui_out, "high_den_urban_2000.gpkg"))) {
   urban_2000 <- wui %>%
@@ -26,9 +26,9 @@ if (!file.exists(file.path(wui_out, "high_den_urban_2000.gpkg"))) {
   st_write(urban_2000, file.path(wui_out, "high_den_urban_2000.gpkg"),
            driver = "GPKG")
   system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
-  } else {
-    urban_2000 <- st_read(file.path(wui_out, "high_den_urban_2000.gpkg"))
-  }
+} else {
+  urban_2000 <- st_read(file.path(wui_out, "high_den_urban_2000.gpkg"))
+}
 
 if (!file.exists(file.path(wui_out, "high_den_urban_2010.gpkg"))) {
   urban_2010 <- wui %>%
@@ -41,31 +41,38 @@ if (!file.exists(file.path(wui_out, "high_den_urban_2010.gpkg"))) {
   st_write(urban_2010, file.path(wui_out, "high_den_urban_2010.gpkg"),
            driver = "GPKG")
   system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
-  } else {
-    urban_2010 <- st_read(file.path(wui_out, "high_den_urban_2010.gpkg"))
-  }
+} else {
+  urban_2010 <- st_read(file.path(wui_out, "high_den_urban_2010.gpkg"))
+}
 
 fpa_fire_ed <- fpa_wui %>%
   st_transform(proj_ed)
 
 if (!file.exists(file.path(wui_out, "fpa_urban_dist_1990.gpkg"))) {
   # Create distance to urban layers
+  fpa_fire_ed90 <- fpa_fire_ed %>%
+    filter(FIRE_YEAR < 2000)
 
-  fpa_urban_dist_1990 <- foreach(j = 1:nrow(fpa_fire_ed)) %dopar% {
-    fpa_urban_dist_1990 <- fpa_fire_ed %>%
-      filter(FIRE_YEAR < 1993) %>%
-      mutate(dis_to_urban_m = st_distance(st_geometry(urban_1990), st_geometry(.)),
-             dis_to_urban_km = (dis_to_urban_m)*0.001) %>%
+  cl <- makeCluster(detectCores(logical=FALSE))
+  registerDoParallel(cl)
+
+  fpa_urban_dist_1990 <- foreach(j = 1:nrow(fpa_fire_ed90), .combine = rbind) %dopar% {
+    require(tidyverse)
+    require(sf)
+    fpa_urban_dist_1990 <- fpa_fire_ed90[j,] %>%
+      dplyr::mutate(dis_to_urban_m = st_distance(st_geometry(urban_1990), st_geometry(.)),
+                    dis_to_urban_km = (dis_to_urban_m)*0.001) %>%
       dplyr::select(FPA_ID, dis_to_urban_m, dis_to_urban_km)
   }
+  stopCluster(cl)
 
   st_write(fpa_urban_dist_1990, file.path(wui_out, "fpa_urban_dist_1990.gpkg"),
            driver = "GPKG")
   system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
 
-  } else {
-    fpa_urban_dist_1990 <- st_read(file.path(wui_out, "fpa_urban_dist_1990.gpkg"))
-  }
+} else {
+  fpa_urban_dist_1990 <- st_read(file.path(wui_out, "fpa_urban_dist_1990.gpkg"))
+}
 
 if (!file.exists(file.path(wui_out, "fpa_urban_dist_2000.gpkg"))) {
   # Create distance to urban layers
@@ -79,9 +86,9 @@ if (!file.exists(file.path(wui_out, "fpa_urban_dist_2000.gpkg"))) {
            driver = "GPKG")
   system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
 
-  } else {
-    fpa_urban_dist_2000 <- st_read(file.path(wui_out, "fpa_urban_dist_2000.gpkg"))
-  }
+} else {
+  fpa_urban_dist_2000 <- st_read(file.path(wui_out, "fpa_urban_dist_2000.gpkg"))
+}
 
 if (!file.exists(file.path(wui_out, "fpa_urban_dist_2010.gpkg"))) {
   # Create distance to urban layers
@@ -95,6 +102,6 @@ if (!file.exists(file.path(wui_out, "fpa_urban_dist_2010.gpkg"))) {
            driver = "GPKG")
   system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
 
-  } else {
-    fpa_urban_dist_2010 <- st_read(file.path(wui_out, "fpa_urban_dist_2010.gpkg"))
-  }
+} else {
+  fpa_urban_dist_2010 <- st_read(file.path(wui_out, "fpa_urban_dist_2010.gpkg"))
+}
