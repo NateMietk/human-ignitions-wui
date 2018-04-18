@@ -45,17 +45,26 @@ if (!file.exists(file.path(wui_out, "high_den_urban_2010.gpkg"))) {
   urban_2010 <- st_read(file.path(wui_out, "high_den_urban_2010.gpkg"))
 }
 
-fpa_fire_ed <- fpa_wui %>%
-  st_transform(proj_ed)
+if (!exists("fpa_fire_ed")) {
+  fpa_fire_ed <- fpa_wui %>%
+    st_transform(proj_ed)
+}
 
 if (!file.exists(file.path(wui_out, "fpa_urban_dist_1990.gpkg"))) {
   # Create distance to urban layers
+  # setup parallel environment
+  sfInit(parallel = TRUE, cpus = parallel::detectCores())
+  sfExport(list = c("fpa_fire_ed"))
 
-  fpa_urban_dist_1990 <- fpa_fire_ed %>%
-    filter(FIRE_YEAR < 2000) %>%
-    dplyr::mutate(dis_to_urban_m = st_distance(st_geometry(urban_1990), st_geometry(.)),
-                  dis_to_urban_km = (dis_to_urban_m)*0.001) %>%
-    dplyr::select(FPA_ID, dis_to_urban_m, dis_to_urban_km)
+  fpa_urban_dist_1990 <- sfApply(fpa_fire_ed, MARGIN = 1,
+                                 fun = function(x) {
+      x %>%
+      filter(FIRE_YEAR < 2000) %>%
+      dplyr::mutate(dis_to_urban_m = st_distance(st_geometry(urban_1990), st_geometry(.)),
+                    dis_to_urban_km = (dis_to_urban_m)*0.001) %>%
+      dplyr::select(FPA_ID, dis_to_urban_m, dis_to_urban_km) })
+
+  sfStop()
 
   st_write(fpa_urban_dist_1990, file.path(wui_out, "fpa_urban_dist_1990.gpkg"),
            driver = "GPKG")
