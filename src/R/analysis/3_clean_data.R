@@ -269,9 +269,9 @@ if (!exists('mtbs_wui')) {
       mutate(ClArea_m2 = as.numeric(st_area(Shape)),
              ClArea_km2 = ClArea_m2/1000000,
              Class = ifelse(Class90 >= 1992 | Class90 < 2000, Class90,
-                                     ifelse(Class00 >= 2000 | Class00 < 2009, Class00,
-                                            ifelse(Class10 >= 2010 | Class10 < 2016, Class10,
-                                                   NA))))
+                            ifelse(Class00 >= 2000 | Class00 < 2009, Class00,
+                                   ifelse(Class10 >= 2010 | Class10 < 2016, Class10,
+                                          NA))))
 
     st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),
              driver = "GPKG",
