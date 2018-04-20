@@ -144,7 +144,7 @@ if (!exists("bounds")) {
 
 #Import the Wildland-Urban Interface and process
 if (!exists('wui')) {
-  if (!file.exists(file.path(anthro_out, "wui_bounds.gpkg"))) {
+  if (!file.exists(file.path(wui_out, "wui_bounds.gpkg"))) {
     # st_layers(dsn = file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb"))
 
     wui <- st_read(dsn = file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb"),
@@ -225,7 +225,7 @@ if (!exists('fpa_wui')) {
 if (!exists('mtbs_fire')) {
   if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
     mtbs_fire <- st_read(dsn = file.path(mtbs_prefix, 'mtbs_perimeter_data_v2'),
-                       layer = "dissolve_mtbs_perims_1984-2015_DD_20170501", quiet= TRUE) %>%
+                         layer = "dissolve_mtbs_perims_1984-2015_DD_20170501", quiet= TRUE) %>%
       filter(Year >= 1992) %>%
       st_transform(st_crs(usa_shp)) %>%
       mutate(MTBS_ID = Fire_ID,

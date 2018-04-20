@@ -26,7 +26,7 @@ if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))) {
            driver = "GPKG",
            delete_layer = TRUE)
 
-    system(paste0("aws s3 sync ",
+  system(paste0("aws s3 sync ",
                 fire_crt, " ",
                 s3_fire_prefix))
 } else {
@@ -49,4 +49,4 @@ if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))) {
 } else {
   fpa_bae_wui <- st_read(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))
 
-  }
+}
