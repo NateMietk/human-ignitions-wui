@@ -206,7 +206,11 @@ if (!exists('fpa_wui')) {
     fpa_wui <- fpa_fire %>%
       st_intersection(., wui) %>%
       st_intersection(., bounds) %>%
-      st_make_valid()
+      st_make_valid() %>%
+      mutate(Class = ifelse(Class90 >= 1992 | Class90 < 2000, Class90,
+                            ifelse(Class00 >= 2000 | Class00 < 2009, Class00,
+                                   ifelse(Class10 >= 2010 | Class10 < 2016, Class10,
+                                          NA))))
 
     st_write(fpa_wui, file.path(fpa_out, "fpa_wui_conus.gpkg"),
              driver = "GPKG",
@@ -263,7 +267,11 @@ if (!exists('mtbs_wui')) {
       st_intersection(., bounds) %>%
       st_make_valid() %>%
       mutate(ClArea_m2 = as.numeric(st_area(Shape)),
-             ClArea_km2 = ClArea_m2/1000000)
+             ClArea_km2 = ClArea_m2/1000000,
+             Class = ifelse(Class90 >= 1992 | Class90 < 2000, Class90,
+                                     ifelse(Class00 >= 2000 | Class00 < 2009, Class00,
+                                            ifelse(Class10 >= 2010 | Class10 < 2016, Class10,
+                                                   NA))))
 
     st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),
              driver = "GPKG",

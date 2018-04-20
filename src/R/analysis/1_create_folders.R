@@ -1,52 +1,58 @@
+# Libraries ---------------------------------------------------------------
+x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom',
+       "assertthat", "purrr", "httr", "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel')
+lapply(x, library, character.only = TRUE, verbose = FALSE)
 
-# Buffer FPA points based on radius, remove MTBS present in FPA, replace with the actual MTBS polygons
-if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))) {
-  # Create the distance variable to create the simple buffers
+source("src/functions/helper_functions.R")
+source("src/functions/make_grid.R")
+source("src/functions/ggplot_theme.R")
+source("src/functions/plot_theme.R")
 
-  fpa_fire <- fpa_fire %>%
-    mutate(MTBS_ACRES = NA,
-           MTBS_DISCOVERY_YEAR = NA,
-           MTBS_DISCOVERY_MONTH = NA,
-           MTBS_DISCOVERY_DAY = NA) %>%
-    dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
-                  MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
-                  MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION)
+proj_ed <- "+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs" #USA_Contiguous_Equidistant_Conic
+proj_ea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-9+x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
+ncores <- 5
 
-  bae <- fpa_fire %>%
-    st_transform(proj_ed) %>%
-    mutate(RADIUS = sqrt(FIRE_SIZE_m2/pi)) %>%
-    filter(is.na(MTBS_ID))
+# Raw data folders
+prefix <- "data"
+summary_dir <- file.path(prefix, 'summaries')
+raw_prefix <- file.path(prefix, "raw")
+us_prefix <- file.path(raw_prefix, "cb_2016_us_state_20m")
+ecoregion_prefix <- file.path(raw_prefix, "ecoregions")
+wui_prefix <- file.path(raw_prefix, "us_wui")
+fpa_prefix <- file.path(raw_prefix, "fpa-fod")
+mtbs_prefix <- file.path(raw_prefix, "mtbs_fod_perimeter_data")
 
-  bae <- st_parallel(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS) %>%
-    st_transform(st_crs(usa_shp))
+# Cleaned data output folders
+anthro_out <- file.path(prefix, "anthro")
+fire_crt <- file.path(prefix, "fire")
+nifc_crt <- file.path(fire_crt, "nifc")
 
-  bae <- rbind(bae, mtbs_fire)
+bounds_crt <- file.path(prefix, "bounds")
+ecoreg_crt <- file.path(bounds_crt, "ecoregions")
+swse_crt <- file.path(ecoreg_crt, "swse")
+ecoregion_out <- file.path(ecoreg_crt, "us_eco_l3")
 
-  st_write(bae, file.path(fpa_out, "fpa_mtbs_bae.gpkg"),
-           driver = "GPKG",
-           delete_layer = TRUE)
+fpa_out <- file.path(fire_crt, "fpa-fod")
+mtbs_out <- file.path(fire_crt, "mtbs_fod_perimeter_data")
+wui_out <- file.path(anthro_out, "wui")
 
-  system(paste0("aws s3 sync ",
-                fire_crt, " ",
-                s3_fire_prefix))
-} else {
-  bae <- st_read(file.path(fpa_out, "fpa_mtbs_bae.gpkg"))
-}
+ics_out <- file.path(fire_crt, "ics_209")
+ics_outtbls <- file.path(ics_out, "output_tbls")
+ics_intbls <- file.path(ics_out, "input_tbls")
+ics_famweb <- file.path(ics_intbls, "famweb")
+ics_latlong <- file.path(ics_intbls, "latlong")
+ics_spatial <- file.path(ics_out, "spatial")
 
-if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))) {
-  fpa_bae_wui <- st_intersection(bae, wui) %>%
-    st_intersection(., bounds) %>%
-    st_make_valid() %>%
-    mutate(Area_km2 = (as.numeric(st_area(geom))/1000000))
+fishnet_path <- file.path(bounds_crt, "fishnet")
 
-  st_write(fpa_bae_wui, file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"),
-           driver = "GPKG",
-           delete_layer = TRUE)
+# for pushing and pulling to s3 using the system function
+s3_bounds_prefix <- 's3://earthlab-natem/human-ignitions-wui/bounds'
+s3_anthro_prefix <- 's3://earthlab-natem/human-ignitions-wui/anthro'
+s3_fire_prefix <- 's3://earthlab-natem/human-ignitions-wui/fire'
+s3_raw_prefix <- 's3://earthlab-natem/human-ignitions-wui/raw'
 
-  system(paste0("aws s3 sync ",
-                fire_crt, " ",
-                s3_fire_prefix))
-} else {
-  fpa_bae_wui <- st_read(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))
-
-}
+# Check if directory exists for all variable aggregate outputs, if not then create
+var_dir <- list(prefix, summary_dir, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt,
+                bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out,
+                swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path)
+lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))

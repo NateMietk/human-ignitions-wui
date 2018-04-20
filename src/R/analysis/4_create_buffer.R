@@ -37,7 +37,11 @@ if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))) {
   fpa_bae_wui <- st_intersection(bae, wui) %>%
     st_intersection(., bounds) %>%
     st_make_valid() %>%
-    mutate(Area_km2 = (as.numeric(st_area(geom))/1000000))
+    mutate(Area_km2 = (as.numeric(st_area(geom))/1000000),
+           Class = ifelse(Class90 >= 1992 | Class90 < 2000, Class90,
+                          ifelse(Class00 >= 2000 | Class00 < 2009, Class00,
+                                 ifelse(Class10 >= 2010 | Class10 < 2016, Class10,
+                                        NA))))
 
   st_write(fpa_bae_wui, file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"),
            driver = "GPKG",
