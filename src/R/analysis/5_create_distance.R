@@ -96,3 +96,57 @@ if (!file.exists(file.path(wui_out, "fpa_urban_dist_2010.gpkg"))) {
 } else {
   fpa_urban_dist_2010 <- st_read(file.path(wui_out, "fpa_urban_dist_2010.gpkg"))
 }
+
+library(nabor)
+
+fpa_maine <- fpa_fire_ed %>%
+  filter(STATE == 'ME')
+
+maine <- usa_shp %>%
+  filter(stusps == 'ME') %>%
+  st_transform(proj_ed)
+
+plot(st_geometry(fpa_maine))
+plot(st_geometry(maine), add = TRUE)
+
+urban_maine <- urban_1990 %>%
+  st_intersection(., st_union(maine)) %>%
+  st_cast('POLYGON') %>%
+  mutate(poly_ids = row_number())
+
+urban_centroid <- urban_maine %>%
+  st_cast('POLYGON') %>%
+  st_centroid(.) %>%
+  mutate(poly_ids = row_number())
+
+get_distance <- function(points, polygons, centroids) {
+  require(tidyverse)
+  require(sf)
+  require(nabor)
+  require(sp)
+
+
+  closest_centroids <- knn(coordinates(as(centroids, 'Spatial')),
+                           coordinates(as(fpa_maine[points,], 'Spatial')), k = 10) %>%
+    bind_cols() %>%
+    mutate(poly_ids = nn.idx,
+           knn_distance = nn.dists,
+           FPA_ID = as.data.frame(fpa_maine[points,])$FPA_ID) %>%
+    dplyr::select(-nn.idx, -nn.dists) %>%
+    left_join(., polygons, by = 'poly_ids') %>%
+    st_sf()
+
+    distance_to_fire <- fpa_maine[points,] %>%
+    mutate(distance_to_urban = min(st_distance(st_geometry(closest_centroids), st_geometry(.), by_element = TRUE)))
+  return(distance_to_fire)
+}
+
+sfInit(parallel = TRUE, cpus = parallel::detectCores())
+sfExport(list = c('fpa_maine', 'urban_maine','urban_centroid'))
+
+test <- sfLapply(1:nrow(fpa_maine),
+                 fun = get_distance,
+                 polygons = urban_maine,
+                 centroids = urban_centroid)
+
+sfStop()
