@@ -46,7 +46,8 @@ if (!file.exists(file.path(wui_out, "high_den_urban_2010.gpkg"))) {
 }
 
 fpa_fire_ed <- fpa_wui %>%
-  st_transform(proj_ed)
+  st_transform(proj_ed) %>%
+  split(.$STATE)
 
 if (!file.exists(file.path(wui_out, "fpa_urban_dist_1990.gpkg"))) {
   # Create distance to urban layers
@@ -97,56 +98,39 @@ if (!file.exists(file.path(wui_out, "fpa_urban_dist_2010.gpkg"))) {
   fpa_urban_dist_2010 <- st_read(file.path(wui_out, "fpa_urban_dist_2010.gpkg"))
 }
 
-library(nabor)
-
-fpa_maine <- fpa_fire_ed %>%
-  filter(STATE == 'ME')
-
-maine <- usa_shp %>%
-  filter(stusps == 'ME') %>%
-  st_transform(proj_ed)
-
-plot(st_geometry(fpa_maine))
-plot(st_geometry(maine), add = TRUE)
-
-urban_maine <- urban_1990 %>%
-  st_intersection(., st_union(maine)) %>%
+urban_1990 <- urban_1990 %>%
   st_cast('POLYGON') %>%
   mutate(poly_ids = row_number())
 
-urban_centroid <- urban_maine %>%
-  st_cast('POLYGON') %>%
-  st_centroid(.) %>%
-  mutate(poly_ids = row_number())
-
-get_distance <- function(points, polygons, centroids) {
-  require(tidyverse)
-  require(sf)
-  require(nabor)
-  require(sp)
-
-
-  closest_centroids <- knn(coordinates(as(centroids, 'Spatial')),
-                           coordinates(as(fpa_maine[points,], 'Spatial')), k = 10) %>%
-    bind_cols() %>%
-    mutate(poly_ids = nn.idx,
-           knn_distance = nn.dists,
-           FPA_ID = as.data.frame(fpa_maine[points,])$FPA_ID) %>%
-    dplyr::select(-nn.idx, -nn.dists) %>%
-    left_join(., polygons, by = 'poly_ids') %>%
-    st_sf()
-
-    distance_to_fire <- fpa_maine[points,] %>%
-    mutate(distance_to_urban = min(st_distance(st_geometry(closest_centroids), st_geometry(.), by_element = TRUE)))
-  return(distance_to_fire)
-}
+urban_1990_centroid <- urban_1990 %>%
+  st_centroid(.)
 
 sfInit(parallel = TRUE, cpus = parallel::detectCores())
-sfExport(list = c('fpa_maine', 'urban_maine','urban_centroid'))
+sfExport(list = c('fpa_fire_ed', 'urban_1990','urban_1990_centroid'))
+sfSource('src/functions/helper_functions.R')
 
-test <- sfLapply(1:nrow(fpa_maine),
-                 fun = get_distance,
-                 polygons = urban_maine,
-                 centroids = urban_centroid)
+urban_1990_distance <- sfLapply(fpa_fire_ed,
+                                function (input_list) {
+                                  require(tidyverse)
+                                  require(magrittr)
+                                  require(lubridate)
+                                  require(lubridate)
+                                  require(sf)
+
+                                  sub_grid <- dplyr:::bind_cols(input_list)
+                                  unique_ids <- unique(sub_grid$FPA_ID)
+                                  state_name <- unique(sub_grid$STATE)[1]
+
+                                  print(paste0('Working on ', state_name))
+
+                                  got_distance <- lapply(unique_ids,
+                                                       FUN = get_distance,
+                                                       polygons = urban_1990,
+                                                       centroids = urban_1990_centroid)
+                                  print(paste0('Finishing ', state_name))
+
+                                  return(got_distance)
+                                }
+)
 
 sfStop()
