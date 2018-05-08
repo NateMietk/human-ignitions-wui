@@ -5,8 +5,9 @@ get_distance <- function(ids, points, polygons, centroids) {
   require(sp)
 
   sub_fpa <- subset(points, points$FPA_ID == ids)
+  print(paste0('Working on ', ids))
 
-  closest_centroids <- knn(coordinates(as(centroids, 'Spatial')),
+  closest_centroids <- nabor::knn(coordinates(as(centroids, 'Spatial')),
                            coordinates(as(sub_fpa, 'Spatial')), k = 5) %>%
     bind_cols() %>%
     mutate(poly_ids = nn.idx,
@@ -14,7 +15,7 @@ get_distance <- function(ids, points, polygons, centroids) {
            FPA_ID = as.data.frame(sub_fpa)$FPA_ID) %>%
     dplyr::select(-nn.idx, -nn.dists) %>%
     left_join(., polygons, by = 'poly_ids') %>%
-    st_sf()
+    sf::st_sf()
 
   distance_to_fire <- sub_fpa %>%
     dplyr::select(-FPA_ID) %>%
