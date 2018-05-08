@@ -1,3 +1,28 @@
+get_distance <- function(ids, points, polygons, centroids) {
+  require(tidyverse)
+  require(sf)
+  require(nabor)
+  require(sp)
+
+  sub_fpa <- subset(points, points$FPA_ID == ids)
+
+  closest_centroids <- knn(coordinates(as(centroids, 'Spatial')),
+                           coordinates(as(sub_fpa, 'Spatial')), k = 5) %>%
+    bind_cols() %>%
+    mutate(poly_ids = nn.idx,
+           knn_distance = nn.dists,
+           FPA_ID = as.data.frame(sub_fpa)$FPA_ID) %>%
+    dplyr::select(-nn.idx, -nn.dists) %>%
+    left_join(., polygons, by = 'poly_ids') %>%
+    st_sf()
+
+  distance_to_fire <- sub_fpa %>%
+    dplyr::select(-FPA_ID) %>%
+    mutate(distance_to_urban = min(st_distance(st_geometry(closest_centroids), st_geometry(.), by_element = TRUE)),
+           FPA_ID = data.frame(sub_fpa)$FPA_ID)
+  return(distance_to_fire)
+}
+
 load_data <- function(url, dir, layer, outname) {
   file <- paste0(dir, "/", layer, ".shp")
 
@@ -100,7 +125,7 @@ clean_costs_to_date <- function(x, y) {
                                                                                                              ifelse(x == "CA-MVU-011019|2011|1"   & y == 12180000, 1518000,
                                                                                                                     ifelse(x == "CA-RRU-056869|2003|1"   & y == 29060700, 2996070,
                                                                                                                            ifelse(x == "CA-RRU-56851|2011|1"    & y == 1000000, 100000,
-                                                                                                                                 ifelse(x == "CA-SHF-002744|2012|1"   & y == 364000000, 36400000,
+                                                                                                                                  ifelse(x == "CA-SHF-002744|2012|1"   & y == 364000000, 36400000,
                                                                                                                                          ifelse(x == "CA-SHF-2521|2012|1"     & y == 36000000, 3600000,
                                                                                                                                                 ifelse(x == "CA-VNC-03080298|2003|1" & y == 27500000, 27500000,
                                                                                                                                                        ifelse(x == "ID-CWF-050314|2005|1"   & y == 15000000, 1500000,
@@ -317,11 +342,11 @@ classify_pctbae <-  function(x) {
   ifelse(is.na(x), 0,
          ifelse(x < 1, "< 1",
                 ifelse(x >= 0.01 & x < 10, "1 - 10",
-                              ifelse(x >= 10 & x < 20, "10 - 20",
-                                     ifelse(x >= 20 & x < 30, "20 - 30",
-                                            ifelse(x >= 30 & x < 40, "30 - 40",
-                                                   ifelse(x >= 40 & x < 50, "40 - 50",
-                                                          "> 50")))))))
+                       ifelse(x >= 10 & x < 20, "10 - 20",
+                              ifelse(x >= 20 & x < 30, "20 - 30",
+                                     ifelse(x >= 30 & x < 40, "30 - 40",
+                                            ifelse(x >= 40 & x < 50, "40 - 50",
+                                                   "> 50")))))))
 
 }
 
