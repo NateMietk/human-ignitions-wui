@@ -1,6 +1,6 @@
 
 get_polygons <- function(decade) {
-  
+
   if ( decade == '1990') {
     polygons <- urban_1990
     } else if ( decade == '2000') {
@@ -8,31 +8,6 @@ get_polygons <- function(decade) {
     } else if ( decade == '2010') {
       polygons <- urban_2010
     }
-}
-
-get_distance <- function(ids, points, polygons, centroids) {
-  require(tidyverse)
-  require(sf)
-  require(nabor)
-  require(sp)
-
-  sub_fpa <- subset(points, points$FPA_ID == ids)
-
-  closest_centroids <- nabor::knn(coordinates(as(centroids, 'Spatial')),
-                           coordinates(as(sub_fpa, 'Spatial')), k = 5) %>%
-    bind_cols() %>%
-    mutate(poly_ids = nn.idx,
-           knn_distance = nn.dists,
-           FPA_ID = as.data.frame(sub_fpa)$FPA_ID) %>%
-    dplyr::select(-nn.idx, -nn.dists) %>%
-    left_join(., polygons, by = 'poly_ids') %>%
-    sf::st_sf()
-
-  distance_to_fire <- sub_fpa %>%
-    dplyr::select(-FPA_ID) %>%
-    mutate(distance_to_urban = min(st_distance(st_geometry(closest_centroids), st_geometry(.), by_element = TRUE)),
-           FPA_ID = data.frame(sub_fpa)$FPA_ID)
-  return(distance_to_fire)
 }
 
 load_data <- function(url, dir, layer, outname) {
