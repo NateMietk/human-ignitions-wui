@@ -5,7 +5,6 @@ get_distance <- function(ids, points, polygons, centroids) {
   require(sp)
 
   sub_fpa <- subset(points, points$FPA_ID == ids)
-  print(paste0('Working on ', ids))
 
   closest_centroids <- nabor::knn(coordinates(as(centroids, 'Spatial')),
                            coordinates(as(sub_fpa, 'Spatial')), k = 5) %>%
