@@ -1,3 +1,15 @@
+
+get_polygons <- function(decade) {
+  
+  if ( decade == '1990') {
+    polygons <- urban_1990
+    } else if ( decade == '2000') {
+      polygons <- urban_2000
+    } else if ( decade == '2010') {
+      polygons <- urban_2010
+    }
+}
+
 get_distance <- function(ids, points, polygons, centroids) {
   require(tidyverse)
   require(sf)

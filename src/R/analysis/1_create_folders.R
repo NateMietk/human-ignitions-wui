@@ -35,6 +35,8 @@ ecoregion_out <- file.path(ecoreg_crt, "us_eco_l3")
 fpa_out <- file.path(fire_crt, "fpa-fod")
 mtbs_out <- file.path(fire_crt, "mtbs_fod_perimeter_data")
 wui_out <- file.path(anthro_out, "wui")
+distance_out <- file.path(wui_out, "distance_from_urban")
+distance_state_out <- file.path(distance_out, "state")
 
 ics_out <- file.path(fire_crt, "ics_209")
 ics_outtbls <- file.path(ics_out, "output_tbls")
@@ -53,6 +55,6 @@ s3_raw_prefix <- 's3://earthlab-natem/human-ignitions-wui/raw'
 
 # Check if directory exists for all variable aggregate outputs, if not then create
 var_dir <- list(prefix, summary_dir, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt,
-                bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out,
+                bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out, distance_state_out,
                 swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
