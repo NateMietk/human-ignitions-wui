@@ -73,6 +73,7 @@ fpa_fire_ed <- fpa_wui %>%
 
 fpa_fire_ed$STATE <- droplevels(fpa_fire_ed$STATE)
 fpa_fire_ed$FPA_ID <- droplevels(fpa_fire_ed$FPA_ID)
+decades <- unique(fpa_fire_ed$decade)
 
 for (i in decades) {
   decade_df <- subset(fpa_fire_ed, fpa_fire_ed$decade == i)
@@ -81,7 +82,8 @@ for (i in decades) {
 
   centroids <- polygons %>%
     st_centroid(.)
-
+  state <- unique(fpa_fire_ed$STATE)
+  
   distance_to_fire_full <- list()
 
   for (j in state) {
