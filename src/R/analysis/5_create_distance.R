@@ -107,11 +107,11 @@ for (i in decades) {
       total_ids <- length(unique_ids)
 
       print(paste0('Working on ', j , ' ', i))
+      pb <- txtProgressBar(min = 0,
+                           max = total_ids,
+                           style = 3)
 
-      cl <- makeCluster(2)
-      registerDoParallel(cl)
-
-      distance_to_fire <- foreach (h = 1:length(unique_ids), .combine = 'rbind') %dopar% {
+      for (h in 1:length(unique_ids)) {
         fpa_ids <- unique_ids[h]
         fpa_df <- subset(state_df, state_df$FPA_ID == fpa_ids)
 
@@ -119,7 +119,7 @@ for (i in decades) {
           subset(nearest_neighbors,
                  nearest_neighbors$FPA_ID == fpa_ids)
 
-        distance_to_fire <- fpa_df %>%
+        distance_to_fire[[h]] <- fpa_df %>%
           dplyr::select(-FPA_ID) %>%
           mutate(
             distance_to_urban = min(
@@ -131,8 +131,9 @@ for (i in decades) {
             ),
             FPA_ID = data.frame(fpa_df)$FPA_ID
           )
+        setTxtProgressBar(pb, h)
       }
-      stopCluster(cl)
+      close(pb)
 
       distance_to_fire_full[[j]] <- do.call(rbind, distance_to_fire)
       distance_to_fire_statedf <- do.call(rbind, distance_to_fire)
