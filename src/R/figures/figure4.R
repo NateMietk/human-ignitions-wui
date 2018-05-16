@@ -1,25 +1,182 @@
 # Distance calculations/plotting ****Fire Frequency-----------Regions-------------------------------
 
-fishdis_reg <- fread('data/PointShp/CONUS_short_dis_VLDH_Wildlands_FishID.csv', header = T, sep = ',', stringsAsFactors = TRUE) %>%
-  mutate(AREA_km2 = as.numeric(AREA_km2),
-         Class = classify_new_categories(WUICLASS10)) %>%
-  group_by(FishID_10k, Region, IGNITION) %>%
-  summarise(Ave_NEAR_DIST = median(NEAR_DIST),
-            fseason_lngth = IQR(DISCOVERY_DOY),
-            Avg_DOY = mean(DISCOVERY_DOY),
-            f_cnt = n()) %>%
+fishdis_reg <- as.data.frame(distance_rds) %>%
+  filter(Class != 'Other' & Class != 'High Urban') %>%
+  mutate(
+    pop_den = ifelse(
+      DISCOVERY_YEAR >= 1992 |
+        DISCOVERY_YEAR < 2000,
+      POPDEN1990,
+      ifelse(
+        DISCOVERY_YEAR >= 2000 |
+          DISCOVERY_YEAR < 2009,
+        POPDEN2000,
+        ifelse(
+          DISCOVERY_YEAR >= 2010 |
+            DISCOVERY_YEAR < 2016,
+          POPDEN2010,
+          NA
+        )
+      )
+    ),
+    house_den = ifelse(
+      DISCOVERY_YEAR >= 1992 |
+        DISCOVERY_YEAR < 2000,
+      HUDEN1990,
+      ifelse(
+        DISCOVERY_YEAR >= 2000 |
+          DISCOVERY_YEAR < 2009,
+        HUDEN2000,
+        ifelse(
+          DISCOVERY_YEAR >= 2010 |
+            DISCOVERY_YEAR < 2016,
+          HUDEN2010,
+          NA
+        )
+      )
+    ),
+    regions = ifelse(regions == 'East', 'North East', as.character(regions)),
+    distance_to_urban = distance_to_urban * 0.001,
+    size = classify_fire_size_cl(FIRE_SIZE_km2)
+  ) %>%
+  group_by(fishid10k, size, regions, IGNITION) %>%
+  summarise(
+    median_popdensity = median(pop_den),
+    median_homedensity = median(house_den),
+    medain_distance = median(distance_to_urban),
+    fseason_lngth = IQR(DISCOVERY_DOY),
+    median_doy = median(DISCOVERY_DOY),
+    f_cnt = n()
+  ) %>%
   ungroup()
 
 firefreq_p <- fishdis_reg %>%
-  #transform(Region = factor(Region, levels=c("West", "Central", "South East", "North East"))) %>%
-  ggplot(aes(x = (Ave_NEAR_DIST)*0.001, y = f_cnt, color = IGNITION)) +
-  geom_smooth(method = "glm", method.args = list(family = "poisson"),
-              fullrange = TRUE, size = 0.75) +
-  scale_color_manual(values=c("red", "black")) +
-  xlab("Distance from WUI (km)") + ylab("Ignition frequency") +
+  # transform(size = factor(
+  #   size,
+  #   levels = c(
+  #     "Small",
+  #     "Large",
+  #     "Very Large"
+  #   )
+  # )) %>%
+  ggplot(aes(
+    x = median_popdensity,
+    y = f_cnt,
+    group = IGNITION,
+    color = IGNITION
+  )) +
+  geom_smooth(
+    method = 'loess',
+    #method.args = list(family = "poisson"),
+    #fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values = c(
+    "red3",
+    'royalblue3'
+  )) +
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  expand_limits(x = 0, y = 0) +
   theme_pub()  +
-  facet_wrap(~Region,
-             nrow = 2, labeller = label_wrap_gen(10))
+  facet_wrap(size ~ regions, nrow = 3, scales = 'free_y') +
+  theme(legend.position = 'none')
+#nrow = 2, labeller = label_wrap_gen(10))
+
+
+
+# Distance calculations/plotting ****Fire Frequency-----------Regions-------------------------------
+
+fishdis_reg <- as.data.frame(distance_rds) %>%
+  filter(Class != 'Other' & Class != 'High Urban') %>%
+  mutate(
+    pop_den = ifelse(
+      DISCOVERY_YEAR >= 1992 |
+        DISCOVERY_YEAR < 2000,
+      POPDEN1990,
+      ifelse(
+        DISCOVERY_YEAR >= 2000 |
+          DISCOVERY_YEAR < 2009,
+        POPDEN2000,
+        ifelse(
+          DISCOVERY_YEAR >= 2010 |
+            DISCOVERY_YEAR < 2016,
+          POPDEN2010,
+          NA
+        )
+      )
+    ),
+    house_den = ifelse(
+      DISCOVERY_YEAR >= 1992 |
+        DISCOVERY_YEAR < 2000,
+      HUDEN1990,
+      ifelse(
+        DISCOVERY_YEAR >= 2000 |
+          DISCOVERY_YEAR < 2009,
+        HUDEN2000,
+        ifelse(
+          DISCOVERY_YEAR >= 2010 |
+            DISCOVERY_YEAR < 2016,
+          HUDEN2010,
+          NA
+        )
+      )
+    ),
+    decade = ifelse(
+      DISCOVERY_YEAR < 2000,
+      1990,
+      ifelse(DISCOVERY_YEAR >= 2000 &
+               DISCOVERY_YEAR < 2009, 2000, 2010)
+    ),
+    regions = ifelse(regions == 'East', 'North East', as.character(regions)),
+    distance_to_urban = distance_to_urban * 0.001
+  ) %>%
+  group_by(fishid10k, decade, regions, IGNITION) %>%
+  summarise(
+    median_popdensity = median(pop_den),
+    median_homedensity = median(house_den),
+    medain_distance = median(distance_to_urban),
+    fseason_lngth = IQR(DISCOVERY_DOY),
+    median_doy = median(DISCOVERY_DOY),
+    f_cnt = n()
+  ) %>%
+  ungroup() %>%
+  mutate(ignition_year = paste0(IGNITION, '_', decade))
+
+firefreq_p <- fishdis_reg %>%
+  transform(ignition_year = factor(
+    ignition_year,
+    levels = c(
+      "Human_1990",
+      "Human_2000",
+      "Human_2010",
+      "Lightning_1990",
+      "Lightning_2000",
+      "Lightning_2010"
+    )
+  )) %>%
+  ggplot(aes(
+    x = medain_distance,
+    y = f_cnt,
+    group = ignition_year,
+    color = ignition_year
+  )) +
+  geom_smooth(
+    method = 'loess',
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values = c(
+    'red2',
+    "red3",
+    'red4',
+    'royalblue2',
+    'royalblue3',
+    'royalblue4'
+  )) +
+  xlab("") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap(~ regions, nrow = 2) +
+  theme(legend.position = 'none')
 
 pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
   tbl_df %>%
