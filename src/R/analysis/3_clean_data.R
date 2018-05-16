@@ -36,7 +36,7 @@ if (!file.exists(file.path(ecoregion_out, 'us_eco_l3.gpkg'))) {
                                                        "TROPICAL WET FORESTS",
                                                        "NORTHERN FORESTS"), "East",
                                       if_else(NA_L1NAME %in% c("NORTH AMERICAN DESERTS",
-                                                               "SOUTHERN SEMIARID HIGHLANDS",
+                                                               "SOUTHERN SEMI-ARID HIGHLANDS",
                                                                "TEMPERATE SIERRAS",
                                                                "MEDITERRANEAN CALIFORNIA",
                                                                "NORTHWESTERN FORESTED MOUNTAINS",
