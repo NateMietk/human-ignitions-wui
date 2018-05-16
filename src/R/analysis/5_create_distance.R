@@ -77,89 +77,63 @@ decades <- unique(fpa_fire_ed$decade)
 
 for (i in decades) {
   if (!exists(file.path(distance_out, paste0('distance_fpa_', i, '.rds')))) {
-    decade_df <- subset(fpa_fire_ed, fpa_fire_ed$decade == i)
+
+    decade_df <- fpa_fire_ed %>%
+      filter(decade == i)
 
     polygons <- get_polygons(i)
+    urban_coords <- st_coordinates(polygons)
+    fire_coords <- st_coordinates(decade_df)
 
-    centroids <- polygons %>%
-      st_centroid(.)
+    urban_df <- as_tibble(urban_coords) %>%
+      mutate(vertex_ids = row_number())
 
-    nearest_neighbors <- as.tibble(knn(st_coordinates(centroids),
-                                       st_coordinates(decade_df),
-                                       k = 4)$nn.idx) %>%
-      mutate(FPA_ID = as.data.frame(decade_df)$FPA_ID) %>%
-      gather(var, poly_ids,-FPA_ID) %>%
-      dplyr::select(-var)
+    # compute KNN between fires and urban poly vertices
+    nearest_neighbors <- as_tibble(bind_cols(nabor::knn(data = urban_coords[, c('X', 'Y')],
+                                                        fire_coords,
+                                                        k = 1))$nn.idx) %>%
+      mutate(FPA_ID = as.data.frame(decade_df)$FPA_ID,
+             vertex_ids = V1) %>%
+      left_join(., urban_df, by = 'vertex_ids') %>%
+      mutate(poly_ids = L2) %>%
+      dplyr::select(FPA_ID, vertex_ids, poly_ids) %>%
+      left_join(polygons, ., by = 'poly_ids') %>%
+      na.omit()
 
-    nearest_neighbors <- nearest_neighbors %>%
-      left_join(., polygons, by = 'poly_ids') %>%
-      st_sf()
-    distance_to_fire_full <- list()
-
-    state <- unique(decade_df$STATE)
-
-    for (j in state) {
-      state_df <- subset(decade_df, decade_df$STATE == j)
-      state_df$STATE <- droplevels(state_df$STATE)
-      distance_to_fire <- list()
-
-      unique_ids <- unique(state_df$FPA_ID)
-      total_ids <- length(unique_ids)
-
-      print(paste0('Working on ', j , ' ', i))
-      pb <- txtProgressBar(min = 0,
-                           max = total_ids,
-                           style = 3)
-
-      for (h in 1:length(unique_ids)) {
-        fpa_ids <- unique_ids[h]
-        fpa_df <- subset(state_df, state_df$FPA_ID == fpa_ids)
-
-        closest_centroids <-
-          subset(nearest_neighbors,
-                 nearest_neighbors$FPA_ID == fpa_ids)
-
-        distance_to_fire[[h]] <- fpa_df %>%
-          dplyr::select(-FPA_ID) %>%
-          mutate(
-            distance_to_urban = min(
-              st_distance(
-                st_geometry(closest_centroids),
-                st_geometry(.),
-                by_element = TRUE
-              )
-            ),
-            FPA_ID = data.frame(fpa_df)$FPA_ID
-          )
-        setTxtProgressBar(pb, h)
-      }
-      close(pb)
-
-      distance_to_fire_full[[j]] <- do.call(rbind, distance_to_fire)
-      distance_to_fire_statedf <- do.call(rbind, distance_to_fire)
-
-      write_rds(distance_to_fire_statedf,
-                file.path(
-                  distance_state_out,
-                  paste0('distance_fpa_', i, '_', j, '.rds')
-                ))
-      system(
-        'aws s3 sync data/anthro/wui/distance_from_urban s3://earthlab-modeling-human-ignitions/anthro/wui/distance_from_urban'
-      )
-
-    }
-
-    distance_to_fire_full <-
-      do.call(rbind, distance_to_fire_full) # Convert to data frame format
-
-    # save the final cleaned climate extractions joined with the fpa-fod database
-    summary_name <-
-      file.path(distance_out, paste0('distance_fpa_', i, '.rds'))
-    write_rds(distance_to_fire_full, summary_name)
-
-    # push to S3
-    system(
-      'aws s3 sync data/anthro/wui/distance_from_urban s3://earthlab-modeling-human-ignitions/anthro/wui/distance_from_urban'
-    )
+    distance_to_fire <- decade_df %>%
+      dplyr::select(-FPA_ID) %>%
+      mutate(
+        distance_to_urban = st_distance(
+          st_geometry(nearest_neighbors),
+          st_geometry(.), by_element = TRUE),
+        FPA_ID = data.frame(decade_df)$FPA_ID)
   }
+
+  write_rds(distance_to_fire,
+            file.path(
+              distance_out,
+              paste0('distance_fpa_', i, '.rds')
+            ))
+  system(
+    'aws s3 sync data/anthro/wui/distance_from_urban s3://earthlab-modeling-human-ignitions/anthro/wui/distance_from_urban'
+  )
+} else {
+  rds_list <- list.files(distance_out,
+                         full.names = TRUE,
+                         pattern = '.rds')
+  distance_rds <- lapply(rds_list, function(x) read_rds(x)) %>%
+    do.call(rbind, .) %>%
+    as.data.frame() %>%
+    dplyr::select(FPA_ID, distance_to_urban) %>%
+    left_join(fpa_wui, ., by = 'FPA_ID')
+
+  write_rds(distance_rds,
+            file.path(
+              distance_out,
+              paste0('distance_fpa.rds')
+            ))
+  system(
+    'aws s3 sync data/anthro/wui/distance_from_urban s3://earthlab-modeling-human-ignitions/anthro/wui/distance_from_urban'
+  )
+
 }
