@@ -51,6 +51,6 @@ if (!file.exists(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))) {
                 fire_crt, " ",
                 s3_fire_prefix))
 } else {
-  fpa_bae_wui <- st_read(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg"))
+  fpa_bae_wui <- st_read(file.path(fpa_out, 'fpa-fod', "fpa_mtbs_bae_wui.gpkg"))
 
 }
