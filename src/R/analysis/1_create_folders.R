@@ -33,9 +33,9 @@ wui_out <- file.path(anthro_out, "wui")
 distance_out <- file.path(wui_out, "distance_from_urban")
 ztrax_out <- file.path(anthro_out, 'ztrax')
 bui_out <- file.path(ztrax_out, 'built_up_intensity')
-bui_out <- file.path(ztrax_out, 'BUI')
+bui_out <- file.path(bui_out, 'BUI')
 bu_out <- file.path(ztrax_out, 'building_counts')
-bu_out <- file.path(ztrax_out, 'building_counts_all')
+bu_out <- file.path(bu_out, 'building_counts_all')
 
 fire_crt <- file.path(prefix, "fire")
 nifc_crt <- file.path(fire_crt, "nifc")
@@ -54,6 +54,7 @@ ics_spatial <- file.path(ics_out, "spatial")
 fishnet_path <- file.path(bounds_crt, "fishnet")
 
 # for pushing and pulling to s3 using the system function
+s3_base <- 's3://earthlab-natem/human-ignitions-wui'
 s3_bounds_prefix <- 's3://earthlab-natem/human-ignitions-wui/bounds'
 s3_anthro_prefix <- 's3://earthlab-natem/human-ignitions-wui/anthro'
 s3_fire_prefix <- 's3://earthlab-natem/human-ignitions-wui/fire'

@@ -74,12 +74,14 @@ if (!exists('ecoreg')) {
     ecoreg_plain <- st_read(dsn = ecoregion_out, layer = "us_eco_l3", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME) %>%
+      st_make_valid() %>%
       st_intersection(., st_union(usa_shp)) %>%
       setNames(tolower(names(.)))
 
     ecoreg <- st_read(dsn = ecoregion_out, layer = "us_eco_l3", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME) %>%
+      st_make_valid() %>%
       st_intersection(., usa_shp) %>%
       mutate(region = as.factor(if_else(NA_L1NAME %in% c("EASTERN TEMPERATE FORESTS",
                                                          "TROPICAL WET FORESTS",
@@ -226,7 +228,7 @@ if (!exists('wui')) {
 # Prep FPA-FOD ---------------------------------------------------------
 # Clean the FPA database class
 if (!exists('fpa_fire')) {
-  if(!file.exists(file.path(fpa_out, "fpa_conus.gpkg"))) {
+  if(!file.exists(file.path(fire_pnt, "fpa_conus.gpkg"))) {
     fpa_fire <- st_read(dsn = file.path(fpa_prefix, "Data", "FPA_FOD_20170508.gdb"),
                         layer = "Fires", quiet= FALSE) %>%
       filter(!(STATE %in% c("Alaska", "Hawaii", "Puerto Rico") & FIRE_SIZE >= 0.1)) %>%
@@ -242,7 +244,7 @@ if (!exists('fpa_fire')) {
       st_transform(st_crs(usa_shp)) %>%
       st_intersection(., st_union(usa_shp))
 
-    st_write(fpa_fire, file.path(fpa_out, "fpa_conus.gpkg"),
+    st_write(fpa_fire, file.path(fire_pnt, "fpa_conus.gpkg"),
              driver = "GPKG",
              update=TRUE)
 
@@ -250,13 +252,14 @@ if (!exists('fpa_fire')) {
                   fire_crt, " ",
                   s3_fire_prefix))
   } else {
-    fpa_fire <- st_read(dsn = file.path(fpa_out, "fpa_conus.gpkg"))
+    fpa_fire <- st_read(dsn = file.path(fire_pnt, "fpa_conus.gpkg")) %>%
+      st_transform(proj_ea)
   }
 }
 
 # Spatially join the fpa database to the WUI
 if (!exists('fpa_wui')) {
-  if(!file.exists(file.path(fpa_out, "fpa_wui_conus.gpkg"))) {
+  if(!file.exists(file.path(fire_pnt, "fpa_wui_conus.gpkg"))) {
     fpa_wui <- fpa_fire %>%
       st_intersection(., wui) %>%
       st_intersection(., bounds) %>%
@@ -266,7 +269,7 @@ if (!exists('fpa_wui')) {
                                    ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
                                           NA))))
 
-    st_write(fpa_wui, file.path(fpa_out, "fpa_wui_conus.gpkg"),
+    st_write(fpa_wui, file.path(fire_pnt, "fpa_wui_conus.gpkg"),
              driver = "GPKG",
              update=TRUE)
 
@@ -274,7 +277,7 @@ if (!exists('fpa_wui')) {
                   fire_crt, " ",
                   s3_fire_prefix))
   } else {
-    fpa_wui <- st_read(dsn = file.path(fpa_out, "fpa_wui_conus.gpkg"))
+    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg"))
   }
 }
 

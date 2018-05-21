@@ -15,8 +15,7 @@ if (!file.exists(file.path(bu_out, 'bu_masked_1990.tif'))) {
               filename = file.path(bu_out, names(bu_masked)),
               bylayer=TRUE, format="GTiff")
   system(paste0("aws s3 sync ", prefix, " ", s3_base))
-
-} else {
+  } else {
 
   bu_list <- list.files(file.path(bu_out,
                         pattern = glob2rx('*masked*tif'),
@@ -24,6 +23,7 @@ if (!file.exists(file.path(bu_out, 'bu_masked_1990.tif'))) {
   bu_stack <- stack(bu_list)
   bu_velox <- velox(bu_stack)
 }
+
 
 # Housing units per ecoregion
 if (!exists('sum_extractions_bu')) {
@@ -47,10 +47,10 @@ if (!exists('sum_extractions_bu')) {
     write_rds(sum_ecoregions_bu, file.path(bu_out, 'summary_ecoregion_bu.rds'))
     system(paste0("aws s3 sync ", prefix, " ", s3_base))
 
+  } else {
+    sum_ecoregions_bu <- read_rds(file.path(bu_out, 'summary_ecoregion_bu.rds'))
   }
-} else {
-  sum_ecoregions_bu <- read_rds(file.path(bu_out, 'summary_ecoregion_bu.rds'))
-}
+} 
 
 # Housing units per FPA fire perimeters
 if (!exists('sum_fpa_bu')) {
