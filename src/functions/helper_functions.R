@@ -1,4 +1,35 @@
 
+extract_one <- function(filename, shapefile_extractor,
+                        use_varname = TRUE, varname,
+                        prefix = prefix, s3_base = s3_base) {
+  # function to extract all climate time series based on shapefile input
+  # this results in large list of all months/years within the raster climate data
+  # each list is written out to a csv so this only needs to be run once.
+  # inputs:
+  # filename -> a list of all tif filenames with full path
+  # shapefile_extractor -> the shapefile (point or polygon) to extract climate data
+  require(tidyverse)
+  require(raster)
+
+  if (use_varname == TRUE) {
+
+    file_split <- filename %>%
+      basename %>%
+      strsplit(split = "_") %>%
+      unlist
+    year <- file_split[max(length(file_split))]
+    dir_name <- dirname(filename)
+
+    out_name <- paste0(dir_name, '/', varname, year)
+    out_name <- gsub('.tif', '.csv', out_name)
+    out_name
+
+    } else {
+      out_name <- gsub('.tif', '.csv', filename)
+      out_name
+
+    }
+  }
 
 get_polygons <- function(decade) {
 
@@ -251,18 +282,6 @@ classify_fire_size <-  function(x) {
                 ifelse(x >= 11 & x < 100, "11 - 100",
                        "> 100")))
 }
-
-# classify_fire_size_cl <-  function(x) {
-#   # break out fires into small, med, large
-#   # input:
-#   #   - x: vector of fire sizes
-#   # output:
-#   #   - y: vector (same length) of classified fire sizes ----- Km2
-#   ifelse(x < 0.4, "Very Small",
-#          ifelse(x >= 0.4 & x < 4, "Small",
-#                 ifelse(x >= 4 & x < 40, "Medium",
-#                        ifelse(x >= 40 & x < 500, "Large","Very Large"))))
-# }
 
 classify_wuiburned <-  function(x) {
   # break out fires into small, med, large

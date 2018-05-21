@@ -1,5 +1,5 @@
 # Libraries ---------------------------------------------------------------
-x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom', 'nabor',
+x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom', 'nabor', 'velox',
        "assertthat", "purrr", "httr", "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel')
 lapply(x, library, character.only = TRUE, verbose = FALSE)
 
@@ -9,7 +9,7 @@ source("src/functions/ggplot_theme.R")
 source("src/functions/plot_theme.R")
 
 proj_ed <- "+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs" #USA_Contiguous_Equidistant_Conic
-proj_ea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-9+x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
+proj_ea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
 ncores <- 5
 
 # Raw data folders
@@ -46,6 +46,12 @@ ics_spatial <- file.path(ics_out, "spatial")
 
 fishnet_path <- file.path(bounds_crt, "fishnet")
 
+ztrax_out <- file.path(anthro_out, 'ztrax')
+bui_out <- file.path(ztrax_out, 'built_up_intensity')
+bui_out <- file.path(ztrax_out, 'BUI')
+bu_out <- file.path(ztrax_out, 'building_counts')
+bu_out <- file.path(ztrax_out, 'building_counts_all')
+
 # for pushing and pulling to s3 using the system function
 s3_bounds_prefix <- 's3://earthlab-natem/human-ignitions-wui/bounds'
 s3_anthro_prefix <- 's3://earthlab-natem/human-ignitions-wui/anthro'
@@ -53,7 +59,7 @@ s3_fire_prefix <- 's3://earthlab-natem/human-ignitions-wui/fire'
 s3_raw_prefix <- 's3://earthlab-natem/human-ignitions-wui/raw'
 
 # Check if directory exists for all variable aggregate outputs, if not then create
-var_dir <- list(prefix, summary_dir, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt,
-                bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out,
+var_dir <- list(prefix, summary_dir, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt, ztrax_out,
+                bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out, bui_out, bu_out,
                 swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
