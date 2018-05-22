@@ -15,7 +15,6 @@ theme_pub <- function(base_size=13, base_family="") {
             axis.ticks = element_line(),
             
             legend.title = element_text(size=16),
-            legend.position = "right",
             legend.text = element_text(size=16),
             legend.direction = "vertical",
             legend.key = element_rect(colour = "transparent", fill = "transparent"),
