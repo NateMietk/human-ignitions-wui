@@ -8,7 +8,7 @@ if (!exists("usa_shp")){
                        layer = "cb_2016_us_state_20m",
                        outname = "usa") %>%
     filter(!(NAME %in% c("Alaska", "Hawaii", "Puerto Rico"))) %>%
-    st_transform("+init=epsg:2163") %>%  # e.g. US National Atlas Equal Area
+    st_transform(proj_ea) %>%  # e.g. US National Atlas Equal Area
     dplyr::select(STUSPS) %>%
     setNames(tolower(names(.)))
 }
