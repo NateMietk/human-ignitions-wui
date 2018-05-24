@@ -50,17 +50,17 @@ if (!exists('sum_ecoregions_bu')) {
   } else {
     sum_ecoregions_bu <- read_rds(file.path(bu_out, 'summary_ecoregion_bu.rds'))
   }
-} 
+}
 
 # # Housing units per ecoregion
 # if (!exists('sum_states_bu')) {
 #   if (!file.exists(file.path(bu_out, 'summary_state_bu.rds'))) {
-#     
+#
 #     states <- usa_shp %>%
 #       group_by(stusps) %>%
 #       summarise() %>%
 #       st_cast('POLYGON')
-#     
+#
 #     sum_states_bu <- bu_velox$extract(sp = states, fun = function(x) sum(x, na.rm=TRUE), small = TRUE, df = TRUE) %>%
 #       as_tibble() %>%
 #       mutate(stusps = as.data.frame(states)$stusps,
@@ -73,17 +73,17 @@ if (!exists('sum_ecoregions_bu')) {
 #       dplyr::select(-starts_with('X'))
 #     write_rds(sum_states_bu, file.path(bu_out, 'summary_state_bu.rds'))
 #     system(paste0("aws s3 sync ", prefix, " ", s3_base))
-#     
+#
 #   } else {
 #     sum_states_bu <- read_rds(file.path(bu_out, 'summary_state_bu.rds'))
 #   }
-# } 
+# }
 
 
 # Housing units per FPA fire perimeters
 if (!exists('sum_fpa_bu')) {
   if (!file.exists(file.path(bu_out, 'summary_fpa_bu.rds'))) {
-    
+
     fpa_dis <- fpa %>%
       slice(1:10) %>%
       mutate(year_bidecadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
@@ -94,8 +94,8 @@ if (!exists('sum_fpa_bu')) {
                                                        DISCOVERY_YEAR ))))))
       group_by(IGNITION, year_bidecadal) %>%
       summarise.sf()
-    
-    
+
+
     sum_fpa_bu <- bu_velox$extract(sp = fpa, fun = function(x) sum(x, na.rm=TRUE), small = TRUE, df = TRUE) %>%
       as_tibble() %>%
       mutate(fpa_id = as.data.frame(fpa)$FPA_ID,
@@ -108,7 +108,7 @@ if (!exists('sum_fpa_bu')) {
       dplyr::select(-starts_with('X'))
     write_rds(sum_fpa_bu, file.path(bu_out, 'summary_fpa_bu.rds'))
     system(paste0("aws s3 sync ", prefix, " ", s3_base))
-    
+
   } else {
     sum_fpa_bu <- read_rds(file.path(bu_out, 'summary_fpa_bu.rds'))
   }
