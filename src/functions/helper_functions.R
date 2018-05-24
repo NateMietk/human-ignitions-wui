@@ -64,8 +64,10 @@ classify_fire_size_cl <-  function(x) {
   #   - x: vector of fire sizes
   # output:
   #   - y: vector (same length) of classified fire sizes ----- Km2
-  ifelse(x < 4, "Small",
-         ifelse(x >= 4 & x < 500, "Large", "Very Large"))
+  ifelse(x < 0.25, "< 10 ha",
+         ifelse(x >= 0.25 & x < 4, "10 - 400 ha",
+           ifelse(x >= 4 & x < 50, "400 - 5000 ha",
+                  ifelse(x >= 50 & x < 250, "5000 - 20000 ha", "> 20000 ha"))))
 }
 
 clean_class <- function(x, y) {
