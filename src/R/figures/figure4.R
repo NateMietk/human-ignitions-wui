@@ -1,45 +1,12 @@
 # Distance calculations/plotting ****Fire Frequency-----------Regions-------------------------------
 
+    
 fishdis_reg <- as.data.frame(distance_rds) %>%
   filter(Class != 'Other' & Class != 'High Urban') %>%
   mutate(
-    pop_den = ifelse(
-      DISCOVERY_YEAR >= 1992 |
-        DISCOVERY_YEAR < 2000,
-      POPDEN1990,
-      ifelse(
-        DISCOVERY_YEAR >= 2000 |
-          DISCOVERY_YEAR < 2009,
-        POPDEN2000,
-        ifelse(
-          DISCOVERY_YEAR >= 2010 |
-            DISCOVERY_YEAR < 2016,
-          POPDEN2010,
-          NA
-        )
-      )
-    ),
-    house_den = ifelse(
-      DISCOVERY_YEAR >= 1992 |
-        DISCOVERY_YEAR < 2000,
-      HUDEN1990,
-      ifelse(
-        DISCOVERY_YEAR >= 2000 |
-          DISCOVERY_YEAR < 2009,
-        HUDEN2000,
-        ifelse(
-          DISCOVERY_YEAR >= 2010 |
-            DISCOVERY_YEAR < 2016,
-          HUDEN2010,
-          NA
-        )
-      )
-    ),
     regions = ifelse(regions == 'East', 'North East', as.character(regions)),
-    distance_to_urban = distance_to_urban * 0.001,
-    size = classify_fire_size_cl(FIRE_SIZE_km2)
-  ) %>%
-  group_by(fishid10k, size, regions, IGNITION) %>%
+    distance_to_urban = distance_to_urban * 0.001) %>%
+  group_by(fishid10k, regions, IGNITION) %>%
   summarise(
     median_popdensity = median(pop_den),
     median_homedensity = median(house_den),
@@ -51,24 +18,16 @@ fishdis_reg <- as.data.frame(distance_rds) %>%
   ungroup()
 
 firefreq_p <- fishdis_reg %>%
-  # transform(size = factor(
-  #   size,
-  #   levels = c(
-  #     "Small",
-  #     "Large",
-  #     "Very Large"
-  #   )
-  # )) %>%
   ggplot(aes(
-    x = median_popdensity,
+    x = medain_distance,
     y = f_cnt,
     group = IGNITION,
     color = IGNITION
   )) +
   geom_smooth(
-    method = 'loess',
-    #method.args = list(family = "poisson"),
-    #fullrange = TRUE,
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
     size = 1
   ) +
   scale_color_manual(values = c(
@@ -78,9 +37,8 @@ firefreq_p <- fishdis_reg %>%
   xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
   expand_limits(x = 0, y = 0) +
   theme_pub()  +
-  facet_wrap(size ~ regions, nrow = 3, scales = 'free_y') +
+  facet_wrap( ~ regions, nrow = 3, scales = 'free_y') +
   theme(legend.position = 'none')
-#nrow = 2, labeller = label_wrap_gen(10))
 
 
 
