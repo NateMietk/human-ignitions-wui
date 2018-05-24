@@ -13,7 +13,11 @@ fpa_wui <- fpa_wui %>%
                              ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HUDEN2000,
                                      ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HUDEN2010, NA ))),
          class_coarse =  ifelse( Class == 'High Urban' | Class == 'Med Urban' | Class == 'Low Urban', 'Urban',
-                                 ifelse( Class == 'Intermix WUI' | Class == 'Interface WUI', 'WUI', as.character(Class))))
+                                 ifelse( Class == 'Intermix WUI' | Class == 'Interface WUI', 'WUI', as.character(Class))),
+         size = classify_fire_size_cl(FIRE_SIZE_km2))
+
+
+# Prep CONUS and REGIONS ---------------------------------------------
 
 region_bu_df <- sum_ecoregions_bu %>%
   gather(variable, bu, -ID_sp, -us_l3name) %>%
@@ -37,7 +41,7 @@ region_bu_p <- region_bu_df %>%
   scale_y_continuous(limits = c(0, 175)) +
   theme_pub()  +
   xlab("Year") + ylab("Building unit count (in 100,000 units)") +
-  ggtitle('(a) Number of structures \nin the CONUS') +
+  ggtitle('(a) Number of structures \nin the CONUS by region') +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 10, face = "bold"),
         legend.box.background = element_rect(fill = "transparent"),
@@ -53,7 +57,7 @@ conus_bu_df <- sum_ecoregions_bu %>%
            into = c("statistic", 'tmp', "bidecadal"),
            sep = "_") %>%
   dplyr::select(-tmp) %>%
-  # 
+  #
   group_by(bidecadal) %>%
   summarise(bu_total = sum(bu)) %>%
   ungroup() %>%
@@ -74,7 +78,10 @@ conus_bu_p <- conus_bu_df %>%
         legend.key = element_rect(colour = "transparent", fill = "white"),
         legend.background = element_rect(fill = "transparent"),
         legend.title = element_blank(),
-        legend.position = "none") 
+        legend.position = "none")
+
+
+# Threatened across the CONUS ---------------------------------------------
 
 fpa_bu_df <- sum_fpa_bu %>%
   gather(variable, bu, -ID_sp, -fpa_id) %>%
@@ -83,15 +90,17 @@ fpa_bu_df <- sum_fpa_bu %>%
            sep = "_") %>%
   dplyr::select(-tmp) %>%
   left_join(., as.data.frame(fpa_wui) %>%
-              setNames(tolower(names(.))), 
+              setNames(tolower(names(.))),
             by = "fpa_id") %>%
   group_by(bidecadal) %>%
-  summarise(f_cnt = n(), 
+  summarise(f_cnt = n(),
             burned_area = sum(fire_size_km2),
             bu = sum(bu)) %>%
   left_join(., conus_bu_df, by = 'bidecadal') %>%
   mutate(pct_change = (bu - lag(bu))/lag(bu) * 100,
-         pct_total = bu/bu_total * 100) %>%
+         pct_total = bu/bu_total * 100,
+         home_per_fire = bu/f_cnt,
+         home_per_areaburned = bu/burned_area) %>%
   ungroup() %>%
   filter(!is.na(bidecadal)) %>%
   mutate(buff_zone = 0)
@@ -128,8 +137,210 @@ fpa_bu_pctot <- fpa_bu_df %>%
 
 grid.arrange(conus_bu_p, fpa_bu_p, fpa_bu_pctot, nrow = 1)
 g <- arrangeGrob(conus_bu_p, fpa_bu_p, fpa_bu_pctot, nrow = 1)
-ggsave(file = "results/figs/draft/bu_fpa.pdf", g, 
+ggsave(file = "results/figs/draft/bu_fpa.pdf", g,
        width = 10, height = 5, dpi=1200, scale = 3, units = "cm")
+
+# Threatened across CONUS stratified by CAUSE ---------------------------------------------
+
+fpa_cause_bu_df <- sum_fpa_bu %>%
+  gather(variable, bu, -ID_sp, -fpa_id) %>%
+  separate(variable,
+           into = c("statistic", 'tmp', "year"),
+           sep = "_") %>%
+  dplyr::select(-tmp) %>%
+  left_join(., as.data.frame(fpa_wui) %>%
+              setNames(tolower(names(.))),
+            by = "fpa_id") %>%
+  filter( fire_size_km2 >= 0.025) %>%
+  group_by(ignition, bidecadal) %>%
+  summarise(f_cnt = n(),
+            burned_area = sum(fire_size_km2),
+            bu = sum(bu)) %>%
+  left_join(., conus_bu_df, by = 'bidecadal') %>%
+  mutate(pct_change = (bu - lag(bu))/lag(bu) * 100,
+         pct_total = bu/bu_total * 100,
+         home_per_fire = bu/f_cnt,
+         home_per_areaburned = bu/burned_area) %>%
+  ungroup() %>%
+  filter(!is.na(bidecadal)) %>%
+  mutate(buff_zone = 0)
+
+fpa_cause_bu_p <- fpa_cause_bu_df %>%
+  ggplot(aes(x =  bidecadal, group = ignition, color = ignition)) +
+  geom_point(aes( y = bu*0.000001)) +
+  geom_line(aes( y = bu*0.000001)) +
+  theme_pub() +
+  scale_color_manual(values = c("#D62728","#1F77B4")) +
+  xlab("Year") + ylab("") +
+  ggtitle('(a) Number of structures \nwithin all wildfires') +
+  scale_y_continuous(limits = c(0, 1)) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 10, face = "bold"),
+        legend.box.background = element_rect(fill = "transparent"),
+        legend.key = element_rect(colour = "transparent", fill = "white"),
+        legend.background = element_rect(fill = "transparent"),
+        legend.title = element_blank(),
+        legend.position = 'none')
+
+fpa_cause_bu_pctot <- fpa_cause_bu_df %>%
+  ggplot(aes(x =  bidecadal, group = ignition, color = ignition)) +
+  geom_point(aes( y = pct_total)) +
+  geom_line(aes( y = pct_total)) +
+  theme_pub() +
+  scale_color_manual(values = c("#D62728","#1F77B4")) +
+  xlab("Year") + ylab("% of total structures contained within wildfire") +
+  ggtitle('(b) Proportion of structures contained \nwithin wildfire to total') +
+  scale_y_continuous(limits = c(0, 35)) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 10, face = "bold"),
+        legend.box.background = element_rect(fill = "transparent"),
+        legend.key = element_rect(colour = "transparent", fill = "white"),
+        legend.background = element_rect(fill = "transparent"),
+        legend.title = element_blank(),
+        legend.position = 'none')
+
+grid.arrange(conus_bu_p, fpa_cause_bu_p, fpa_cause_bu_pctot, nrow = 1)
+g <- arrangeGrob(conus_bu_p, fpa_cause_bu_p, fpa_cause_bu_pctot, nrow = 1)
+ggsave(file = "results/figs/draft/bu_cause_fpa.pdf", g,
+       width = 10, height = 5, dpi=1200, scale = 3, units = "cm")
+
+
+# Threatened across CONUS stratified by CLASS ---------------------------------------------
+
+fpa_class_bu_df <- sum_fpa_bu %>%
+  gather(variable, bu, -ID_sp, -fpa_id) %>%
+  separate(variable,
+           into = c("statistic", 'tmp', "year"),
+           sep = "_") %>%
+  dplyr::select(-tmp) %>%
+  left_join(., as.data.frame(fpa_wui) %>%
+              setNames(tolower(names(.))),
+            by = "fpa_id") %>%
+  filter(class_coarse != 'Other') %>%
+  filter( fire_size_km2 >= 0.025) %>%
+  group_by(class_coarse, bidecadal) %>%
+  summarise(f_cnt = n(),
+            burned_area = sum(fire_size_km2),
+            bu = sum(bu)) %>%
+  left_join(., conus_bu_df, by = c('bidecadal')) %>%
+  mutate(pct_change = (bu - lag(bu))/lag(bu) * 100,
+         pct_total = bu/bu_total * 100,
+         home_per_fire = bu/f_cnt,
+         home_per_areaburned = bu/burned_area) %>%
+  ungroup() %>%
+  filter(!is.na(bidecadal)) %>%
+  mutate(buff_zone = 0)
+
+fpa_class_bu_p <- fpa_class_bu_df %>%
+  transform(class_coarse = factor(class_coarse, levels=c("Urban", 'WUI', 'VLD', 'Wildlands'))) %>%
+  ggplot(aes(x =  bidecadal, group = class_coarse, color = class_coarse)) +
+  geom_point(aes( y = bu*0.000001)) +
+  geom_line(aes( y = bu*0.000001)) +
+  theme_pub() +
+  scale_y_continuous(limits = c(0, 45)) +
+  # scale_color_manual(values = c("#D62728","#1F77B4")) +
+  xlab("Year") + ylab("") +
+  ggtitle('(b) Number of structures \nwithin all wildfires') +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 10, face = "bold"),
+        legend.box.background = element_rect(fill = "transparent"),
+        legend.key = element_rect(colour = "transparent", fill = "white"),
+        legend.background = element_rect(fill = "transparent"),
+        legend.title = element_blank(),
+        legend.position = 'none')
+
+fpa_class_bu_pctot <- fpa_class_bu_df %>%
+  transform(class_coarse = factor(class_coarse, levels=c("Urban", 'WUI', 'VLD', 'Wildlands'))) %>%
+  ggplot(aes(x =  bidecadal, group = class_coarse, color = class_coarse)) +
+  geom_point(aes( y = pct_total)) +
+  geom_line(aes( y = pct_total)) +
+  theme_pub() +
+  # scale_color_manual(values = c("#D62728","#1F77B4")) +
+  xlab("Year") + ylab("% of total structures contained within wildfire") +
+  ggtitle('(c) Proportion of structures contained \nwithin wildfire to total') +
+  scale_y_continuous(limits = c(0, 20)) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 10, face = "bold"),
+        legend.box.background = element_rect(fill = "transparent"),
+        legend.key = element_rect(colour = "transparent", fill = "white"),
+        legend.background = element_rect(fill = "transparent"),
+        legend.title = element_blank(),
+        legend.position = 'none')
+
+grid.arrange(conus_bu_p, fpa_class_bu_p, fpa_class_bu_pctot, nrow = 1)
+g <- arrangeGrob(conus_bu_p, fpa_class_bu_p, fpa_class_bu_pctot, nrow = 1)
+ggsave(file = "results/figs/draft/bu_class_fpa.pdf", g,
+       width = 10, height = 5, dpi=1200, scale = 3, units = "cm")
+
+
+# Threatened across CONUS stratified by SIZE ---------------------------------------------
+
+fpa_size_bu_df <- sum_fpa_bu %>%
+  gather(variable, bu, -ID_sp, -fpa_id) %>%
+  separate(variable,
+           into = c("statistic", 'tmp', "year"),
+           sep = "_") %>%
+  dplyr::select(-tmp) %>%
+  left_join(., as.data.frame(fpa_wui) %>%
+              setNames(tolower(names(.))),
+            by = "fpa_id") %>%
+  group_by(size, bidecadal) %>%
+  summarise(f_cnt = n(),
+            burned_area = sum(fire_size_km2),
+            bu = sum(bu)) %>%
+  left_join(., conus_bu_df, by = c('bidecadal')) %>%
+  mutate(pct_change = (bu - lag(bu))/lag(bu) * 100,
+         pct_total = bu/bu_total * 100,
+         home_per_fire = bu/f_cnt,
+         home_per_areaburned = bu/burned_area) %>%
+  ungroup() %>%
+  filter(!is.na(bidecadal)) %>%
+  mutate(buff_zone = 0)
+
+
+fpa_size_bu_p <- fpa_size_bu_df %>%
+  transform(size = factor(size, levels=c('< 10 ha', "10 - 400 ha", '400 - 5000 ha', '5000 - 20000 ha', '> 20000 ha'))) %>%
+  ggplot(aes(x =  bidecadal, group = size, color = size)) +
+  geom_point(aes( y = bu*0.000001)) +
+  geom_line(aes( y = bu*0.000001)) +
+  theme_pub() +
+  scale_y_continuous(limits = c(0, 40)) +
+  # scale_color_manual(values = c("#D62728","#1F77B4")) +
+  xlab("Year") + ylab("") +
+  ggtitle('(b) Number of structures \nwithin all wildfires') +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 10, face = "bold"),
+        legend.box.background = element_rect(fill = "transparent"),
+        legend.key = element_rect(colour = "transparent", fill = "white"),
+        legend.background = element_rect(fill = "transparent"),
+        legend.title = element_blank(),
+        legend.position = 'none')
+
+fpa_size_bu_pctot <- fpa_size_bu_df %>%
+  transform(size = factor(size, levels=c('< 10 ha', "10 - 400 ha", '400 - 5000 ha', '5000 - 20000 ha', '> 20000 ha'))) %>%
+  ggplot(aes(x =  bidecadal, group = size, color = size)) +
+  geom_point(aes( y = pct_total)) +
+  geom_line(aes( y = pct_total)) +
+  theme_pub() +
+  # scale_color_manual(values = c("#D62728","#1F77B4")) +
+  xlab("Year") + ylab("% of total structures contained within wildfire") +
+  ggtitle('(c) Proportion of structures contained \nwithin wildfire to total') +
+  scale_y_continuous(limits = c(0, 35)) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 10, face = "bold"),
+        legend.box.background = element_rect(fill = "transparent"),
+        legend.key = element_rect(colour = "transparent", fill = "white"),
+        legend.background = element_rect(fill = "transparent"),
+        legend.title = element_blank(),
+        legend.position = 'none')
+
+grid.arrange(conus_bu_p, fpa_size_bu_p, fpa_size_bu_pctot, nrow = 1)
+g <- arrangeGrob(conus_bu_p, fpa_size_bu_p, fpa_size_bu_pctot, nrow = 1)
+ggsave(file = "results/figs/draft/bu_size_fpa.pdf", g,
+       width = 10, height = 5, dpi=1200, scale = 3, units = "cm")
+
+
+# Threatened across REGIONS ---------------------------------------------
 
 fpa_region_bu_df <- sum_fpa_bu %>%
   gather(variable, bu, -ID_sp, -fpa_id) %>%
@@ -138,11 +349,11 @@ fpa_region_bu_df <- sum_fpa_bu %>%
            sep = "_") %>%
   dplyr::select(-tmp) %>%
   left_join(., as.data.frame(fpa_wui) %>%
-              setNames(tolower(names(.))), 
+              setNames(tolower(names(.))),
             by = "fpa_id") %>%
   filter(class_coarse != 'Other') %>%
   group_by(region, bidecadal) %>%
-  summarise(f_cnt = n(), 
+  summarise(f_cnt = n(),
             burned_area = sum(fire_size_km2),
             bu = sum(bu)) %>%
   left_join(., region_bu_df, by = c('bidecadal', 'region')) %>%
@@ -191,71 +402,11 @@ fpa_region_bu_pctot <- fpa_region_bu_df %>%
   facet_wrap(~region , ncol = 1)
 
 grid.arrange(region_bu_p, fpa_region_bu_p, fpa_region_bu_pctot, nrow = 1)
-g <- arrangeGrob(region_bu_p, fpa_class_region_bu_p, fpa_class_region_bu_pctot, nrow = 1)
-ggsave(file = "results/figs/draft/bu_region_fpa.pdf", g, 
+g <- arrangeGrob(region_bu_p, fpa_region_bu_p, fpa_region_bu_pctot, nrow = 1)
+ggsave(file = "results/figs/draft/bu_region_fpa.pdf", g,
        width = 10, height = 8, dpi=1200, scale = 3, units = "cm")
 
-
-
-fpa_cause_bu_df <- sum_fpa_bu %>%
-  gather(variable, bu, -ID_sp, -fpa_id) %>%
-  separate(variable,
-           into = c("statistic", 'tmp', "year"),
-           sep = "_") %>%
-  dplyr::select(-tmp) %>%
-  left_join(., as.data.frame(fpa_wui) %>%
-              setNames(tolower(names(.))), 
-            by = "fpa_id") %>%
-  group_by(ignition, bidecadal) %>%
-  summarise(f_cnt = n(), 
-            burned_area = sum(fire_size_km2),
-            bu = sum(bu)) %>%
-  left_join(., conus_bu_df, by = 'bidecadal') %>%
-  mutate(pct_change = (bu - lag(bu))/lag(bu) * 100,
-         pct_total = bu/bu_total * 100) %>%
-  ungroup() %>%
-  filter(!is.na(bidecadal)) %>%
-  mutate(buff_zone = 0)
-
-fpa_cause_bu_p <- fpa_cause_bu_df %>%
-  ggplot(aes(x =  bidecadal, group = ignition, color = ignition)) +
-  geom_point(aes( y = bu*0.000001)) +
-  geom_line(aes( y = bu*0.000001)) +
-  theme_pub() +
-  scale_color_manual(values = c("#D62728","#1F77B4")) +
-  xlab("Year") + ylab("") +
-  ggtitle('(a) Number of structures \nwithin all wildfires') +
-  scale_y_continuous(limits = c(0, 45)) +
-  theme(axis.title = element_text(face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.box.background = element_rect(fill = "transparent"),
-        legend.key = element_rect(colour = "transparent", fill = "white"),
-        legend.background = element_rect(fill = "transparent"),
-        legend.title = element_blank(),
-        legend.position = 'none')
-
-fpa_cause_bu_pctot <- fpa_cause_bu_df %>%
-  ggplot(aes(x =  bidecadal, group = ignition, color = ignition)) +
-  geom_point(aes( y = pct_total)) +
-  geom_line(aes( y = pct_total)) +
-  theme_pub() +
-  scale_color_manual(values = c("#D62728","#1F77B4")) +
-  xlab("Year") + ylab("% of total structures contained within wildfire") +
-  ggtitle('(b) Proportion of structures contained \nwithin wildfire to total') +
-  scale_y_continuous(limits = c(0, 35)) +
-  theme(axis.title = element_text(face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.box.background = element_rect(fill = "transparent"),
-        legend.key = element_rect(colour = "transparent", fill = "white"),
-        legend.background = element_rect(fill = "transparent"),
-        legend.title = element_blank(),
-        legend.position = 'none')
-
-grid.arrange(conus_bu_p, fpa_cause_bu_p, fpa_cause_bu_pctot, nrow = 1)
-g <- arrangeGrob(conus_bu_p, fpa_cause_bu_p, fpa_cause_bu_pctot, nrow = 1)
-ggsave(file = "results/figs/draft/bu_cause_fpa.pdf", g, 
-       width = 10, height = 5, dpi=1200, scale = 3, units = "cm")
-
+# Threatened across REGION stratified by CAUSE ---------------------------------------------
 
 fpa_cause_region_bu_df <- sum_fpa_bu %>%
   gather(variable, bu, -ID_sp, -fpa_id) %>%
@@ -264,10 +415,10 @@ fpa_cause_region_bu_df <- sum_fpa_bu %>%
            sep = "_") %>%
   dplyr::select(-tmp) %>%
   left_join(., as.data.frame(fpa_wui) %>%
-              setNames(tolower(names(.))), 
+              setNames(tolower(names(.))),
             by = "fpa_id") %>%
   group_by(ignition, region, bidecadal) %>%
-  summarise(f_cnt = n(), 
+  summarise(f_cnt = n(),
             burned_area = sum(fire_size_km2),
             bu = sum(bu)) %>%
   left_join(., region_bu_df, by = c('bidecadal', 'region')) %>%
@@ -317,70 +468,10 @@ fpa_cause_bu_pctot <- fpa_cause_region_bu_df %>%
 
 grid.arrange(region_bu_p, fpa_cause_region_bu_p, fpa_cause_bu_pctot, nrow = 1)
 g <- arrangeGrob(region_bu_p, fpa_cause_region_bu_p, fpa_cause_bu_pctot, nrow = 1)
-ggsave(file = "results/figs/draft/bu_cause_region_fpa.pdf", g, 
+ggsave(file = "results/figs/draft/bu_cause_region_fpa.pdf", g,
        width = 10, height = 8, dpi=1200, scale = 3, units = "cm")
 
-fpa_class_bu_df <- sum_fpa_bu %>%
-  gather(variable, bu, -ID_sp, -fpa_id) %>%
-  separate(variable,
-           into = c("statistic", 'tmp', "year"),
-           sep = "_") %>%
-  dplyr::select(-tmp) %>%
-  left_join(., as.data.frame(fpa_wui) %>%
-              setNames(tolower(names(.))), 
-            by = "fpa_id") %>%
-  filter(class_coarse != 'Other') %>%
-  group_by(class_coarse, bidecadal) %>%
-  summarise(f_cnt = n(), 
-            burned_area = sum(fire_size_km2),
-            bu = sum(bu)) %>%
-  left_join(., conus_bu_df, by = c('bidecadal')) %>%
-  mutate(pct_change = (bu - lag(bu))/lag(bu) * 100,
-         pct_total = bu/bu_total * 100) %>%
-  ungroup() %>%
-  filter(!is.na(bidecadal)) %>%
-  mutate(buff_zone = 0)
-
-fpa_class_bu_p <- fpa_class_bu_df %>%
-  transform(class_coarse = factor(class_coarse, levels=c("Urban", 'WUI', 'VLD', 'Wildlands'))) %>%
-  ggplot(aes(x =  bidecadal, group = class_coarse, color = class_coarse)) +
-  geom_point(aes( y = bu*0.000001)) +
-  geom_line(aes( y = bu*0.000001)) +
-  theme_pub() +
-  scale_y_continuous(limits = c(0, 45)) +
-  # scale_color_manual(values = c("#D62728","#1F77B4")) +
-  xlab("Year") + ylab("") +
-  ggtitle('(b) Number of structures \nwithin all wildfires') +
-  theme(axis.title = element_text(face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.box.background = element_rect(fill = "transparent"),
-        legend.key = element_rect(colour = "transparent", fill = "white"),
-        legend.background = element_rect(fill = "transparent"),
-        legend.title = element_blank(),
-        legend.position = 'none') 
-
-fpa_class_bu_pctot <- fpa_class_bu_df %>%
-  transform(class_coarse = factor(class_coarse, levels=c("Urban", 'WUI', 'VLD', 'Wildlands'))) %>%
-  ggplot(aes(x =  bidecadal, group = class_coarse, color = class_coarse)) +
-  geom_point(aes( y = pct_total)) +
-  geom_line(aes( y = pct_total)) +
-  theme_pub() +
-  # scale_color_manual(values = c("#D62728","#1F77B4")) +
-  xlab("Year") + ylab("% of total structures contained within wildfire") +
-  ggtitle('(c) Proportion of structures contained \nwithin wildfire to total') +
-  scale_y_continuous(limits = c(0, 20)) +
-  theme(axis.title = element_text(face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.box.background = element_rect(fill = "transparent"),
-        legend.key = element_rect(colour = "transparent", fill = "white"),
-        legend.background = element_rect(fill = "transparent"),
-        legend.title = element_blank(),
-        legend.position = 'none')
-
-grid.arrange(conus_bu_p, fpa_class_bu_p, fpa_class_bu_pctot, nrow = 1)
-g <- arrangeGrob(conus_bu_p, fpa_class_bu_p, fpa_class_bu_pctot, nrow = 1)
-ggsave(file = "results/figs/draft/bu_class_fpa.pdf", g, 
-       width = 10, height = 5, dpi=1200, scale = 3, units = "cm")
+# Threatened across REGION stratified by CLASS ---------------------------------------------
 
 fpa_region_class_bu_df <- sum_fpa_bu %>%
   gather(variable, bu, -ID_sp, -fpa_id) %>%
@@ -389,11 +480,11 @@ fpa_region_class_bu_df <- sum_fpa_bu %>%
            sep = "_") %>%
   dplyr::select(-tmp) %>%
   left_join(., as.data.frame(fpa_wui) %>%
-              setNames(tolower(names(.))), 
+              setNames(tolower(names(.))),
             by = "fpa_id") %>%
   filter(class_coarse != 'Other') %>%
   group_by(class_coarse, region, bidecadal) %>%
-  summarise(f_cnt = n(), 
+  summarise(f_cnt = n(),
             burned_area = sum(fire_size_km2),
             bu = sum(bu)) %>%
   left_join(., region_bu_df, by = c('bidecadal', 'region')) %>%
@@ -445,135 +536,76 @@ fpa_class_region_bu_pctot <- fpa_region_class_bu_df %>%
 
 grid.arrange(region_bu_p, fpa_class_region_bu_p, fpa_class_region_bu_pctot, nrow = 1)
 g <- arrangeGrob(region_bu_p, fpa_class_region_bu_p, fpa_class_region_bu_pctot, nrow = 1)
-ggsave(file = "results/figs/draft/bu_class_region_fpa.pdf", g, 
+ggsave(file = "results/figs/draft/bu_class_region_fpa.pdf", g,
        width = 10, height = 8, dpi=1200, scale = 3, units = "cm")
 
 
+# Threatened across REGION stratified by SIZE ---------------------------------------------
+
+fpa_region_size_bu_df <- sum_fpa_bu %>%
+  gather(variable, bu, -ID_sp, -fpa_id) %>%
+  separate(variable,
+           into = c("statistic", 'tmp', "year"),
+           sep = "_") %>%
+  dplyr::select(-tmp) %>%
+  left_join(., as.data.frame(fpa_wui) %>%
+              setNames(tolower(names(.))),
+            by = "fpa_id") %>%
+  group_by(region, size, bidecadal) %>%
+  summarise(f_cnt = n(),
+            burned_area = sum(fire_size_km2),
+            bu = sum(bu)) %>%
+  left_join(., region_bu_df, by = c('bidecadal', 'region')) %>%
+  mutate(pct_change = (bu - lag(bu))/lag(bu) * 100,
+         pct_total = bu/bu_total * 100,
+         home_per_fire = bu/f_cnt,
+         home_per_areaburned = bu/burned_area) %>%
+  ungroup() %>%
+  filter(!is.na(bidecadal)) %>%
+  mutate(buff_zone = 0)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-fpa_cause_bu_h <- fpa_long %>%
-  filter(class != 'Other') %>%
-  mutate(class =  ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
-                          ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))) %>%
-  transform(class = factor(class, levels = c("Urban", "WUI", "VLD", 'Wildlands'))) %>% 
-  group_by(class, ignition, year) %>%
-  summarise(bu_c = sum(bu_c)) %>%
-  filter(ignition != 'Lightning') %>%
-  ggplot(aes(x =  year, group = ignition)) +
-  geom_point(aes( y = bu_c*0.000001), color = 'blue') +
-  geom_line(aes( y = bu_c*0.000001), color = 'blue') +
+fpa_region_size_bu_p <- fpa_region_size_bu_df %>%
+  transform(region = factor(region, levels=c("East", 'Central', 'West'))) %>%
+  transform(size = factor(size, levels=c('< 10 ha', "10 - 400 ha", '400 - 5000 ha', '5000 - 20000 ha', '> 20000 ha'))) %>%
+  ggplot(aes(x =  bidecadal, group = size, color = size)) +
+  geom_point(aes( y = bu*0.000001)) +
+  geom_line(aes( y = bu*0.000001)) +
   theme_pub() +
-  xlab("Year") + ylab("Building unit count (in 100,000 units)") +
-  ggtitle('(a) Number of strucutres potentially threatened \nby human started wildfires') +
-  theme(axis.title = element_text(face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.box.background = element_rect(fill = "transparent"),
-        legend.key = element_rect(colour = "transparent", fill = "white"),
-        legend.background = element_rect(fill = "transparent"),
-        legend.title = element_blank()) +
-  facet_wrap(~class)
-
-
-
-
-
-
-fpa_bu_p <- fpa_long %>%
-  group_by(year) %>%
-  summarise(bu_c = sum(bu_c)) %>%
-  na.omit() %>%  
-  ggplot(aes(x =  year, y = bu_c*0.000001)) +
-  geom_point() +
-  geom_line(group = 1) +
-  theme_pub() +
-  xlab("Year") + ylab("Building unit count (in 100,000 units)") +
+  scale_y_continuous(limits = c(0, 10)) +
+  # scale_color_manual(values = c("#D62728","#1F77B4")) +
+  xlab("Year") + ylab("") +
+  ggtitle('(b) Number of structures \nwithin all wildfires') +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 10, face = "bold"),
         legend.box.background = element_rect(fill = "transparent"),
         legend.key = element_rect(colour = "transparent", fill = "white"),
         legend.background = element_rect(fill = "transparent"),
         legend.title = element_blank(),
-        legend.position = "none") 
-ggsave(file = "results/figs/draft/bu_fpa.pdf", fpa_bu_p, 
-       width = 4, height = 5, dpi=1200, scale = 3, units = "cm")
+        legend.position = 'none') +
+  facet_wrap(~ region, ncol = 1)
 
-fpa_class_bu_p <- fpa_long %>%
-  filter(class != 'Other') %>%
-  mutate(class =  ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
-                          ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))) %>%
-  transform(class = factor(class, levels = c("Urban", "WUI", "VLD", 'Wildlands'))) %>% 
-  group_by(year, class) %>%
-  summarise(bu_c = sum(bu_c)) %>%
-  na.omit() %>%  
-  ggplot(aes(x =  year, y = bu_c*0.000001)) +
-  geom_point() +
-  geom_line(group = 1) +
+fpa_region_size_bu_pctot <- fpa_region_size_bu_df %>%
+  transform(region = factor(region, levels=c("East", 'Central', 'West'))) %>%
+  transform(size = factor(size, levels=c('< 10 ha', "10 - 400 ha", '400 - 5000 ha', '5000 - 20000 ha', '> 20000 ha'))) %>%
+  ggplot(aes(x =  bidecadal, group = size, color = size)) +
+  geom_point(aes( y = pct_total)) +
+  geom_line(aes( y = pct_total)) +
   theme_pub() +
-  xlab("Year") + ylab("Building unit count (in 100,000 units)") +
+  # scale_color_manual(values = c("#D62728","#1F77B4")) +
+  xlab("Year") + ylab("% of total structures contained within wildfire") +
+  ggtitle('(c) Proportion of structures contained \nwithin wildfire to total') +
+  scale_y_continuous(limits = c(0, 20)) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 10, face = "bold"),
         legend.box.background = element_rect(fill = "transparent"),
         legend.key = element_rect(colour = "transparent", fill = "white"),
         legend.background = element_rect(fill = "transparent"),
         legend.title = element_blank(),
-        legend.position = "none") +
-  facet_wrap(~ class)
-ggsave(file = "results/figs/draft/bu_fpa.pdf", fpa_bu_p, 
-       width = 4, height = 5, dpi=1200, scale = 3, units = "cm")
+        legend.position = 'none') +
+  facet_wrap(~ region, ncol = 1)
+
+grid.arrange(region_bu_p, fpa_region_size_bu_p, fpa_region_size_bu_pctot, nrow = 1)
+g <- arrangeGrob(region_bu_p, fpa_region_size_bu_p, fpa_region_size_bu_pctot, nrow = 1)
+ggsave(file = "results/figs/draft/bu_region_size_fpa.pdf", g,
+       width = 10, height = 5, dpi=1200, scale = 3, units = "cm")
