@@ -1,28 +1,36 @@
 # Distance calculations/plotting ****Fire Frequency-----------Regions-------------------------------
 
-    
+
 fishdis_reg <- as.data.frame(distance_rds) %>%
   filter(Class != 'Other' & Class != 'High Urban') %>%
   mutate(
     regions = ifelse(regions == 'East', 'North East', as.character(regions)),
-    distance_to_urban = distance_to_urban * 0.001) %>%
-  group_by(fishid10k, regions, IGNITION) %>%
+    distance_to_urban = distance_to_urban * 0.001,
+    decadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
+                     ifelse(DISCOVERY_YEAR >= 1996 & DISCOVERY_YEAR <= 2005, 2005,
+                             ifelse(DISCOVERY_YEAR >= 2006 & DISCOVERY_YEAR <= 2015, 2015,
+                                    DISCOVERY_YEAR )))) %>%
+  group_by(fishid10k, decadal, region, IGNITION) %>%
   summarise(
     median_popdensity = median(pop_den),
     median_homedensity = median(house_den),
-    medain_distance = median(distance_to_urban),
+    median_distance = median(distance_to_urban),
     fseason_lngth = IQR(DISCOVERY_DOY),
     median_doy = median(DISCOVERY_DOY),
     f_cnt = n()
   ) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(inter = paste0(IGNITION, "_", decadal))
+
+colourCount =length(unique(fishdis_reg$inter))
+
 
 firefreq_p <- fishdis_reg %>%
   ggplot(aes(
-    x = medain_distance,
-    y = f_cnt,
-    group = IGNITION,
-    color = IGNITION
+    x = (median_distance),
+    y = (f_cnt),
+    group = inter,
+    color = inter
   )) +
   geom_smooth(
     method = 'glm',
@@ -30,15 +38,12 @@ firefreq_p <- fishdis_reg %>%
     fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values = c(
-    "red3",
-    'royalblue3'
-  )) +
+  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5', '#5ab4ac', '#01665e')) +
   xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
   expand_limits(x = 0, y = 0) +
   theme_pub()  +
-  facet_wrap( ~ regions, nrow = 3, scales = 'free_y') +
-  theme(legend.position = 'none')
+  facet_wrap( ~ region, nrow = 1, scales = 'free_y') +
+  theme(legend.position = 'right')
 
 
 
