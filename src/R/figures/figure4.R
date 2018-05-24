@@ -38,7 +38,7 @@ firefreq_p <- fishdis_reg %>%
     fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5', '#5ab4ac', '#01665e')) +
+  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
   xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
   expand_limits(x = 0, y = 0) +
   theme_pub()  +
@@ -46,6 +46,99 @@ firefreq_p <- fishdis_reg %>%
   theme(legend.position = 'right')
 
 
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(colour, y, x, PANEL) %>%
+  spread(colour, y) %>%
+  mutate(line_diff_95 = abs(`#c7eae5` - `#f6e8c3`),
+         line_diff_05 = abs(`#5ab4ac` - `#d8b365`),
+         line_diff_15 = abs(`#01665e` - `#8c510a`))
+
+min_diffs <- pred_diffs %>%
+  group_by(PANEL) %>%
+  summarize(line_diff_95 = min(line_diff_95),
+            line_diff_05 = min(line_diff_05),
+            line_diff_15 = min(line_diff_15))
+
+xpoints_cnt_95 <- left_join(min_diffs, pred_diffs, by = 'line_diff_95') %>%
+  mutate(region = sort(unique(fishdis_reg$region)),
+         xpt_cnt = x) %>%
+  dplyr::select(region, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("region")) %>%
+  group_by(region) %>%
+  summarise(n = n(),
+            xpt_cnt_95 = round(first(xpt_cnt),0),
+            xpt_lab_95 = as.factor(xpt_cnt_95)) %>%
+  ungroup()
+
+xpoints_cnt_05 <- left_join(min_diffs, pred_diffs, by = 'line_diff_05') %>%
+  mutate(region = sort(unique(fishdis_reg$region)),
+         xpt_cnt = x) %>%
+  dplyr::select(region, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("region")) %>%
+  group_by(region) %>%
+  summarise(n = n(),
+            xpt_cnt_05 = round(first(xpt_cnt),0),
+            xpt_lab_05 = as.factor(xpt_cnt_05)) %>%
+  ungroup()
+
+xpoints_cnt_15 <- left_join(min_diffs, pred_diffs, by = 'line_diff_15') %>%
+  mutate(region = sort(unique(fishdis_reg$region)),
+         xpt_cnt = x) %>%
+  dplyr::select(region, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("region")) %>%
+  group_by(region) %>%
+  summarise(n = n(),
+            xpt_cnt_15 = round(first(xpt_cnt),0),
+            xpt_lab_15 = as.factor(xpt_cnt_15)) %>%
+  ungroup()
+
+xpoints_cnt <- left_join(xpoints_cnt_95, xpoints_cnt_05, by = 'region') %>%
+  left_join(., xpoints_cnt_15, by = 'region')
+
+regmean <- fishdis_reg %>%
+  group_by(region, IGNITION) %>%
+  summarise(fcnt_mean = mean(f_cnt)) %>%
+  spread(IGNITION, fcnt_mean)
+
+# check to see where the min. diffs fall in plot
+firefreq_cent <- fishdis_reg %>%
+  filter(region ==  "Central") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (f_cnt),
+    group = inter,
+    color = inter
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
+  xlab("") + ylab("") +
+  ggtitle("Central") +
+  theme_pub()  +
+  geom_vline(aes(xintercept = xpt_cnt_95), data = subset(xpoints_cnt, region == "Central"),
+             linetype = "dashed", color  = "gray") +
+  geom_vline(aes(xintercept = xpt_cnt_05), data = subset(xpoints_cnt, region == "Central"),
+             linetype = "dashed", color  = "dark gray") +
+  geom_vline(aes(xintercept = xpt_cnt_15), data = subset(xpoints_cnt, region == "Central"),
+             linetype = "dashed", color  = "black") +
+  geom_hline(aes(yintercept = Human), data = subset(regmean, region == "Central"),
+             linetype = "dashed", color = "red") +
+  geom_hline(aes(yintercept = Lightning), data = subset(regmean, region == "Central"),
+             linetype = "dashed", color = "#1F77B4") +
+  # geom_text(data=subset(xpoints_cnt, Region == "Central"),
+  #           aes(label=paste(xpt_lab, "km", sep = " "), x = 20 + xpt_cnt, y = 10, colour="red"), size = 4) +
+  # geom_text(data = subset(regmean, Region == "Central"),
+  #           aes(label=paste(round(Human,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Human, colour="red"), size = 4) +
+  # geom_text(data = subset(regmean, Region == "Central"),
+  #           aes(label=paste(round(Lightning,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Lightning, colour="red"), size = 4) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
 
 # Distance calculations/plotting ****Fire Frequency-----------Regions-------------------------------
 
