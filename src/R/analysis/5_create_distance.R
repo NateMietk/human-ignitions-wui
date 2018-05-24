@@ -57,7 +57,7 @@ if (!file.exists(file.path(wui_out, "high_den_urban_2010.gpkg"))) {
     mutate(poly_ids = row_number())
 }
 
-fpa_fire_ed <- fpa_fire %>%
+fpa_fire_ed <- fpa_wui %>%
   dplyr::select(FPA_ID, DISCOVERY_YEAR, STATE) %>%
   mutate(
     DISCOVERY_YEAR = as.numeric(DISCOVERY_YEAR),
@@ -91,22 +91,24 @@ for (i in decades) {
     # compute KNN between fires and urban poly vertices
     nearest_neighbors <- as_tibble(bind_cols(nabor::knn(data = urban_coords[, c('X', 'Y')],
                                                         fire_coords,
-                                                        k = 1))$nn.idx) %>%
+                                                        k = 1))) %>%
       mutate(FPA_ID = as.data.frame(decade_df)$FPA_ID,
-             vertex_ids = V1) %>%
+             vertex_ids = nn.idx,
+             closest_centroid = as.numeric(nn.dists)) %>%
       left_join(., urban_df, by = 'vertex_ids') %>%
       mutate(poly_ids = L2) %>%
-      dplyr::select(FPA_ID, vertex_ids, poly_ids) %>%
+      dplyr::select(FPA_ID, vertex_ids, poly_ids, closest_centroid) %>%
       left_join(polygons, ., by = 'poly_ids') %>%
-      na.omit()
+      na.omit() %>%
+      arrange(desc(FPA_ID))
 
     distance_to_fire <- decade_df %>%
-      dplyr::select(-FPA_ID) %>%
+      arrange(desc(FPA_ID)) %>%
       mutate(
         distance_to_urban = st_distance(
           st_geometry(nearest_neighbors),
-          st_geometry(.), by_element = TRUE),
-        FPA_ID = data.frame(decade_df)$FPA_ID)
+          st_geometry(.), by_element = TRUE)) %>%
+      left_join(., as.data.frame(nearest_neighbors) %>% dplyr::select(-geometry), by = 'FPA_ID')
   }
 
   write_rds(distance_to_fire,
@@ -131,7 +133,7 @@ if (!exists(file.path(
     dplyr::select(FPA_ID, distance_to_urban) %>%
     left_join(fpa_wui, ., by = 'FPA_ID')
 
-  write_rds(distance_rds,
+    write_rds(distance_rds,
             file.path(
               distance_out,
               paste0('distance_fpa.rds')
