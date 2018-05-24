@@ -130,15 +130,42 @@ firefreq_cent <- fishdis_reg %>%
              linetype = "dashed", color = "red") +
   geom_hline(aes(yintercept = Lightning), data = subset(regmean, region == "Central"),
              linetype = "dashed", color = "#1F77B4") +
-  # geom_text(data=subset(xpoints_cnt, Region == "Central"),
-  #           aes(label=paste(xpt_lab, "km", sep = " "), x = 20 + xpt_cnt, y = 10, colour="red"), size = 4) +
-  # geom_text(data = subset(regmean, Region == "Central"),
-  #           aes(label=paste(round(Human,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Human, colour="red"), size = 4) +
-  # geom_text(data = subset(regmean, Region == "Central"),
-  #           aes(label=paste(round(Lightning,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Lightning, colour="red"), size = 4) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 8, face = "bold"),
         legend.position = "none")
+
+firefreq_west <- fishdis_reg %>%
+  filter(region ==  "West") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (f_cnt),
+    group = inter,
+    color = inter
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
+  xlab("") + ylab("") +
+  ggtitle("West") +
+  theme_pub()  +
+  geom_vline(aes(xintercept = xpt_cnt_95), data = subset(xpoints_cnt, region == "West"),
+             linetype = "dashed", color  = "gray") +
+  geom_vline(aes(xintercept = xpt_cnt_05), data = subset(xpoints_cnt, region == "West"),
+             linetype = "dashed", color  = "dark gray") +
+  geom_vline(aes(xintercept = xpt_cnt_15), data = subset(xpoints_cnt, region == "West"),
+             linetype = "dashed", color  = "black") +
+  geom_hline(aes(yintercept = Human), data = subset(regmean, region == "West"),
+             linetype = "dashed", color = "red") +
+  geom_hline(aes(yintercept = Lightning), data = subset(regmean, region == "West"),
+             linetype = "dashed", color = "#1F77B4") +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
+
 
 # Distance calculations/plotting ****Fire Frequency-----------Regions-------------------------------
 
