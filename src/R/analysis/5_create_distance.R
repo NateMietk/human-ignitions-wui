@@ -121,9 +121,7 @@ for (i in decades) {
   )
 }
 
-if (!exists(file.path(
-  distance_out,
-  paste0('distance_fpa.rds')))) {
+if (!file.exists(file.path(distance_out, paste0('distance_fpa.rds')))) {
   rds_list <- list.files(distance_out,
                          full.names = TRUE,
                          pattern = '.rds')
