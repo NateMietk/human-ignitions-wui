@@ -12,10 +12,15 @@ ec_df <- fortify(ecoregs, region = 'id')
 ec_df <- left_join(ec_df, ecoregs@data, by = 'id')
 names(ec_df) <- tolower(names(ec_df))
 
-fishnet_25k <- as(st_centroid(fishnet_25k), "Spatial")
+fishnet_25k_sp <- as(st_centroid(fishnet_25k), "Spatial")
 fs25_df <- SpatialPointsDataFrame(fishnet_25k, fishnet_25k@data)
 fs25_df$id <- row.names(fs25_df)
 fs25_df <- data.frame(fs25_df)
+
+fishnet_50k_sp <- as(st_centroid(fishnet_50k), "Spatial")
+fs50_df <- SpatialPointsDataFrame(fishnet_50k_sp, fishnet_50k_sp@data)
+fs50_df$id <- row.names(fs50_df)
+fs50_df <- data.frame(fs50_df)
 
 p1 <- ggplot() +
   geom_polygon(data = ec_df,
