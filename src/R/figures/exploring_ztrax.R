@@ -27,7 +27,6 @@ bu_cleaned <- sum_fpa_bu %>%
               setNames(tolower(names(.))),
             by = "fpa_id")
 
-
 # Prep CONUS and REGIONS ---------------------------------------------
 
 region_bu_df <- sum_ecoregions_bu %>%
