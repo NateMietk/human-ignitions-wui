@@ -144,7 +144,7 @@ p1 <- bu_df %>%
                  colour = factor(buckets), size = bu_class), stroke = 0) +
   coord_equal() +
   scale_colour_manual(values = rev(brewer.pal(11, "RdYlBu"))) +
-  scale_size_discrete(range = c(.25, 2), name="Fire size (km2)") +
+  scale_size_discrete(range = c(.25, 2.5 ), name="Fire size (km2)") +
   theme_map() +
   #ggtitle('(A) Fire frequency') +
   theme(plot.title = element_text(hjust = 0, size = 12),
