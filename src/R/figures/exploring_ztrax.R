@@ -25,7 +25,7 @@ bu_cleaned <- sum_fpa_bu %>%
   dplyr::select(-tmp) %>%
   left_join(., as.data.frame(fpa_wui) %>%
               setNames(tolower(names(.))),
-            by = "fpa_id")
+            by = "fpa_id") 
 
 # Prep CONUS and REGIONS ---------------------------------------------
 
@@ -87,7 +87,7 @@ conus_yearly <- tibble(year = rep(1992:2015)) %>%
   dplyr::select(-year)
 
 conus_bu_p <- conus_bu_df %>%
-  ggplot(aes(x =  bidecadal, y = bu_total*0.000001)) +
+  ggplot(aes(x =  year, y = bu_total_conus*0.000001)) +
   geom_point() +
   geom_line(group = 1) +
   scale_color_manual(values = c("#D62728","#1F77B4")) +
@@ -141,14 +141,14 @@ fpa_bu_p <- fpa_bu_df %>%
   geom_point(color = 'red') +
   geom_smooth(
     method = 'glm',
-    #method.args = list(family = "poisson"),
-    fullrange = TRUE,
+    method.args = list(family = "poisson"),
+    # fullrange = TRUE,
     size = 1
   ) +
   theme_pub() +
   xlab("Year") + ylab("Building unit count (in 100,000 units)") +
   # ggtitle('(b) Number of structures \nwithin all wildfires') +
-  scale_y_continuous(limits = c(0, 5)) +
+  scale_y_continuous(limits = c(0, 6)) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 10, face = "bold"),
         legend.box.background = element_rect(fill = "transparent"),
@@ -264,7 +264,7 @@ fpa_cause_bu_p <- fpa_cause_bu_df %>%
   geom_point() +
   geom_smooth(
     method = 'glm',
-    #method.args = list(family = "poisson"),
+    method.args = list(family = "poisson"),
     fullrange = TRUE,
     size = 1
   ) +
@@ -272,7 +272,7 @@ fpa_cause_bu_p <- fpa_cause_bu_df %>%
   xlab("Year") + ylab("Building unit count (in 100,000 units)") +
   scale_color_manual(values = c("#D62728","#1F77B4")) +
   # ggtitle('(a) Number of structures \nwithin all wildfires') +
-  scale_y_continuous(limits = c(0, 5)) +
+  #scale_y_continuous(limits = c(0, 6)) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 10, face = "bold"),
         legend.box.background = element_rect(fill = "transparent"),
@@ -319,12 +319,34 @@ fpa_cause_bu_anom <- fpa_cause_bu_df %>%
         legend.position = 'none',
         panel.grid.minor = element_line(colour="#f0f0f0"))
 
+fpa_cause_bu_anom <- fpa_cause_bu_df %>%
+  ggplot(aes(x =  discovery_year, y = anomalies*0.000001, color = ignition, group = ignition)) +
+  geom_point() +
+  geom_smooth(
+    method = 'loess',
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values = c("#b2182b",
+                               '#2166ac')) +
+  theme_pub() +
+  xlab("Year") + ylab("Homes threatened by wildfire anomalies (in 100,000 units)") +
+  # ggtitle('(b) Proportion of structures contained \nwithin wildfire to total') +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 10, face = "bold"),
+        legend.box.background = element_rect(fill = "transparent"),
+        legend.key = element_rect(colour = "transparent", fill = "white"),
+        legend.background = element_rect(fill = "transparent"),
+        legend.title = element_blank(),
+        legend.position = 'none',
+        panel.grid.minor = element_line(colour="#f0f0f0"))
+
 fpa_cause_bu_pctot <- fpa_cause_bu_df %>%
   ggplot(aes(y = pct_total, x =  discovery_year, fill = ignition, color = ignition, group = ignition)) +
   geom_point(size = 3) +
   geom_smooth(
     method = 'glm',
-    #method.args = list(family = "poisson"),
+    method.args = list(family = "poisson"),
     fullrange = TRUE,
     size = 1
   ) +

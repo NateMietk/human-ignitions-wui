@@ -234,6 +234,34 @@ classify_wui <-  function(x) {
 }
 
 # Helper functions --------------------------------------------------------
+
+classify_bu <-  function(x) {
+  # break out fires into small, med, large
+  # input:
+  #   - x: vector of fire sizes
+  # output:
+  #   - y: vector (same length) of classified fire sizes ----- Km2
+  ifelse(x < 25, "0 - 25",
+         ifelse(x >= 25 & x < 250, "25 - 250",
+                ifelse(x >= 250 & x < 1000, "250 - 1000",
+                       ifelse(x >= 1000 & x < 10000, "1000 - 10000",
+                              ifelse(x >= 10000 & x < 100000, "10000 - 100000",
+                                     "> 100000")))))
+}
+
+classify_bu_per_fire <-  function(x) {
+  # break out fires into small, med, large
+  # input:
+  #   - x: vector of fire sizes
+  # output:
+  #   - y: vector (same length) of classified fire sizes ----- Km2
+  ifelse(x < 10, "0 - 10",
+         ifelse(x >= 10 & x < 50, "10 - 50",
+                ifelse(x >= 50 & x < 250, "50 - 250",
+                       ifelse(x >= 250 & x < 1000, "250 - 500",
+                              "> 500"))))
+}
+
 get_month_max <- function(df) {
   stopifnot(nrow(df) == 1)
   seasons <- c("Fall", "Spring", "Summer", "Winter")
