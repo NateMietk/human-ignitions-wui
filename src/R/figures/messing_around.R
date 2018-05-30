@@ -6,15 +6,17 @@ fpa_df <- as.data.frame(fpa_wui) %>%
 
 df <- fpa_cause_bu_df %>%
   dplyr::select(ignition, discovery_year, bu) %>%
-  left_join(., fpa_df, by = c('ignition', 'discovery_year'))
+  left_join(., fpa_df, by = c('ignition', 'discovery_year')) %>%
+  mutate(bu_5 = rollmean(x = bu, 5, align = "right", fill = NA),
+         burned_area_5 = rollmean(x = burned_area, 5, align = "right", fill = NA))
 
 fpa_p <- df %>%
-  ggplot(aes(x =  discovery_year, y = burned_area*0.0001, color = ignition, group = ignition)) +
+  filter(discovery_year > 1995) %>%
+  ggplot(aes(x =  discovery_year, y = burned_area_5*0.0001, color = ignition, group = ignition)) +
   geom_point() +
   geom_smooth(
     method = 'glm',
-    method.args = list(family = "poisson"),
-    level = 0.90,
+    #method.args = list(family = "poisson"),
     size = 1
   ) +
   scale_color_manual(values = c("#b2182b",
@@ -33,19 +35,19 @@ fpa_p <- df %>%
         panel.grid.minor = element_line(colour="#f0f0f0"))
 
 fpa_cause_bu_p <- df %>%
-  ggplot(aes(x = discovery_year, y = bu*0.000001, group = ignition, color = ignition)) +
+  filter(discovery_year > 1995) %>%
+  ggplot(aes(x = discovery_year, y = bu_5*0.000001, group = ignition, color = ignition)) +
   geom_point() +
   geom_smooth(
-    method = 'glm',
-    method.args = list(family = "poisson"),
-    level = 0.90,
+    method = 'loess',
+    #method.args = list(family = "poisson"),
     size = 1
   ) +
   theme_pub() +
   xlab("Year") + ylab("Threatened building unit (in 100,000 units)") +
   scale_color_manual(values = c("#b2182b",
                                 '#2166ac')) +
-  scale_y_continuous(limits = c(0, 6)) +
+  scale_y_continuous(limits = c(0, 3.25)) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 10, face = "bold"),
         legend.box.background = element_rect(fill = "transparent"),
