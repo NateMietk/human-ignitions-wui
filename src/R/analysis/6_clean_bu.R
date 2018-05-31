@@ -111,5 +111,3 @@ if (!exists('sum_fpa_250m_bu')) {
     sum_fpa_250m_bu <- read_rds(file.path(bu_out, 'sum_fpa_250m_bu.rds'))
     }
 }
-
-
