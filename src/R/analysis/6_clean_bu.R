@@ -74,16 +74,15 @@ if (!exists('sum_fpa_bu')) {
 }
 
 # Housing units per FPA fire perimeters
-# Removing all fires larger than 0.0025 km2 
-if (!exists('sum_fpa_l250m_bu')) {
-  if (!file.exists(file.path(bu_out, 'sum_fpa_l250m_bu.rds'))) {
+if (!exists('sum_fpa_250m_bu')) {
+  if (!file.exists(file.path(bu_out, 'sum_fpa_250m_bu.rds'))) {
 
-    bae_large <- bae %>%
-      filter(FIRE_SIZE_km2 > 0.0025)
+    bae_small <- bae %>%
+      filter(FIRE_SIZE_km2 < 0.00025)
     
-    sum_fpa_l250m_bu <- bu_velox$extract(sp = bae_large, fun = function(x) sum(x, na.rm=TRUE), small = TRUE, df = TRUE) %>%
+    sum_fpa_s250m_bu <- bu_velox$extract(sp = bae_small, fun = function(x) sum(x, na.rm=TRUE), small = TRUE, df = TRUE) %>%
       as_tibble() %>%
-      mutate(fpa_id = as.data.frame(bae_large)$FPA_ID,
+      mutate(fpa_id = as.data.frame(bae_small)$FPA_ID,
              sum_bu_1990 = X1,
              sum_bu_1995 = X2,
              sum_bu_2000 = X3,
@@ -91,19 +90,8 @@ if (!exists('sum_fpa_l250m_bu')) {
              sum_bu_2010 = X5,
              sum_bu_2015 = X6) %>%
       dplyr::select(-starts_with('X'))
-    write_rds(sum_fpa_l250m_bu, file.path(bu_out, 'sum_fpa_l250m_bu.rds'))
-    system(paste0("aws s3 sync ", prefix, " ", s3_base))
-
-  } else {
-    sum_fpa_l250m_bu <- read_rds(file.path(bu_out, 'sum_fpa_l250m_bu.rds'))
-    }
-}
-
-# Housing units per fpa_250m buffered point
-if (!exists('sum_fpa_250m_bu')) {
-  if (!file.exists(file.path(bu_out, 'summary_fpa_250m_bu.rds'))) {
     
-    sum_fpa_250m_bu <- bu_velox$extract(sp = fpa_250m, fun = function(x) sum(x, na.rm=TRUE), small = TRUE, df = TRUE) %>%
+    sum_fpa_l250m_bu <- bu_velox$extract(sp = fpa_250m, fun = function(x) sum(x, na.rm=TRUE), small = TRUE, df = TRUE) %>%
       as_tibble() %>%
       mutate(fpa_id = as.data.frame(fpa_250m)$FPA_ID,
              sum_bu_1990 = X1,
@@ -114,11 +102,14 @@ if (!exists('sum_fpa_250m_bu')) {
              sum_bu_2015 = X6) %>%
       dplyr::select(-starts_with('X'))
     
-    write_rds(sum_fpa_250m_bu, file.path(bu_out, 'summary_fpa_250m_bu.rds'))
+    sum_fpa_250m_bu <- bind_rows(sum_fpa_s250m_bu, sum_fpa_l250m_bu)
+    
+    write_rds(sum_fpa_250m_bu, file.path(bu_out, 'sum_fpa_250m_bu.rds'))
     system(paste0("aws s3 sync ", prefix, " ", s3_base))
+
   } else {
-    sum_fpa_250m_bu <- read_rds(file.path(bu_out, 'summary_fpa_250m_bu.rds'))
-  }
+    sum_fpa_250m_bu <- read_rds(file.path(bu_out, 'sum_fpa_250m_bu.rds'))
+    }
 }
 
 
