@@ -35,7 +35,7 @@ firefreq_p <- fishdis_reg %>%
     size = 1.5
   ) +
   # scale_color_manual(values =  c('#d8b365', '#01665e')) +
-  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
   xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
   expand_limits(x = 0, y = 0) +
   theme_pub()  +
@@ -47,9 +47,9 @@ pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
   tbl_df %>%
   dplyr::select(colour, y, x, PANEL) %>%
   spread(colour, y) %>%
-  mutate(line_diff_95 = abs(`#c7eae5` - `#f6e8c3`),
-         line_diff_05 = abs(`#5ab4ac` - `#d8b365`),
-         line_diff_15 = abs(`#01665e` - `#8c510a`))
+  mutate(line_diff_95 = abs(`#fcae91` - `#bdd7e7`),
+         line_diff_05 = abs(`#fb6a4a` - `#6baed6`),
+         line_diff_15 = abs(`#cb181d` - `#2171b5`))
 
 min_diffs <- pred_diffs %>%
   group_by(PANEL) %>%
@@ -92,6 +92,7 @@ xpoints_cnt_15 <- left_join(min_diffs, pred_diffs, by = 'line_diff_15') %>%
 
 xpoints_cnt <- left_join(xpoints_cnt_95, xpoints_cnt_05, by = 'regions') %>%
   left_join(., xpoints_cnt_15, by = 'regions')
+write_csv(xpoints_cnt, "results/figs/draft/distance_firefreq_ignitiondecade.csv")
 
 regmean <- fishdis_reg %>%
   group_by(regions, IGNITION) %>%
@@ -113,7 +114,7 @@ firefreq_cent <- fishdis_reg %>%
     #fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
   xlab("") + ylab("") +
   ggtitle("Central") +
   theme_pub()  +
@@ -141,7 +142,7 @@ firefreq_west <- fishdis_reg %>%
     #fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
   xlab("") + ylab("") +
   ggtitle("West") +
   theme_pub()  +
@@ -169,12 +170,12 @@ firefreq_se <- fishdis_reg %>%
     #fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
   xlab("") + ylab("") +
   ggtitle("South East") +
   theme_pub()  +
   geom_vline(aes(xintercept = xpt_cnt_95), data = subset(xpoints_cnt_95, regions == "South East"),
-             linetype = "dashed", color  = "gray") +
+             linetype = "dashed", color  = "black") +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 8, face = "bold"),
         legend.position = "none")
@@ -193,15 +194,11 @@ firefreq_ne <- fishdis_reg %>%
     #fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
   xlab("") + ylab("") +
   ggtitle("North East") +
   theme_pub()  +
   geom_vline(aes(xintercept = xpt_cnt_95), data = subset(xpoints_cnt_95, regions == "North East"),
-             linetype = "dashed", color  = "gray") +
-  geom_vline(aes(xintercept = xpt_cnt_05), data = subset(xpoints_cnt_05, regions == "North East"),
-             linetype = "dashed", color  = "gray50") +
-  geom_vline(aes(xintercept = xpt_cnt_15), data = subset(xpoints_cnt_15, regions == "North East"),
              linetype = "dashed", color  = "black") +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 8, face = "bold"),
@@ -227,7 +224,7 @@ firefreq_p <- fishdis_reg %>%
     fullrange = TRUE,
     size = 1.5
   ) +
-  scale_color_manual(values =  c('#d8b365', '#01665e')) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
   # scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
   xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
   expand_limits(x = 0, y = 0) +
@@ -240,7 +237,7 @@ pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
   tbl_df %>%
   dplyr::select(colour, y, x, PANEL) %>%
   spread(colour, y) %>%
-  mutate(line_diff = abs(`#01665e` - `#d8b365`))
+  mutate(line_diff = abs(`#cb181d` - `#2171b5`))
 
 min_diffs <- pred_diffs %>%
   group_by(PANEL) %>%
@@ -256,6 +253,7 @@ xpoints_cnt <- left_join(min_diffs, pred_diffs, by = 'line_diff') %>%
             xpt_cnt = round(first(xpt_cnt),0),
             xpt_lab = as.factor(xpt_cnt)) %>%
   ungroup()
+write_csv(xpoints_cnt, "results/figs/draft/distance_firefreq_ignition.csv")
 
 # check to see where the min. diffs fall in plot
 firefreq_cent <- fishdis_reg %>%
@@ -272,7 +270,7 @@ firefreq_cent <- fishdis_reg %>%
     fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values =  c('#d8b365', '#01665e')) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
   xlab("") + ylab("") +
   ggtitle("Central") +
   theme_pub()  +
@@ -296,7 +294,7 @@ firefreq_west <- fishdis_reg %>%
     fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values =  c('#d8b365', '#01665e')) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
   xlab("") + ylab("") +
   ggtitle("West") +
   theme_pub()  +
@@ -321,7 +319,7 @@ firefreq_se <- fishdis_reg %>%
     fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values =  c('#d8b365', '#01665e')) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
   xlab("") + ylab("") +
   ggtitle("South East") +
   theme_pub()  +
@@ -346,7 +344,7 @@ firefreq_ne <- fishdis_reg %>%
     fullrange = TRUE,
     size = 1
   ) +
-  scale_color_manual(values =  c('#d8b365', '#01665e')) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
   xlab("") + ylab("") +
   ggtitle("North East") +
   theme_pub()  +
@@ -361,156 +359,344 @@ grid.arrange(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 g <- arrangeGrob(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 ggsave("results/figs/draft/Distance_FireFreq_Ignition_Reg.pdf", g, width = 6, height = 8, dpi=1200)
 
-# Distance calculations/plotting ****IQR Fire season length---Regions---------------------------------------
+# Distance calculations/plotting ****IQR Fire season length---Regions --> Ignition---------------------------------------
 
-  fseason_p <- fishdis_reg %>%
-    ggplot(aes(x = (Ave_NEAR_DIST)*0.001, y = fseason_lngth, color = IGNITION)) +
-    geom_smooth(method = "glm", method.args = list(family = "poisson"),
-                se = FALSE, fullrange = TRUE, size = 0.75) +
-    scale_color_manual(values=c("red", "black")) +
-    xlab("Distance from WUI (km)") + ylab("Fire season length") +
-    theme_pub()  +
-    facet_wrap(~Region,
-               nrow = 2, labeller = label_wrap_gen(10))
-
-  pred_diffs <- ggplot_build(fseason_p)$data[[1]] %>%
-    tbl_df %>%
-    dplyr::select(colour, y, x, PANEL) %>%
-    spread(colour, y) %>%
-    mutate(line_diff = abs(black - red))
-
-  min_diffs <- pred_diffs %>%
-    group_by(PANEL) %>%
-    summarize(line_diff = min(line_diff))
-
-  xpoints_fseason <- left_join(min_diffs, pred_diffs) %>%
-    mutate(Region = sort(unique(fishdis_reg$Region)),
-           xpt_season = x) %>%
-    dplyr::select(Region, xpt_season)  %>%
-    left_join(., fishdis_reg, by = c("Region")) %>%
-    group_by(Region) %>%
-    summarise(n = n(),
-              xpt_season = round(first(xpt_season),0),
-              xpt_lab = as.factor(xpt_season)) %>%
-    ungroup()
+firefreq_p <- fishdis_reg %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = IGNITION,
+    color = IGNITION
+  )) +
+  # geom_point(alpha = 0.15) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1.5
+  ) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
+  # scale_color_manual(values =  c('#f6e8c3', '#d8b365', '#8c510a', '#c7eae5',  '#5ab4ac', '#01665e')) +
+  xlab("Distance from urban center (km)") + ylab("Fire season length (IQR)") +
+  expand_limits(x = 0, y = 0) +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 1, scales = 'free') +
+  theme(legend.position = 'none')
 
 
-  regmean <- fishdis_reg %>%
-    group_by(Region, IGNITION) %>%
-    summarise(fseason_mean = mean(fseason_lngth)) %>%
-    spread(IGNITION, fseason_mean)
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(colour, y, x, PANEL) %>%
+  spread(colour, y) %>%
+  mutate(line_diff = abs(`#cb181d` - `#2171b5`))
+
+min_diffs <- pred_diffs %>%
+  group_by(PANEL) %>%
+  summarize(line_diff = min(line_diff))
+
+xpoints_cnt <- left_join(min_diffs, pred_diffs, by = 'line_diff') %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(n = n(),
+            xpt_cnt = round(first(xpt_cnt),0),
+            xpt_lab = as.factor(xpt_cnt)) %>%
+  ungroup()
+write_csv(xpoints_cnt, "results/figs/draft/distance_fseason_ignition.csv")
+
+# check to see where the min. diffs fall in plot
+fslength_cent <- fishdis_reg %>%
+  filter(regions ==  "Central") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = IGNITION,
+    color = IGNITION
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
+  xlab("") + ylab("") +
+  ggtitle("Central") +
+  theme_pub()  +
+  geom_vline(aes(xintercept = xpt_cnt), data = subset(xpoints_cnt, regions == "Central"),
+             linetype = "dashed", color  = "black") +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
+
+fslength_west <- fishdis_reg %>%
+  filter(regions ==  "West") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = IGNITION,
+    color = IGNITION
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
+  xlab("") + ylab("") +
+  ggtitle("West") +
+  theme_pub()  +
+  geom_vline(aes(xintercept = xpt_cnt), data = subset(xpoints_cnt, regions == "West"),
+             linetype = "dashed", color  = "black") +
+  expand_limits(x = 0, y = 0) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
+
+fslength_se <- fishdis_reg %>%
+  filter(regions ==  "South East") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = IGNITION,
+    color = IGNITION
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
+  xlab("") + ylab("") +
+  ggtitle("South East") +
+  theme_pub()  +
+  # geom_vline(aes(xintercept = xpt_cnt), data = subset(xpoints_cnt, regions == "South East"),
+  #            linetype = "dashed", color  = "black") +
+  expand_limits(x = 0, y = 0) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
+
+fslength_ne <- fishdis_reg %>%
+  filter(regions ==  "North East") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = IGNITION,
+    color = IGNITION
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values = c("#cb181d", '#2171b5')) +
+  xlab("") + ylab("") +
+  ggtitle("North East") +
+  theme_pub()  +
+  geom_vline(aes(xintercept = xpt_cnt), data = subset(xpoints_cnt, regions == "North East"),
+             linetype = "dashed", color  = "black") +
+  expand_limits(x = 0, y = 0) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
+
+grid.arrange(fslength_west, fslength_cent, fslength_se, fslength_ne, ncol =2)
+g <- arrangeGrob(fslength_west, fslength_cent, fslength_se, fslength_ne, ncol =2)
+ggsave("results/figs/draft/distance_fseason_ignition_region.pdf", g, width = 6, height = 8, dpi=1200)
+
+# Distance calculations/plotting ****IQR Fire season length---Regions --> Interaction between decadal and ignition---------------------------------------
+
+firefreq_p <- fishdis_reg %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = inter,
+    color = inter
+  )) +
+  # geom_point(alpha = 0.15) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1.5
+  ) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
+  xlab("Distance from urban center (km)") + ylab("Fire season length (IQR)") +
+  expand_limits(x = 0, y = 0) +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 1, scales = 'free') +
+  theme(legend.position = 'none')
 
 
-  # check to see where the min. diffs fall in plot
-  fseason_cent <- fishdis_reg %>%
-    filter(Region ==  "Central") %>%
-    ggplot(aes(x = (Ave_NEAR_DIST)*0.001, y = fseason_lngth, color = IGNITION)) +
-    geom_smooth(method = "glm", method.args = list(family = "poisson"),
-                 size = 0.75) +
-    scale_color_manual(values=c("#D62728","#1F77B4", "black")) +
-    xlab("") + ylab("") +
-    ggtitle("Central") +
-    scale_x_continuous(limits = c(0, 125)) +
-    theme_pub()  +
-    geom_vline(aes(xintercept = xpt_cnt), data = subset(xpoints_cnt, Region == "Central"),
-               linetype = "dashed", color  = "gray") +
-    geom_hline(aes(yintercept = Human), data = subset(regmean, Region == "Central"),
-               linetype = "dashed", color = "red") +
-    geom_hline(aes(yintercept = Lightning), data = subset(regmean, Region == "Central"),
-               linetype = "dashed", color = "#1F77B4") +
-    geom_text(data=subset(xpoints_fseason, Region == "Central"),
-              aes(label=paste(xpt_lab, "km", sep = " "), x = 20 + xpt_season, y = 10, colour="red"), size = 4) +
-    geom_text(data = subset(regmean, Region == "Central"),
-              aes(label=paste(round(Human,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Human, colour="red"), size = 4) +
-    geom_text(data = subset(regmean, Region == "Central"),
-              aes(label=paste(round(Lightning,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Lightning, colour="red"), size = 4) +
-    theme(axis.title = element_text(face = "bold"),
-          strip.text = element_text(size = 8, face = "bold"),
-          legend.position = "none")
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(colour, y, x, PANEL) %>%
+  spread(colour, y) %>%
+  mutate(line_diff_95 = abs(`#fcae91` - `#bdd7e7`),
+         line_diff_05 = abs(`#fb6a4a` - `#6baed6`),
+         line_diff_15 = abs(`#cb181d` - `#2171b5`))
 
-  fseason_west <- fishdis_reg %>%
-    filter(Region ==  "West") %>%
-    ggplot(aes(x = (Ave_NEAR_DIST)*0.001, y = fseason_lngth, color = IGNITION)) +
-    geom_smooth(method = "glm", method.args = list(family = "poisson"),
-                 size = 0.75) +
-    scale_color_manual(values=c("#D62728","#1F77B4", "black")) +
-    xlab("") + ylab("IQR Range") +
-    ggtitle("West") +
-    scale_x_continuous(limits = c(0, 125)) +
-    theme_pub()  +
-    geom_vline(aes(xintercept = xpt_season), data = subset(xpoints_fseason, Region == "West"),
-               linetype = "dashed", color  = "gray") +
-    geom_hline(aes(yintercept = Human), data = subset(regmean, Region == "West"),
-               linetype = "dashed", color = "red") +
-    geom_hline(aes(yintercept = Lightning), data = subset(regmean, Region == "West"),
-               linetype = "dashed", color = "#1F77B4") +
-    geom_text(data=subset(xpoints_fseason, Region == "West"),
-              aes(label=paste(xpt_lab, "km", sep = " "), x = 20 + xpt_season, y = 10, colour="red"), size = 4) +
-    geom_text(data = subset(regmean, Region == "West"),
-              aes(label=paste(round(Human,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Human, colour="red"), size = 4) +
-    geom_text(data = subset(regmean, Region == "West"),
-              aes(label=paste(round(Lightning,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Lightning, colour="red"), size = 4) +
-    theme(axis.title = element_text(face = "bold"),
-          strip.text = element_text(size = 8, face = "bold"),
-          legend.position = "none")
+min_diffs <- pred_diffs %>%
+  group_by(PANEL) %>%
+  summarize(line_diff_95 = min(line_diff_95),
+            line_diff_05 = min(line_diff_05),
+            line_diff_15 = min(line_diff_15))
 
-  fseason_se <- fishdis_reg %>%
-    filter(Region ==  "South East") %>%
-    ggplot(aes(x = (Ave_NEAR_DIST)*0.001, y = fseason_lngth, color = IGNITION)) +
-    geom_smooth(method = "glm", method.args = list(family = "poisson"),
-                 size = 0.75) +
-    # geom_smooth(method = "glm", method.args = list(family = "poisson"),
-    #             fullrange = T, size = 0.5, linetype = "dashed") +
-    scale_color_manual(values=c("#D62728","#1F77B4", "black")) +
-    xlab("Distance from WUI (km)") + ylab("IQR Range") +
-    ggtitle("South East") +
-    scale_x_continuous(limits = c(0, 125)) +
-    theme_pub()  +
-    geom_vline(aes(xintercept = xpt_season), data = subset(xpoints_fseason, Region == "South East"),
-               linetype = "dashed", color  = "gray") +
-    geom_hline(aes(yintercept = Human), data = subset(regmean, Region == "South East"),
-               linetype = "dashed", color = "red") +
-    geom_hline(aes(yintercept = Lightning), data = subset(regmean, Region == "South East"),
-               linetype = "dashed", color = "#1F77B4") +
-    geom_text(data=subset(xpoints_fseason, Region == "South East"),
-              aes(label=paste(xpt_lab, "km", sep = " "), x = 20 + xpt_season, y = 10, colour="red"), size = 4) +
-    geom_text(data = subset(regmean, Region == "South East"),
-              aes(label=paste(round(Human,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Human, colour="red"), size = 4) +
-    geom_text(data = subset(regmean, Region == "South East"),
-              aes(label=paste(round(Lightning,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Lightning, colour="red"), size = 4) +
-    theme(axis.title = element_text(face = "bold"),
-          strip.text = element_text(size = 8, face = "bold"),
-          legend.position = "none")
+xpoints_cnt_95 <- left_join(min_diffs, pred_diffs, by = 'line_diff_95') %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(n = n(),
+            xpt_cnt_95 = round(first(xpt_cnt),0),
+            xpt_lab_95 = as.factor(xpt_cnt_95)) %>%
+  ungroup()
 
-  fseason_ne <- fishdis_reg %>%
-    filter(Region ==  "North East") %>%
-    ggplot(aes(x = (Ave_NEAR_DIST)*0.001, y = fseason_lngth, color = IGNITION)) +
-    geom_smooth(method = "glm", method.args = list(family = "poisson"),
-                 size = 0.75) +
-    scale_color_manual(values=c("#D62728","#1F77B4", "black")) +
-    xlab("Distance from WUI (km)") + ylab("") +
-    ggtitle("North East") +
-    scale_x_continuous(limits = c(0, 125)) +
-    theme_pub()  +
-    geom_vline(aes(xintercept = xpt_season), data = subset(xpoints_fseason, Region == "North East"),
-               linetype = "dashed", color  = "gray") +
-    geom_hline(aes(yintercept = Human), data = subset(regmean, Region == "North East"),
-               linetype = "dashed", color = "red") +
-    geom_hline(aes(yintercept = Lightning), data = subset(regmean, Region == "North East"),
-               linetype = "dashed", color = "#1F77B4") +
-    geom_text(data=subset(xpoints_fseason, Region == "North East"),
-              aes(label=paste(xpt_lab, "km", sep = " "), x = 20 + xpt_season, y = 10, colour="red"), size = 4) +
-    geom_text(data = subset(regmean, Region == "North East"),
-              aes(label=paste(round(Human,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Human, colour="red"), size = 4) +
-    geom_text(data = subset(regmean, Region == "North East"),
-              aes(label=paste(round(Lightning,2), "fires/km2", sep = " "), x = 90, y = 0.5 + Lightning, colour="red"), size = 4) +
-    theme(axis.title = element_text(face = "bold"),
-          strip.text = element_text(size = 8, face = "bold"),
-          legend.position = "none")
+xpoints_cnt_05 <- left_join(min_diffs, pred_diffs, by = 'line_diff_05') %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(n = n(),
+            xpt_cnt_05 = round(first(xpt_cnt),0),
+            xpt_lab_05 = as.factor(xpt_cnt_05)) %>%
+  ungroup()
 
-  grid.arrange(fseason_west, fseason_cent, fseason_se, fseason_ne,
-               ncol =2, widths = c(0.5, 0.5))
-  g <- arrangeGrob(fseason_west, fseason_cent, fseason_se, fseason_ne,
-                   ncol =2, widths = c(0.5, 0.5))
-  ggsave("Distance_FireSeason_Reg.png", g, width = 6, height = 8, dpi=1200)
-  ggsave("Distance_FireSeason_Reg.EPS", g, width = 6, height = 7, dpi=1200, scale = 2, units = "cm") #saves g
+xpoints_cnt_15 <- left_join(min_diffs, pred_diffs, by = 'line_diff_15') %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(n = n(),
+            xpt_cnt_15 = round(first(xpt_cnt),0),
+            xpt_lab_15 = as.factor(xpt_cnt_15)) %>%
+  ungroup()
+
+xpoints_cnt <- left_join(xpoints_cnt_95, xpoints_cnt_05, by = 'regions') %>%
+  left_join(., xpoints_cnt_15, by = 'regions')
+write_csv(xpoints_cnt, "results/figs/draft/distance_fseason_ignitiondecade.csv")
+
+regmean <- fishdis_reg %>%
+  group_by(regions, IGNITION) %>%
+  summarise(fcnt_mean = mean(f_cnt)) %>%
+  spread(IGNITION, fcnt_mean)
+
+# check to see where the min. diffs fall in plot
+fslength_cent <- fishdis_reg %>%
+  filter(regions ==  "Central") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = inter,
+    color = inter
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
+  xlab("") + ylab("") +
+  ggtitle("Central") +
+  theme_pub()  +
+  geom_vline(aes(xintercept = xpt_cnt_95), data = subset(xpoints_cnt, regions == "Central"),
+             linetype = "dashed", color  = "black") +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
+
+fslength_west <- fishdis_reg %>%
+  filter(regions ==  "West") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = inter,
+    color = inter
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
+  xlab("") + ylab("") +
+  ggtitle("West") +
+  theme_pub()  +
+  geom_vline(aes(xintercept = xpt_cnt_95), data = subset(xpoints_cnt, regions == "West"),
+             linetype = "dashed", color  = "gray") +
+  geom_vline(aes(xintercept = xpt_cnt_05), data = subset(xpoints_cnt, regions == "West"),
+             linetype = "dashed", color  = "gray50") +
+  geom_vline(aes(xintercept = xpt_cnt_15), data = subset(xpoints_cnt, regions == "West"),
+             linetype = "dashed", color  = "black") +
+  expand_limits(x = 0, y = 0) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
+
+fslength_se <- fishdis_reg %>%
+  filter(regions ==  "South East") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = inter,
+    color = inter
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
+  xlab("") + ylab("") +
+  ggtitle("South East") +
+  theme_pub()  +
+  geom_vline(aes(xintercept = xpt_cnt_95), data = subset(xpoints_cnt_95, regions == "South East"),
+             linetype = "dashed", color  = "black") +
+  expand_limits(x = 0, y = 0) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
+
+fslength_ne <- fishdis_reg %>%
+  filter(regions ==  "North East") %>%
+  ggplot(aes(
+    x = (median_distance),
+    y = (fseason_lngth),
+    group = inter,
+    color = inter
+  )) +
+  geom_smooth(
+    method = 'glm',
+    method.args = list(family = "poisson"),
+    fullrange = TRUE,
+    size = 1
+  ) +
+  scale_color_manual(values =  c('#fcae91','#fb6a4a','#cb181d', '#bdd7e7','#6baed6','#2171b5')) +
+  xlab("") + ylab("") +
+  ggtitle("North East") +
+  theme_pub()  +
+  geom_vline(aes(xintercept = xpt_cnt_95), data = subset(xpoints_cnt_95, regions == "North East"),
+             linetype = "dashed", color  = "black") +
+  expand_limits(x = 0, y = 0) +
+  theme(axis.title = element_text(face = "bold"),
+        strip.text = element_text(size = 8, face = "bold"),
+        legend.position = "none")
+
+grid.arrange(fslength_west, fslength_cent, fslength_se, fslength_ne, ncol =2)
+g <- arrangeGrob(fslength_west, fslength_cent, fslength_se, fslength_ne, ncol =2)
+ggsave("results/figs/draft/distance_fseason_ignitiondecade_region.pdf", g, width = 6, height = 8, dpi=1200)
+
+
+
