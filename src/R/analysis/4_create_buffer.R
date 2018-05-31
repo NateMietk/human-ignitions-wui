@@ -17,22 +17,24 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
     mutate(RADIUS = sqrt(FIRE_SIZE_m2/pi)) %>%
     filter(is.na(MTBS_ID))
 
-  bae <- st_parallel(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS) %>%
-    st_transform(st_crs(usa_shp))
+  bae <- st_parallel(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS)
 
-  bae <- rbind(bae, mtbs_fire)
+  bae <- rbind(bae, mtbs_fire) %>%
+    st_transform(proj_ztrax) %>%
+    st_cast('POLYGON') %>%
+    left_join(., as.data.frame(fpa_fire), by = 'FPA_ID') %>%
+    dplyr::select(FPA_ID, FIRE_SIZE_km2, geometry)
 
   st_write(bae, file.path(fire_poly, "fpa_mtbs_bae.gpkg"),
-           driver = "GPKG",
-           delete_layer = TRUE)
+           driver = "GPKG", delete_layer = TRUE)
 
-  system(paste0("aws s3 sync ",
-                fire_crt, " ",
-                s3_fire_prefix))
+  system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
+  
 } else {
   bae <- st_read(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))
 }
 
+# Create the buffered fpa points intersected with the WUI data
 if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
   fpa_bae_wui <- st_intersection(bae, wui) %>%
     st_intersection(., bounds) %>%
@@ -41,7 +43,9 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
            Class = ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
                           ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
                                  ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
-                                        NA))))
+                                        NA)))) %>%
+    st_transform(proj_ztrax) %>%
+    st_cast('POLYGON')
 
   st_write(fpa_bae_wui, file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"),
            driver = "GPKG",
@@ -51,56 +55,22 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
                 fire_crt, " ",
                 s3_fire_prefix))
 } else {
-  fpa_bae_wui <- st_read(file.path(fire_poly, 'fpa-fod', "fpa_mtbs_bae_wui.gpkg"))
-
+  fpa_bae_wui <- st_read(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))
 }
 
-if (!file.exists(file.path(fire_poly, 'fpa_buffer_1k.gpkg'))) {
-
-  fpa_1k <- fpa_bae_wui %>%
-    st_buffer(., dist = 1000)
-
-  st_write(fpa_1k, file.path(fire_poly, "fpa_buffer_1k.gpkg"),
+if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
+  
+  fpa_250m <- bae %>%
+    filter(FIRE_SIZE_km2 >= 0.00025) %>%
+    st_buffer(., dist = 250) 
+  
+  st_write(fpa_250m, file.path(fire_poly, "fpa_buffer_250m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
-
+  
   system(paste0("aws s3 sync ", prefix, " ", s3_base))
-  rm(fpa)
 
 } else {
-  fpa_1k <- st_read(file.path(fire_poly, "fpa_buffer_1k.gpkg"))
-}
-
-if (!file.exists(file.path(fire_poly, 'fpa_buffer_2k.gpkg'))) {
-
-  fpa_2k <- st_buffer(fpa_1k, dist = 1000)
-
-  st_write(fpa_2k, file.path(fire_poly, "fpa_buffer_2k.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
-
-  system(paste0("aws s3 sync ", prefix, " ", s3_base))
-  rm(fpa_1k)
-
-} else {
-  fpa_2k <- st_read(file.path(fire_poly, "fpa_buffer_2k.gpkg")) %>%
-    st_transform(proj_ea)
-
-  st_write(fpa_2k, file.path(fire_poly, "fpa_buffer_2k.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
-
-  system(paste0("aws s3 sync ", prefix, " ", s3_base))
+  fpa_250m <- st_read(file.path(fire_poly, "fpa_buffer_250m.gpkg"))
 }
 
 
-if (!file.exists(file.path(fire_poly, 'fpa_buffer_3k.gpkg'))) {
-
-  fpa_3k <- st_buffer(fpa_2k, dist = 1000)
-
-  st_write(fpa_3k, file.path(fire_poly, "fpa_buffer_3k.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
-
-  system(paste0("aws s3 sync ", prefix, " ", s3_base))
-  rm(fpa_2k)
-
-} else {
-  fpa_3k <- st_read(file.path(fire_poly, "fpa_buffer_3k.gpkg"))
-}
