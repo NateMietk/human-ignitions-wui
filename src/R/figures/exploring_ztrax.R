@@ -25,7 +25,8 @@ bu_cleaned <- sum_fpa_bu %>%
   dplyr::select(-tmp) %>%
   left_join(., as.data.frame(fpa_wui) %>%
               setNames(tolower(names(.))),
-            by = "fpa_id") 
+            by = "fpa_id") %>%
+  filter(fire_size_km2 > 0.00025)
 
 # Prep CONUS and REGIONS ---------------------------------------------
 
@@ -51,8 +52,8 @@ region_yearly <- tibble(year = rep(1992:2015, times = 4),
   dplyr::select(-year)
 
 region_bu_p <- region_bu_df %>%
-  transform(region = factor(region, levels=c("East", 'Central', 'West'))) %>%
-  ggplot(aes(x = bidecadal, y = bu_total*0.000001)) +
+  transform(regions = factor(regions, levels=c('Central', 'West', 'North East', 'South East'))) %>%
+  ggplot(aes(x = year, y = bu_total_regions*0.000001)) +
   geom_point() +
   geom_line(group = 1) +
   scale_color_manual(values = c("#D62728","#1F77B4")) +
@@ -67,7 +68,7 @@ region_bu_p <- region_bu_df %>%
         legend.background = element_rect(fill = "transparent"),
         legend.title = element_blank(),
         legend.position = "none") +
-  facet_wrap(~region, ncol = 1)
+  facet_wrap(~regions, ncol = 1)
 
 conus_bu_df <- sum_ecoregions_bu %>%
   gather(variable, bu, -ID_sp, -us_l3name) %>%
@@ -148,7 +149,7 @@ fpa_bu_p <- fpa_bu_df %>%
   theme_pub() +
   xlab("Year") + ylab("Building unit count (in 100,000 units)") +
   # ggtitle('(b) Number of structures \nwithin all wildfires') +
-  scale_y_continuous(limits = c(0, 6)) +
+  # scale_y_continuous(limits = c(0, 6)) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 10, face = "bold"),
         legend.box.background = element_rect(fill = "transparent"),
@@ -409,8 +410,7 @@ class_fpa_bu_df <- bu_cleaned %>%
          anomalies = bu - lt_mean,
          colour = ifelse(pct_change <= 0, "negative","positive"), 
          colourlt = ifelse(anomalies <= 0, "negative","positive")) %>%  ungroup() %>%
-  filter(!is.na(discovery_year)) %>%
-  mutate(buff_zone = 0)
+  filter(!is.na(discovery_year)) 
 
 fpa_class_bu_p <- class_fpa_bu_df %>%
   transform(class_coarse = factor(class_coarse, levels=c("Urban", 'WUI', 'VLD', 'Wildlands'))) %>%
