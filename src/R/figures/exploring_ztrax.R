@@ -1,21 +1,4 @@
 
-fpa_wui <- fpa_wui %>%
-  mutate(bidecadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
-                            ifelse(DISCOVERY_YEAR >= 1996 & DISCOVERY_YEAR <= 2000, 2000,
-                                   ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2005, 2005,
-                                          ifelse(DISCOVERY_YEAR >= 2006 & DISCOVERY_YEAR <= 2010, 2010,
-                                                 ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2015,
-                                                        DISCOVERY_YEAR ))))),
-         pop_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POPDEN1990,
-                           ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POPDEN2000,
-                                   ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POPDEN2010, NA ))),
-         house_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, HUDEN1990,
-                             ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HUDEN2000,
-                                     ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HUDEN2010, NA ))),
-         class_coarse =  ifelse( Class == 'High Urban' | Class == 'Med Urban' | Class == 'Low Urban', 'Urban',
-                                 ifelse( Class == 'Intermix WUI' | Class == 'Interface WUI', 'WUI', as.character(Class))),
-         size = classify_fire_size_cl(FIRE_SIZE_km2),
-         regions = ifelse(regions == 'East', 'North East', as.character(regions)))
 
 bu_cleaned <- sum_fpa_bu %>%
   gather(variable, bu, -ID_sp, -fpa_id) %>%
@@ -23,8 +6,7 @@ bu_cleaned <- sum_fpa_bu %>%
            into = c("statistic", 'tmp', "year"),
            sep = "_") %>%
   dplyr::select(-tmp) %>%
-  left_join(., as.data.frame(fpa_wui) %>%
-              setNames(tolower(names(.))),
+  left_join(., as.data.frame(fpa_wui),
             by = "fpa_id") %>%
   filter(fire_size_km2 > 0.00025)
 
