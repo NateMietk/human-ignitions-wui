@@ -277,7 +277,38 @@ if (!exists('fpa_wui')) {
                   fire_crt, " ",
                   s3_fire_prefix))
   } else {
-    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg"))
+    wuw_area <- read_csv(file.path(wui_out, 'wui_areas.csv')) %>%
+      dplyr::select(-X1) %>%
+      gather(year, total_class_area, -Class) %>%
+      mutate(decadal = as.numeric(gsub('area_', '', year)),
+             class = as.factor(Class)) %>%
+      dplyr::select(-year, -Class)
+    
+    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg")) %>%
+      mutate(bidecadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
+                                ifelse(DISCOVERY_YEAR >= 1996 & DISCOVERY_YEAR <= 2000, 2000,
+                                       ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2005, 2005,
+                                              ifelse(DISCOVERY_YEAR >= 2006 & DISCOVERY_YEAR <= 2010, 2010,
+                                                     ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2015,
+                                                            DISCOVERY_YEAR ))))),
+             decadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 2000, 1990,
+                              ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2010, 2000,
+                                     ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2010,
+                                            DISCOVERY_YEAR ))),
+             pop_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POPDEN1990,
+                               ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POPDEN2000,
+                                       ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POPDEN2010, NA ))),
+             house_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, HUDEN1990,
+                                 ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HUDEN2000,
+                                         ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HUDEN2010, NA ))),
+             class_coarse =  ifelse( Class == 'High Urban' | Class == 'Med Urban' | Class == 'Low Urban', 'Urban',
+                                     ifelse( Class == 'Intermix WUI' | Class == 'Interface WUI', 'WUI', as.character(Class))),
+             size = classify_fire_size_cl(FIRE_SIZE_km2),
+             regions = ifelse(regions == 'East', 'North East', as.character(regions)),
+             seasons = classify_seasons(DISCOVERY_DOY)) %>%
+      setNames(tolower(names(.))) %>%
+      left_join(., wuw_area, by = c('class','decadal') )
+    
   }
 }
 
