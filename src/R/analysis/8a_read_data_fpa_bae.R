@@ -1,55 +1,45 @@
 
 # FPA BAE database from 2001-2015
-fpa_bae <- st_read(file.path(fpa_out, "fpa_mtbs_bae_wui.gpkg")) %>%
-  filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") %>%
-  filter(DISCOVERY_YEAR > 2000) %>%
-  filter(FIRE_SIZE >= 0.1) %>%
-  mutate(Seasons = classify_seasons(DISCOVERY_DOY),
-         region = as.factor(if_else(NA_L1NAME %in% c("EASTERN TEMPERATE FORESTS",
-                                                     "GREAT PLAINS",
-                                                     "TROPICAL WET FORESTS",
-                                                     "NORTHERN FORESTS"), "East",
-                                    if_else(NA_L1NAME %in% c("NORTH AMERICAN DESERTS",
-                                                             "SOUTHERN SEMIARID HIGHLANDS",
-                                                             "TEMPERATE SIERRAS",
-                                                             "MEDITERRANEAN CALIFORNIA",
-                                                             "NORTHWESTERN FORESTED MOUNTAINS",
-                                                             "MARINE WEST COAST FOREST"), "West", "Central"))),
-         wui_area_km2 = as.numeric(st_area(geom))/1000000) %>%
-  mutate_all(funs(replace(., is.na(.), 0)))
-
-names(fpa_bae) %<>% tolower
-
-wuw_area <- data.table(class=c("WUI", "VLD", "Wildlands"),
-                       class_area = c(784320, 2260783, 2598246))
-
 # Overall totals
-totals_bae <- fpa_bae %>%
-  as.data.frame(.) %>%
+totals_bae <- as.data.frame(fpa_bae_wui) %>%
   group_by() %>%
   summarise(totfirearea = sum(wui_area_km2))
 
+totals_class <- as.data.frame(fpa_bae_wui_wui) %>%
+  group_by(class) %>%
+  summarise(tot_class_area = first(total_class_area))
+
+totals_class_coarse <- as.data.frame(fpa_bae_wui_wui) %>%
+  group_by(class, class_coarse) %>%
+  summarise(tot_class_area = first(total_class_area)) %>%
+  group_by(class_coarse) %>%
+  summarise(tot_class_coarse_area = sum(tot_class_area))
+
 # Overall totals by CAUSE
-bae_cause <- fpa_bae %>%
-  as.data.frame(.) %>%
+bae_cause <- as.data.frame(fpa_bae_wui_wui) %>%
   group_by(ignition) %>%
   summarise(totfirearea = sum(wui_area_km2))
 
 # Overall totals by CLASS
-bae_class <- fpa_bae %>%
-  as.data.frame(.) %>%
+bae_class <- as.data.frame(fpa_bae_wui_wui) %>%
   group_by(class) %>%
+  summarise(totfirearea = sum(wui_area_km2),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_firewui_tot = (totfirearea/total_class_area)*100)
+
+bae_class_coarse <- as.data.frame(fpa_bae_wui_wui) %>%
+  group_by(class_coarse) %>%
   summarise(totfirearea = sum(wui_area_km2)) %>%
-  left_join(., wuw_area, by = "class") %>%
-  mutate(pct_firewui_tot = (totfirearea/class_area)*100)
+  left_join(., totals_class_coarse, by = 'class_coarse') %>%
+  mutate(pct_firewui_tot = (totfirearea/tot_class_coarse_area)*100)
 
 # Overall totals by CLASS AND CAUSE
-bae_class <- fpa_bae %>%
+bae_class <- fpa_bae_wui_wui %>%
   as.data.frame(.) %>%
   group_by(class) %>%
   summarise(totfirearea = sum(wui_area_km2))
 
-totals_by_cause <- fpa_bae %>%
+totals_by_cause <- fpa_bae_wui %>%
   as.data.frame(.) %>%
   group_by(class, ignition) %>%
   summarise(firearea = sum(wui_area_km2),
@@ -63,7 +53,7 @@ totals_by_cause <- fpa_bae %>%
          pct_firewui = (firearea/class_area)*100)
 
 # Summarize FPA BAE data by YEAR
-totals_by_wuiburn_year <- fpa_bae %>%
+totals_by_wuiburn_year <- fpa_bae_wui %>%
   as.data.frame(.) %>%
   group_by(class, discovery_year) %>%
   summarise(firearea = sum(wui_area_km2)) %>%
@@ -75,7 +65,7 @@ mean(totals_by_wuiburn_year$pct_firearea)
 mean(totals_by_wuiburn_year$firearea)
 
 # Summarize FPA BAE data by CLASS
-totals_bae_class_cause <- fpa_bae %>%
+totals_bae_class_cause <- fpa_bae_wui %>%
   as.data.frame(.) %>%
   group_by(class) %>%
   summarise(firearea = sum(wui_area_km2)) %>%
@@ -84,7 +74,7 @@ totals_bae_class_cause <- fpa_bae %>%
   filter(class == "VLD")
 
 # Summarize FPA BAE data by CAUSE AND CLASS
-totals_bae_class_cause <- fpa_bae %>%
+totals_bae_class_cause <- fpa_bae_wui %>%
   as.data.frame(.) %>%
   group_by(class, ignition) %>%
   summarise(firearea = sum(wui_area_km2)) %>%
@@ -93,12 +83,12 @@ totals_bae_class_cause <- fpa_bae %>%
   filter(class == "VLD")
 
 # Summarize FPA BAE data by CAUSE AND CLASS AND SIZE
-totals_bae <- fpa_bae %>%
+totals_bae <- fpa_bae_wui %>%
   as.data.frame(.) %>%
   group_by(class, ignition) %>%
   summarise(totfirearea = sum(wui_area_km2))
 
-totals_bae_class_cause <- fpa_bae %>%
+totals_bae_class_cause <- fpa_bae_wui %>%
   as.data.frame(.) %>%
   mutate(sizeclass = classify_fire_size_cl(fire_size_km2)) %>%
   transform(sizeclass = factor(sizeclass, levels = c("Small", "Large", "Very Large"))) %>%
@@ -111,12 +101,12 @@ totals_bae_class_cause <- fpa_bae %>%
   filter(class == "WUI")
 
 # Summarize FPA BAE data by CAUSE AND CLASS AND SIZE AND REGION
-totals_bae <- fpa_bae %>%
+totals_bae <- fpa_bae_wui %>%
   as.data.frame(.) %>%
   group_by(class, ignition) %>%
   summarise(totfirearea = sum(wui_area_km2))
 
-totals_bae_class_cause <- fpa_bae %>%
+totals_bae_class_cause <- fpa_bae_wui %>%
   as.data.frame(.) %>%
   mutate(sizeclass = classify_fire_size_cl(fire_size_km2)) %>%
   transform(sizeclass = factor(sizeclass, levels = c("Small", "Large", "Very Large"))) %>%
