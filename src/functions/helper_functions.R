@@ -1,4 +1,9 @@
 
+mode <- function(v) {
+  uniqv <- na.omit(unique(v))
+  uniqv[base::which.max(tabulate(match(v, uniqv)))]
+}
+
 extract_one <- function(filename, shapefile_extractor,
                         use_varname = TRUE, varname,
                         prefix = prefix, s3_base = s3_base) {
