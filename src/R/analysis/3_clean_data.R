@@ -16,7 +16,7 @@ if (!exists("usa_shp")){
 # Import the Level 1 Ecoregions
 if (!exists('ecoregl1')) {
   if (!file.exists(file.path(ecoregion_out, 'us_eco_l1.gpkg'))) {
-
+    
     # Download the Level 1 Ecoregions
     ecoregion_shp <- file.path(ecoregion_out, "NA_CEC_Eco_Level1.shp")
     if (!file.exists(ecoregion_shp)) {
@@ -27,7 +27,7 @@ if (!exists('ecoregl1')) {
       unlink(dest)
       assert_that(file.exists(ecoregion_shp))
     }
-
+    
     ecoregl1 <- st_read(dsn = ecoregion_out, layer = "NA_CEC_Eco_Level1") %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       #st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
@@ -43,14 +43,14 @@ if (!exists('ecoregl1')) {
                                                                  "NORTHWESTERN FORESTED MOUNTAINS",
                                                                  "MARINE WEST COAST FOREST"), "West", "Central")))) %>%
       setNames(tolower(names(.)))
-
+    
     st_write(ecoregl1, file.path(ecoregion_out, 'us_eco_l1.gpkg'),
              driver = 'GPKG', delete_layer = TRUE)
-
+    
     system(paste0("aws s3 sync ",
                   prefix, " ",
                   s3_base))
-
+    
   } else {
     ecoregl1 <- sf::st_read(file.path(ecoregion_out, 'us_eco_l1.gpkg'))
   }
@@ -59,7 +59,7 @@ if (!exists('ecoregl1')) {
 # Import the Level 3 Ecoregions
 if (!exists('ecoreg')) {
   if (!file.exists(file.path(ecoregion_out, 'us_eco_l3.gpkg'))) {
-
+    
     # Download the Level 3 Ecoregions
     ecoregion_shp <- file.path(ecoregion_out, "us_eco_l3.shp")
     if (!file.exists(ecoregion_shp)) {
@@ -70,14 +70,14 @@ if (!exists('ecoreg')) {
       unlink(dest)
       assert_that(file.exists(ecoregion_shp))
     }
-
+    
     ecoreg_plain <- st_read(dsn = ecoregion_out, layer = "us_eco_l3", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME) %>%
       st_make_valid() %>%
       st_intersection(., st_union(usa_shp)) %>%
       setNames(tolower(names(.)))
-
+    
     ecoreg <- st_read(dsn = ecoregion_out, layer = "us_eco_l3", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME) %>%
@@ -97,23 +97,23 @@ if (!exists('ecoreg')) {
                                                                                   "MA", "WI", "IL", "IN", "OH", "WV", "VA", "KY", "MO", "IA", "MN"), "North East",
                                                  as.character(region))))) %>%
       setNames(tolower(names(.)))
-
+    
     st_write(ecoreg_plain, file.path(ecoregion_out, 'us_eco_plain.gpkg'),
              driver = 'GPKG', delete_layer = TRUE)
     st_write(ecoreg, file.path(ecoregion_out, 'us_eco_l3.gpkg'),
              driver = 'GPKG', delete_layer = TRUE)
-
+    
     system(paste0("aws s3 sync ", prefix, " ", s3_base))
-
+    
   } else {
     ecoreg_plain <- st_read( file.path(ecoregion_out, 'us_eco_plain.gpkg'))
     ecoreg <- sf::st_read(file.path(ecoregion_out, 'us_eco_l3.gpkg'))
+    
+    ecoreg_swse <- ecoreg %>%
+      group_by(regions) %>%
+      summarize()
   }
 }
-
-ecoreg_swse <- ecoreg %>%
-  group_by(regions) %>%
-  summarize()
 
 # Create Fishnets ---------------------------------------------------------
 # Create raster mask
@@ -123,11 +123,11 @@ if (!exists("fishnet_50k")) {
     fishnet_50k <- sf::st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
       sf::st_sf('geometry' = ., data.frame('fishid50k' = 1:length(.))) %>%
       sf::st_intersection(., st_union(usa_shp))
-
+    
     sf::st_write(fishnet_50k,
                  file.path(fishnet_path, "fishnet_50k.gpkg"),
                  driver = "GPKG")
-
+    
     system(paste0("aws s3 sync ",
                   fishnet_path, " ",
                   s3_bounds_prefix, "/fishnet"))
@@ -139,15 +139,15 @@ if (!exists("fishnet_50k")) {
 # 25k Fishnet
 if (!exists("fishnet_25k")) {
   if (!file.exists(file.path(fishnet_path, "fishnet_25k.gpkg"))) {
-
+    
     fishnet_25k <- sf::st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
       sf::st_sf('geometry' = ., data.frame('fishid25k' = 1:length(.))) %>%
       sf::st_intersection(., st_union(usa_shp))
-
+    
     sf::st_write(fishnet_25k,
                  file.path(fishnet_path, "fishnet_25k.gpkg"),
                  driver = "GPKG")
-
+    
     system(paste0("aws s3 sync ",
                   fishnet_path, " ",
                   s3_bounds_prefix, "/fishnet"))
@@ -159,15 +159,15 @@ if (!exists("fishnet_25k")) {
 # 10k Fishnet
 if (!exists("fishnet_10k")) {
   if (!file.exists(file.path(fishnet_path, "fishnet_10k.gpkg"))) {
-
+    
     fishnet_10k <- sf::st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
       sf::st_sf('geometry' = ., data.frame('fishid10k' = 1:length(.))) %>%
       sf::st_intersection(., st_union(usa_shp))
-
+    
     sf::st_write(fishnet_10k,
                  file.path(fishnet_path, "fishnet_10k.gpkg"),
                  driver = "GPKG")
-
+    
     system(paste0("aws s3 sync ",
                   fishnet_path, " ",
                   s3_bounds_prefix, "/fishnet"))
@@ -183,11 +183,11 @@ if (!exists("bounds")) {
       st_intersection(., fishnet_50k) %>%
       st_intersection(., fishnet_25k) %>%
       st_intersection(., fishnet_10k)
-
+    
     sf::st_write(bounds,
                  file.path(bounds_crt, "eco_fish_bounds.gpkg"),
                  driver = "GPKG")
-
+    
     system(paste0("aws s3 sync ",
                   bounds_crt, " ",
                   s3_bounds_prefix))
@@ -202,7 +202,7 @@ if (!exists("bounds")) {
 if (!exists('wui')) {
   if (!file.exists(file.path(wui_out, "wui_bounds.gpkg"))) {
     # st_layers(dsn = file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb"))
-
+    
     wui <- st_read(dsn = file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb"),
                    layer = "CONUS_WUI_cp12") %>%
       st_make_valid() %>%
@@ -212,11 +212,11 @@ if (!exists('wui')) {
              Class10 = classify_wui(WUICLASS10))  %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       st_make_valid()
-
+    
     st_write(wui, file.path(wui_out, "wui_bounds.gpkg"),
              driver = "GPKG",
              update=TRUE)
-
+    
     system(paste0("aws s3 sync ",
                   anthro_out, " ",
                   s3_anthro_prefix))
@@ -224,6 +224,35 @@ if (!exists('wui')) {
     wui <- st_read(dsn = file.path(wui_out, "wui_bounds.gpkg"))
   }
 }
+
+if (!exists('wui_area')) {
+  if (!file.exists(file.path(wui_out, "wui_area.rds"))) {
+    wuw_area <- wui %>%
+      st_intersection(., ecoreg_plain) 
+    wuw_area2 <- wuw_area %>%
+      group_by(BLK10, Class90, Class00, Class10) %>%
+      summarize(total_class_area = (as.numeric(st_area(geom))/1000000))
+  } else {
+    wuw_area <- read_csv(file.path(wui_out, 'wui_areas.rds'))
+  }
+} 
+
+wuw_area <- read_csv(file.path(wui_out, 'wui_areas.csv')) %>%
+  dplyr::select(-X1) %>%
+  gather(year, total_class_area, -Class) %>%
+  mutate(decadal = as.numeric(gsub('area_', '', year)),
+         class = as.factor(Class)) %>%
+  dplyr::select(-year, -Class)
+
+coarse_wuw_area <- read_csv(file.path(wui_out, 'wui_areas.csv')) %>%
+  dplyr::select(-X1) %>%
+  gather(year, total_coarse_class_area, -Class) %>%
+  mutate(decadal = as.numeric(gsub('area_', '', year)),
+         class = as.factor(Class),
+         class_coarse =  ifelse(class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
+                                ifelse(class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))) %>%
+  dplyr::select(-year, -Class, -class)
+
 
 # Prep FPA-FOD ---------------------------------------------------------
 # Clean the FPA database class
@@ -243,11 +272,11 @@ if (!exists('fpa_fire')) {
              DISCOVERY_YEAR = FIRE_YEAR)  %>%
       st_transform(st_crs(usa_shp)) %>%
       st_intersection(., st_union(usa_shp))
-
+    
     st_write(fpa_fire, file.path(fire_pnt, "fpa_conus.gpkg"),
              driver = "GPKG",
              update=TRUE)
-
+    
     system(paste0("aws s3 sync ",
                   fire_crt, " ",
                   s3_fire_prefix))
@@ -263,29 +292,16 @@ if (!exists('fpa_wui')) {
     fpa_wui <- fpa_fire %>%
       st_intersection(., wui) %>%
       st_intersection(., bounds) %>%
-      st_make_valid() %>%
-      mutate(Class = ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
+      st_make_valid()  %>%
+      mutate(class = ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
                             ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
                                    ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
-                                          NA))))
-
-    st_write(fpa_wui, file.path(fire_pnt, "fpa_wui_conus.gpkg"),
-             driver = "GPKG",
-             update=TRUE)
-
-    system(paste0("aws s3 sync ",
-                  fire_crt, " ",
-                  s3_fire_prefix))
-  } else {
-    wuw_area <- read_csv(file.path(wui_out, 'wui_areas.csv')) %>%
-      dplyr::select(-X1) %>%
-      gather(year, total_class_area, -Class) %>%
-      mutate(decadal = as.numeric(gsub('area_', '', year)),
-             class = as.factor(Class)) %>%
-      dplyr::select(-year, -Class)
-    
-    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg")) %>%
-      mutate(bidecadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
+                                          NA))),
+             FIRE_SIZE_km2 = FIRE_SIZE_km2.x,
+             seasons = classify_seasons(DISCOVERY_DOY),
+             ten_year = ifelse(DISCOVERY_YEAR >= 1994 & DISCOVERY_YEAR <= 2004, '1994-2004',
+                               ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA)),
+             bidecadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
                                 ifelse(DISCOVERY_YEAR >= 1996 & DISCOVERY_YEAR <= 2000, 2000,
                                        ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2005, 2005,
                                               ifelse(DISCOVERY_YEAR >= 2006 & DISCOVERY_YEAR <= 2010, 2010,
@@ -295,20 +311,74 @@ if (!exists('fpa_wui')) {
                               ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2010, 2000,
                                      ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2010,
                                             DISCOVERY_YEAR ))),
+             number_of_persons = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POP1990,
+                                         ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POP2000,
+                                                 ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POP2010, NA))),
              pop_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POPDEN1990,
                                ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POPDEN2000,
                                        ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POPDEN2010, NA ))),
              house_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, HUDEN1990,
                                  ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HUDEN2000,
                                          ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HUDEN2010, NA ))),
+             house_units = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, HHU1990,
+                                   ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HHU2000,
+                                           ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HHU2010, NA ))),
              class_coarse =  ifelse( Class == 'High Urban' | Class == 'Med Urban' | Class == 'Low Urban', 'Urban',
                                      ifelse( Class == 'Intermix WUI' | Class == 'Interface WUI', 'WUI', as.character(Class))),
              size = classify_fire_size_cl(FIRE_SIZE_km2),
-             regions = ifelse(regions == 'East', 'North East', as.character(regions)),
-             seasons = classify_seasons(DISCOVERY_DOY)) %>%
+             regions = ifelse(regions == 'East', 'North East', as.character(regions))) %>%
+      dplyr::select(-FIRE_SIZE_km2.x, -FIRE_SIZE_km2.y, -stusps.1, -Area_km2) %>%
+      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)')) %>%
       setNames(tolower(names(.))) %>%
-      left_join(., wuw_area, by = c('class','decadal') )
+      left_join(., wuw_area, by = c('class','decadal')) %>%
+      left_join(., coarse_wuw_area, by = c('class_coarse','decadal'))
     
+    st_write(fpa_wui, file.path(fire_pnt, "fpa_wui_conus.gpkg"),
+             driver = "GPKG",
+             update=TRUE)
+    
+    system(paste0("aws s3 sync ",
+                  fire_crt, " ",
+                  s3_fire_prefix))
+  } else {
+    
+    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg")) %>%
+      mutate(
+             FIRE_SIZE_km2 = FIRE_SIZE_km2.x,
+             seasons = classify_seasons(DISCOVERY_DOY),
+             ten_year = ifelse(DISCOVERY_YEAR >= 1994 & DISCOVERY_YEAR <= 2004, '1994-2004',
+                               ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA)),
+             bidecadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
+                                ifelse(DISCOVERY_YEAR >= 1996 & DISCOVERY_YEAR <= 2000, 2000,
+                                       ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2005, 2005,
+                                              ifelse(DISCOVERY_YEAR >= 2006 & DISCOVERY_YEAR <= 2010, 2010,
+                                                     ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2015,
+                                                            DISCOVERY_YEAR ))))),
+             decadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 2000, 1990,
+                              ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2010, 2000,
+                                     ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2010,
+                                            DISCOVERY_YEAR ))),
+             number_of_persons = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POP1990,
+                                         ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POP2000,
+                                                 ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POP2010, NA))),
+             pop_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POPDEN1990,
+                               ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POPDEN2000,
+                                       ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POPDEN2010, NA ))),
+             house_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, HUDEN1990,
+                                 ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HUDEN2000,
+                                         ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HUDEN2010, NA ))),
+             house_units = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, HHU1990,
+                                   ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HHU2000,
+                                           ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HHU2010, NA ))),
+             class_coarse =  ifelse( Class == 'High Urban' | Class == 'Med Urban' | Class == 'Low Urban', 'Urban',
+                                     ifelse( Class == 'Intermix WUI' | Class == 'Interface WUI', 'WUI', as.character(Class))),
+             size = classify_fire_size_cl(FIRE_SIZE_km2),
+             regions = ifelse(regions == 'East', 'North East', as.character(regions))) %>%
+      dplyr::select(-FIRE_SIZE_km2.x, -FIRE_SIZE_km2.y, -stusps.1, -Area_km2) %>%
+      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)')) %>%
+      setNames(tolower(names(.))) %>%
+      left_join(., wuw_area, by = c('class','decadal')) %>%
+      left_join(., coarse_wuw_area, by = c('class_coarse','decadal'))
   }
 }
 
@@ -332,11 +402,11 @@ if (!exists('mtbs_fire')) {
                     MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
                     MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS)  %>%
       st_make_valid()
-
+    
     st_write(mtbs_fire, file.path(mtbs_out, "mtbs_conus.gpkg"),
              driver = "GPKG",
              update=TRUE)
-
+    
     system(paste0("aws s3 sync ",
                   fire_crt, " ",
                   s3_fire_prefix))
@@ -359,11 +429,11 @@ if (!exists('mtbs_wui')) {
                             ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
                                    ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
                                           NA))))
-
+    
     st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),
              driver = "GPKG",
              delete_layer = TRUE)
-
+    
     system(paste0("aws s3 sync ",
                   fire_crt, " ",
                   s3_fire_prefix))
@@ -375,7 +445,7 @@ if (!exists('mtbs_wui')) {
 #Clean and prep the MTBS data
 if (!exists('mtbs_pts')) {
   if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
-
+    
     # Download the MTBS fire polygons
     mtbs_shp <- file.path(mtbs_prefix, 'mtbs_fod_pts_20170501.shp')
     if (!file.exists(mtbs_shp)) {
@@ -386,7 +456,7 @@ if (!exists('mtbs_pts')) {
       unlink(dest)
       assert_that(file.exists(mtbs_shp))
     }
-
+    
     mtbs_pts <- st_read(dsn = mtbs_prefix,
                         layer = "mtbs_fod_pts_20170501", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%
@@ -407,10 +477,10 @@ if (!exists('mtbs_pts')) {
       dplyr::select(MTBS_ID, MTBS_FIRE_NAME, MTBS_DISCOVERY_DAY, MTBS_DISCOVERY_MONTH, MTBS_DISCOVERY_YEAR, MTBS_ACRES, FIRE_BIDECADAL) %>%
       st_intersection(., ecoreg) %>%
       setNames(tolower(names(.)))
-
+    
     st_write(mtbs_pts, file.path(mtbs_out, "mtbs_pts.gpkg"),
              driver = "GPKG")
-
+    
     system(paste0("aws s3 sync ",
                   prefix, " ",
                   s3_base))
@@ -422,120 +492,149 @@ if (!exists('mtbs_pts')) {
 
 
 # Prep ICS-209s -----------------------------------------------------------
-
-
 # Clean ICS-209 from 1999-2014 -----------------------------
 
-ics_209 <- fread(file.path(ics_intbls, "ics209_1999_2014_042518.csv")) %>%
-  mutate_all(funs(replace(., is.na(.), 0))) %>%
-  as_tibble()
-names(ics_209) %<>% tolower
+if(!file.exists(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))) {
+  ics_209 <- fread(file.path(ics_intbls, "ics209_1999_2014.csv")) %>%
+    mutate_all(funs(replace(., is.na(.), 0))) %>%
+    as_tibble() %>%
+    setNames(tolower(names(.)))
+  
+  latlong_legacy <- read_csv(file.path(ics_latlong, "legacy_cleaned_ll.csv")) %>%
+    setNames(tolower(names(.)))  %>%
+    mutate(lat = ifelse(is.na(lat_c), 0, lat_c),
+           long = ifelse(is.na(long_c), 0, long_c)) %>%
+    dplyr::select(incident_unique_id, lat, long, confidence)
+  
+  latlong_historic <- read_csv(file.path(ics_latlong, "historical_cleaned_ll.csv")) %>%
+    setNames(tolower(names(.)))  %>%
+    mutate(lat = ifelse(is.na(lat_c), 0, lat_c),
+           long = ifelse(is.na(long_c), 0, long_c)) %>%
+    dplyr::select(incident_unique_id, lat, long, confidence)
+  
+  latlong_2014 <- read_csv(file.path(ics_latlong, '2014_cleaned_ll.csv') )%>%
+    setNames(tolower(names(.)))  %>%
+    mutate(lat = ifelse(is.na(c_lat), 0, c_lat),
+           long = ifelse(is.na(c_long), 0, c_long)) %>%
+    dplyr::select(incident_unique_id, lat, long, confidence)
+  
+  latlongs <- rbind(latlong_legacy, latlong_historic, latlong_2014) %>%
+    group_by(incident_unique_id) %>%
+    summarise(lat_c = max(lat),
+           long_c = min(long)) %>%
+    filter(lat_c != 0)
+  
+  ics_209_reports <- ics_209 %>%
+    mutate(incident_unique_id = as.factor(incident_unique_id),
+           incident_number = as.factor(incident_number),
+           incident_name = as.factor(incident_name),
+           lat = poo_latitude, 
+           long = poo_longitude,
+           report_to_date = ymd(as.Date(report_to_date, origin='1970-01-01')),
+           report_to_doy = ifelse(is.na(yday(report_to_date)), 0, yday(report_to_date)),
+           report_to_month = ifelse(is.na(month(report_to_date)), 0, month(report_to_date)),
+           report_to_day = ifelse(is.na(day(report_to_date)), 0, day(report_to_date)),
+           report_to_year = ifelse(is.na(year(report_to_date)), 0, year(report_to_date)),
+           
+           area_measurement = if_else(area_measurement == "", 'Acres', area_measurement),
+           area_ha = ifelse(area_measurement == "Square Miles", curr_incident_area*258.99903998855,
+                            ifelse(area_measurement == "Acres", curr_incident_area*0.4046859376605,
+                                   curr_incident_area)),
+           area_km2 = area_ha*0.01,
+           cause_binary = ifelse(cause == "H", "2",
+                                 ifelse(cause == "O", "2",
+                                        ifelse(cause =="L", "1", "0"))),
+           confidence = "H") %>%
+    mutate(est_final_costs = ifelse(is.na(est_im_cost_to_date), projected_final_im_cost, projected_final_im_cost),
+           costs = ifelse(projected_final_im_cost == 0 & est_im_cost_to_date > 1, est_im_cost_to_date,
+                          projected_final_im_cost)) %>%
+    dplyr::select( -projected_final_im_cost,-poo_latitude, -poo_longitude,
+                   -est_im_cost_to_date, -est_final_costs)
+  
+  ics_209_incidents_max <- ics_209_reports %>%
+    group_by(incident_unique_id) %>%
+    arrange(desc(incident_unique_id, report_to_date)) %>%
+    summarise_at(
+      .vars= vars(area_km2, costs), 
+      .funs =  max) 
+  
+  ics_209_incidents <- ics_209_reports %>%
+    group_by(incident_unique_id) %>%
+    arrange(desc(incident_unique_id, report_to_date)) %>% 
+    summarise(incident_number = last(incident_number),
+              incident_name = last(incident_name),
+              lat = max(lat),
+              long = min(long),
+              cause = max(cause_binary),
+              cause = ifelse(cause == "2", "Human",
+                             ifelse(cause =="1", "Lightning", "Unk")),
+              confidence = last(confidence),
+              start_date = first(report_to_date),
+              end_date = last(report_to_date)) %>%
+    mutate(start_year = year(start_date),
+           start_month = month(start_date),
+           start_day = day(start_date),
+           start_doy = yday(start_date),
+           end_year = year(end_date),
+           end_month = month(end_date),
+           end_day = day(end_date),
+           end_doy = yday(end_date)) %>%
+    left_join(., ics_209_incidents_max, by = "incident_unique_id") %>%
+    left_join(., latlongs,  by = "incident_unique_id") %>%
+    mutate(lat = ifelse(is.na(lat_c), lat, lat_c),
+           long = ifelse(is.na(long_c), long, long_c)) %>%
+    dplyr::select(-lat_c, -long_c, -confidence, -start_date, -end_date)
+  
+  write_rds(ics_209_incidents, file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds')) 
+  system(paste0("aws s3 sync ", prefix, " ", s3_base))
+  
+} else {
+  ics_209_incidents <- read_rds(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))
+}
 
-latlong_legacy <- read_csv(file.path(ics_latlong, "legacy_cleaned_ll.csv")) %>%
-  mutate(lat = ifelse(is.na(lat_c), 0, lat_c),
-         long = ifelse(is.na(long_c), 0, long_c)) %>%
-  dplyr::select(incident_unique_id, lat, long)
+# Clip the ICS-209 data to the CONUS and remove unknown cause
+if(!file.exists(file.path(ics_spatial, "ics209_conus.gpkg"))) {
+  # Make the cleaned ICS-209 data spatial
+  ics_209_incidents_pt <- st_par(ics_209_incidents, st_as_sf, n_cores = ncores,
+                                 coords = c("long", "lat"),
+                                 crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs") %>%
+    st_par(., st_transform, n_cores = ncores, crs = proj_ea)
+  plot(st_geometry(ics_209_incidents_pt))
+  conus_209 <- st_par(ics_209_incidents_pt, st_intersection, n_cores = ncores, y = st_union(usa_shp)) %>%
+    st_par(., st_intersection, n_cores = ncores, y = bounds)
+  plot(st_geometry(conus_209))
+  
+  if(!file.exists(file.path(ics_spatial, "ics209_erratics.gpkg"))) {
+    erratics <- st_difference(ics_209_incidents_pt, conus_209)
+    
+    st_write(erratics, file.path(ics_spatial, "ics209_erratics.gpkg"))
+    system(paste0("aws s3 sync ", prefix, " ", s3_base))
+  } else {
+    erratics <- st_read(file.path(ics_spatial, "ics209_erratics.gpkg"))
+  }
+  
+  write_csv(conus_209, file.path(ics_outtbls, "ics209_conus.csv", sep = ","))
+  
+  st_write(conus_209, file.path(ics_spatial, "ics209_conus.gpkg"),
+           driver = "GPKG",
+           update=TRUE)
+} else {
+  conus_209 <- st_read(file.path(ics_spatial, "ics209_conus.gpkg"))
+}
 
-latlong_historic <- read_csv(file.path(ics_latlong, "historical_cleaned_ll.csv")) %>%
-  mutate(lat = ifelse(is.na(lat_c), 0, lat_c),
-         long = ifelse(is.na(long_c), 0, long_c)) %>%
-  dplyr::select(incident_unique_id, lat, long)
-
-latlong_2014 <- read_csv(file.path(ics_latlong, '2014_cleaned_ll.csv')) 
-names(latlong_2014) %<>% tolower
-latlong_2014 <- latlong_2014 %>%
-  mutate(lat = ifelse(is.na(c_lat), 0, c_lat),
-         long = ifelse(is.na(c_long), 0, c_long)) %>%
-  dplyr::select(incident_unique_id, lat, long)
-
-latlongs <- rbind(latlong_legacy, latlong_historic, latlong_2014)
-
-
-ics_209_reports <- ics_209 %>%
-  mutate(incident_unique_id = as.factor(incident_unique_id),
-         incident_number = as.factor(incident_number),
-         incident_name = as.factor(incident_name),
-         
-         report_to_date = ymd(as.Date(report_to_date, origin='1970-01-01')),
-         report_to_doy = ifelse(is.na(yday(report_to_date)), 0, yday(report_to_date)),
-         report_to_month = ifelse(is.na(month(report_to_date)), 0, month(report_to_date)),
-         report_to_day = ifelse(is.na(day(report_to_date)), 0, day(report_to_date)),
-         report_to_year = ifelse(is.na(year(report_to_date)), 0, year(report_to_date)),
-         
-         area_measurement = if_else(area_measurement == "", 'Acres', area_measurement),
-         area_ha = ifelse(area_measurement == "Square Miles", curr_incident_area*258.99903998855,
-                          ifelse(area_measurement == "Acres", curr_incident_area*0.4046859376605,
-                                 curr_incident_area)),
-         area_km2 = area_ha*0.01,
-         cause_binary = ifelse(cause == "H", "2",
-                               ifelse(cause == "O", "2",
-                                      ifelse(cause =="L", "1", "0"))),
-         confi = "H") %>%
-  mutate(est_final_costs = ifelse(is.na(est_im_cost_to_date), projected_final_im_cost, projected_final_im_cost),
-         costs = ifelse(projected_final_im_cost == 0 & est_im_cost_to_date > 1, est_im_cost_to_date,
-                        projected_final_im_cost)) %>%
-  dplyr::select( -projected_final_im_cost, 
-                 -est_im_cost_to_date, -est_final_costs)
-
-ics_209_incidents_max <- ics_209_reports %>%
-  group_by(incident_unique_id) %>%
-  arrange(desc(incident_unique_id, report_to_date)) %>%
-  summarise_at(
-    .vars= vars(area_km2, costs), 
-    .funs =  max) 
-
-ics_209_incidents <- ics_209_reports %>%
-  group_by(incident_unique_id) %>%
-  arrange(desc(incident_unique_id, report_to_date)) %>% 
-  summarise(incident_number = last(incident_number),
-            incident_name = last(incident_name),
-            cause = max(cause_binary),
-            cause = ifelse(cause == "2", "Human",
-                           ifelse(cause =="1", "Lightning", "Unk")),
-            confi = last(confi),
-            start_date = first(report_to_date),
-            end_date = last(report_to_date)) %>%
-  mutate(start_year = year(start_date),
-         start_month = month(start_date),
-         start_day = day(start_date),
-         start_doy = yday(start_date),
-         end_year = year(end_date),
-         end_month = month(end_date),
-         end_day = day(end_date),
-         end_doy = yday(end_date)) %>%
-  left_join(., ics_209_incidents_max, by = "incident_unique_id") %>%
-  left_join(., latlongs, by = "incident_unique_id") %>%
-  mutate(confidence = ifelse(is.na(confidence), confi, confidence),
-         lat = ifelse(is.na(lat_c), lat.x, lat_c),
-         long = ifelse(is.na(long_c), long.x, long_c),
-         syear = syear.x,
-         cause = cause.x) %>%
-  dplyr::select(-lat_c, -long_c, -confi, -syear.y, -lat.y, -cause.x, -cause.y,
-                -long.y, -lat.x, -long.x, -syear.x, -syear.y)
-
-
-lt_mean <- ics_209_incidents %>%
-  filter(cause != 'Unk') %>%
-  mutate(ignition = cause,
-         discovery_year = start_year) %>%
-  group_by(discovery_year, ignition) %>%
-  summarise(costs_total = sum(costs)) %>%
-  ungroup() %>%
-  group_by(ignition) %>%
-  summarise(lt_mean = mean(costs_total)) %>%
-  ungroup() %>%
-  na.omit()
-
-
-ics209_df <- ics_209_incidents %>%
-  filter(cause != 'Unk') %>%
-  mutate(ignition = cause,
-         discovery_year = start_year) %>%
-  group_by(discovery_year, ignition) %>%
-  summarise(f_cnt = n(),
-            costs = sum(costs),
-            cpf = costs/f_cnt) %>%
-  left_join(., lt_mean, by = 'ignition') %>%
-  mutate(anomalies = costs - lt_mean) %>%
-  ungroup() 
-
+# Spatially join the 209 data to the WUI
+if(!file.exists(file.path(ics_spatial, "ics209_wui_conus.gpkg"))) {
+  wui_shp <- st_read(dsn = file.path(ics_spatial, "ics209_wui_conus.gpkg"),
+                     layer = "wui_conus", quiet= TRUE) %>%
+    st_transform(proj_ea)
+  
+  wui_209 <- st_intersection(conus_209, wui_shp)
+  names(wui_209) %<>% tolower
+  
+  # Write out the shapefile.
+  st_write(wui_209, file.path(ics_spatial, "ics209_wui_conus.gpkg"),
+           driver = "GPKG",
+           update=TRUE)
+} else{
+  wui_209 <- st_read(file.path(ics_spatial, "ics209_wui_conus.gpkg"))
+}
