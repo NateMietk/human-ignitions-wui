@@ -1,358 +1,294 @@
-# Summary stats for overview table ----------------------------------------
-wuw_eco_poly %>%
-  group_by(IGNITION) %>%
-  summarise(n_cnt = n(),
-            mean = mean(FIRE_SIZE),
-            median = median(FIRE_SIZE))
 
-Full_Maxseasons %>%
-  group_by(IGNITION, Class) %>%
-  summarise(nfall = sum(Fall),
-            nwint = sum(Winter),
-            nspr = sum(Spring),
-            nsumm = sum(Summer))
+# How many fires were started by HUMANS in the WUI
+totals <- as.data.frame(fpa_wui) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by() %>%
+  summarise(all_firefreq = n(),
+            all_firearea = sum(fire_size_km2),
+            all_seasonlength = IQR(discovery_doy))
 
-Eco_IQR %>%
-  group_by(Class, IGNITION) %>%
-  summarise(mean_iqr = mean(iqr))
+totals_by_class <- as.data.frame(fpa_wui) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(class_coarse) %>%
+  summarise(totfirefreq = n(),
+            totfirearea = sum(fire_size_km2),
+            totseasonlength = IQR(discovery_doy))
 
-# % WUI Burned by human and lightning ignitions per year
-wuw_eco_bae %>%
-  group_by(FIRE_YEAR, Class) %>%
-  summarise(tot_fire = sum(AREA_km2)) %>%
-  filter(Class == "WUI") %>%
-  mutate(yrly_burn = (tot_fire/784320)*100)
+totals_by_cause_class <- as.data.frame(fpa_wui) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(class_coarse, ignition) %>%
+  summarise(firefreq = n(),
+            firearea = sum(fire_size_km2),
+            seasonlength = IQR(discovery_doy)) %>%
+  left_join(., totals_by_class, by = 'class_coarse') %>%
+  mutate(pct_firefreq = (firefreq/totfirefreq)*100,
+         pct_firearea = (firearea/totfirearea)*100,
+         pct_of_all_firefreq = (firefreq/totals$all_firefreq)*100,
+         pct_of_all_firearea = (firearea/totals$all_firearea)*100)
 
-eco_sum_bae2 <- mean(eco_sum_bae2$yrly_burn)
+# What is the average yearly percent burn per CLASS
+pct_burn_class_ci <- as.data.frame(fpa_bae_wui) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  left_join(., coarse_wuw_area, by = c('decadal', 'class_coarse')) %>%
+  group_by(discovery_year, class_coarse) %>%
+  summarise(sum_burned_area = sum(wui_area_km2, na.rm = TRUE),
+            total_coarse_class_area = first(total_coarse_class_area)) %>%
+  mutate(pct_yrly_burn = (sum_burned_area/total_coarse_class_area)*100) %>%
+  group_by(class_coarse) %>%
+  do(data.frame(rbind(smean.cl.boot(.$pct_yrly_burn, B = 10000)))) 
 
-# Human related consequences
-humcost_cause <- wui_209 %>% 
-  group_by(cause) %>%
-  summarise(totcosts = sum(costs)) %>%
-  as.data.frame(.) %>%
-  dplyr::select(-geom) %>%
-  mutate(pct_t = totcosts/t)
+pct_burn_class_ci %>%
+  transform(class_coarse = factor(class_coarse, levels=c("WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class_coarse, y = Mean)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) 
 
-wui_209 %>% 
-     group_by(Class, cause) %>%
-     summarise(costs = sum(costs)) %>%
-     left_join(., humcost_cause, by = "Class") %>%
-  as.data.frame(.) %>%
-  mutate(pct = costs/totcosts)
+totals_class_ci <- as.data.frame(fpa_bae_wui) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(discovery_year, class_coarse) %>%
+  summarise(sum_burned_area = sum(wui_area_km2, na.rm = TRUE)) %>%
+  group_by(class_coarse) %>%
+  do(data.frame(rbind(smean.cl.boot(.$sum_burned_area, B = 10000)))) 
 
-humdestroy_cause <- wui_209 %>% 
-  filter(cause != "Unk") %>%
-  group_by(cause) %>%
-  summarise(totdestroyed = sum(home.destroyed)) %>%
-  as.data.frame(.) %>%
-  select(-geom)
+totals_class_ci %>%
+  transform(class_coarse = factor(class_coarse, levels=c("WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class_coarse, y = Mean)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) 
 
-humdeath_cause <- wui_209 %>% 
-  filter(cause != "Unk") %>%
-  group_by(cause) %>%
-  summarise(totdeath = sum(fatalities)) %>%
-  as.data.frame(.) %>%
-  select(-geom)
+# What is the average yearly percent burn per CLASS and IGNITION
+pct_burn_class_cause_ci <- as.data.frame(fpa_bae_wui) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(discovery_year, class, ignition) %>%
+  summarise(sum_burned_area = sum(wui_area_km2, na.rm = TRUE),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_yrly_burn = (sum_burned_area/total_class_area)*100) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$pct_yrly_burn, B = 10000)))) 
 
-person_cause <- wui_209 %>% 
-  filter(cause != "Unk") %>%
-  group_by(cause) %>%
-  summarise(totperson = sum(tot.pers)) %>%
-  as.data.frame(.) %>%
-  select(-geom)
+p1 <- pct_burn_class_cause_ci %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) +
+  xlab('Class') + ylab('Average yearly percent burned (%)') +
+  theme_pub() +
+  theme(legend.position = 'none')
 
-wui_209 %>% 
-  group_by(Class, cause) %>%
-  summarise(person = sum(tot.pers)) %>%
-  left_join(., person_cause, by = "cause")
+totals_burn_class_ci <- as.data.frame(fpa_bae_wui) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(discovery_year, class, ignition) %>%
+  summarise(sum_burned_area = sum(wui_area_km2, na.rm = TRUE)) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$sum_burned_area, B = 10000)))) 
 
-aerial_cause <- wui_209 %>% 
-  filter(cause != "Unk") %>%
-  group_by(cause) %>%
-  summarise(totaerial = sum(tot.aerial)) %>%
-  as.data.frame(.) %>%
-  select(-geom)
+p2 <- totals_burn_class_ci %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) +
+  xlab('Class') + ylab('Average yearly burned (km2)') +
+  theme_pub() +
+  theme(legend.position = 'none')
 
-wuw_eco_ICS %>% 
-  group_by(Class, cause) %>%
-  summarise(aerial = sum(tot.aerial)) %>%
-  left_join(., aerial_cause, by = "cause")
+# What is the average yearly percent homes threatened by HUMANS fires started in the WUI
+pct_bu_totals <- as.data.frame(bu_cleaned) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by() %>%
+  summarise(total_bu = sum(bu, na.rm = TRUE))
 
-agency_cause <- wuw_eco_ICS %>% 
-  filter(cause != "Unk") %>%
-  group_by(cause) %>%
-  summarise(totagency = sum(max.agency.support)) %>%
-  as.data.frame(.) %>%
-  select(-geom)
+pct_bu_class_cause_ci <- as.data.frame(bu_cleaned) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(discovery_year, class, ignition) %>%
+  summarise(sum_bu = sum(bu, na.rm = TRUE)) %>%
+  mutate(pct_bu = (sum_bu/pct_bu_totals$total_bu)*100) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$pct_bu, B = 10000)))) 
 
-wuw_eco_ICS %>% 
-  group_by(Class, cause) %>%
-  summarise(agency = sum(max.agency.support)) %>%
-  left_join(., agency_cause, by = "cause")
+p3 <- pct_bu_class_cause_ci %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) +
+  xlab('Class') + ylab('Average yearly threathened housing units via ZTrax (%)') +
+  scale_y_continuous(limits = c(0,3)) +
+  theme_pub() +
+  theme(legend.position = 'none')
 
-# Number of human related costs in the WUI
+pct_house_totals <- as.data.frame(fpa_bae_wui) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by() %>%
+  summarise(total_house = sum(house_units, na.rm = TRUE))
 
-allfires <- wuw_eco_ICS %>% 
-  group_by(syear) %>%
-  summarise(tot_costs = sum(costs))
+per_fire_house_tots <- as.data.frame(fpa_bae_wui) %>%
+  group_by(fpa_id) %>%
+  summarise(per_fire_house = sum(house_units, na.rm = TRUE)) %>%
+  left_join(., fpa_wui, by = 'fpa_id') %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(discovery_year, class, ignition) %>%
+  summarise(sum_house = sum(per_fire_house, na.rm = TRUE)) %>%
+  mutate(pct_house = (sum_house/pct_house_totals$total_house)*100) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$pct_house, B = 10000)))) %>%
+  na.omit()
 
-allfires <- as.data.frame(allfires) %>%
-  select(-geom)
+p4 <- per_fire_house_tots %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) +
+  xlab('Class') + ylab('Average yearly threathened housing units via SILVIS lab (%)') +
+  scale_y_continuous(limits = c(0,3)) +
+  theme_pub() +
+  theme(legend.position = 'none')
 
-yrly_costs_wui_h <- wuw_eco_ICS %>%
-  filter(Class == "WUI" & cause == "Human") %>%
-  group_by(syear) %>%
-  summarise(costs = sum(costs)) %>%
-  left_join(., allfires, by = "syear") %>%
-  mutate(yrly_costs = (costs/tot_costs)*100)
-
-mean_costs_wui_h <- mean(yrly_costs_wui_h$yrly_costs)
-
-# Number of human related homes destroyed in the WUI
-allfires <- wuw_eco_ICS %>% 
-  group_by(syear) %>%
-  summarise(tot_destroy = sum(home.destroyed))
-
-allfires <- as.data.frame(allfires) %>%
-  select(-geom)
-
-yrly_destroy_wui_h <- wuw_eco_ICS %>%
-  filter(Class == "WUI" & cause == "Human") %>%
-  group_by(syear) %>%
-  summarise(destroy = sum(home.destroyed)) %>%
-  left_join(., allfires, by = "syear") %>%
-  mutate(yrly_destroy = (destroy/tot_destroy)*100)
-
-sum_destroy_wui_h <- sum(yrly_destroy_wui_h$destroy)
-mean_destroy_wui_h <- mean(yrly_destroy_wui_h$yrly_destroy)
-
-# Number of human related fatalities in the WUI
-allfires <- wuw_eco_ICS %>% 
-  group_by(syear) %>%
-  summarise(tot_fatalities = sum(fatalities))
-
-allfires <- as.data.frame(allfires) %>%
-  select(-geom)
-
-yrly_fatalities_wui_h <- wuw_eco_ICS %>%
-  filter(Class == "WUI" & cause == "Human") %>%
-  group_by(syear) %>%
-  summarise(deaths = sum(fatalities)) %>%
-  left_join(., allfires, by = "syear") %>%
-  mutate(yrly_fatalities = (deaths/tot_fatalities)*100)
-
-sum_fatalities_wui_h <- sum(yrly_fatalities_wui_h$deaths)
-mean_fatalities_wui_h <- mean(yrly_fatalities_wui_h$yrly_fatalities)
-
-# Number of human related ignitions in the WUI
-allfires <- wuw_eco_poly %>% 
-  summarise(tot_fire = n())
-
-humanWUIfires <- wuw_eco_poly %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(Class, IGNITION) %>% 
-  summarise(tot_fire = n()) %>%
-  filter(Class == "WUI" & IGNITION == "Human")
-
-PctWUIHuamn <- (humanWUIfires$tot_fire/allfires$tot_fire)*100
-
-# Social Impact of human started fires in the WUI
-
-wuw_eco_ICS %>%
-  group_by( cause) %>%
-  summarise(costs = sum(costs),
-            destory = sum(home.destroyed),
-            threat = sum(home.threat),
-            lives = sum(fatalities))
-
-# number of people living in the WUI
-t <- wuw_eco_wui %>%
-  distinct(., BLK10, .keep_all = TRUE) %>%
-  group_by(Class) %>%
-  summarise(pop = sum(POP10),
-            homes = sum(HHU10),
-            area = sum(AREA_km2))
-
-# For the level 1 ecoregions --------------------------------------------
-wui_stat <- wuw_eco_wui %>%
-  mutate(Class = classify_new_categories(WUICLASS10)) %>%
-  group_by(NA_L1NAME, Class) %>%
-  summarise(ClassArea = sum(AREA_km2)) %>%
-  ungroup()  %>%
-  filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") %>%
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  spread(Class, ClassArea)
-
-ff <- wuw_eco_poly %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by( Class, IGNITION) %>% 
-  summarise(tot_fire = n()) %>%
-  ungroup() %>%
-  spread(IGNITION, tot_fire)
-
-bae_stats <- wuw_eco_bae %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(Class, IGNITION) %>% 
-  summarise(burn_area = sum(AREA_km2)) %>%
-  ungroup() %>%
-  spread(IGNITION, burn_area)
-
-Eco_IQRstats <- wuw_eco_poly %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(NA_L1NAME, Class, IGNITION) %>% 
-  summarise(fireseason = IQR(DISCOVERY_DOY)) %>%
-  ungroup() %>%
-  spread(IGNITION, fireseason)
-
-conus_IQRstats <- wuw_eco_poly %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(Class, IGNITION) %>% 
-  summarise(fireseason = IQR(DISCOVERY_DOY)) %>%
-  ungroup() %>%
-  spread(IGNITION, fireseason)
+grid.arrange(p3, p4, nrow = 1)
 
 
-cost_stats <- wuw_eco_ICS %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(Class, Ignition) %>% 
-  summarise(totcosts = sum(costs)) %>%
-  ungroup() %>%
-  spread(Ignition, totcosts)
+# How many homes were threatened by HUMANS fires started in the WUI
+tot_bu_class_cause_ci <- as.data.frame(bu_cleaned) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(discovery_year, class, ignition) %>%
+  summarise(sum_bu = sum(bu, na.rm = TRUE)) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$sum_bu, B = 10000)))) 
 
-hdes_stats <- wuw_eco_ICS %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(NA_L1NAME, Class, Ignition) %>% 
-  summarise(totdes = sum(destroy)) %>%
-  ungroup() %>%
-  spread(Ignition, totdes)
+p5 <- tot_bu_class_cause_ci %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean*0.00001, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower*0.00001, ymax = Upper*0.00001), width=.2,
+                position=position_dodge(.7)) +
+  xlab('Class') + ylab('Average yearly threathened housing units via ZTrax (in 10,000 units)') +
+  scale_y_continuous(limits = c(0,17)) +
+  theme_pub() +
+  theme(legend.position = 'none')
 
-fat_stats <- wuw_eco_ICS %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(NA_L1NAME, Class, Ignition) %>% 
-  summarise(totdea = sum(deaths)) %>%
-  ungroup() %>%
-  spread(Ignition, totdea)
+per_fire_house_tots <- as.data.frame(fpa_bae_wui) %>%
+  group_by(fpa_id) %>%
+  summarise(per_fire_house = sum(house_units, na.rm = TRUE)) %>%
+  left_join(., fpa_wui, by = 'fpa_id') %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(discovery_year, class, ignition) %>%
+  summarise(sum_house = sum(per_fire_house, na.rm = TRUE)) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$sum_house, B = 10000)))) %>%
+  filter(!is.na(class))
 
-# For the state
-wui_stat <- wuw_eco_wui %>%
-  mutate(Class = classify_new_categories(WUICLASS10)) %>%
-  group_by(STUSPS, Class) %>%
-  summarise(ClassArea = sum(AREA_km2)) %>%
-  ungroup()  %>%
-  filter(Class == "WUI" | Class == "VLD" | Class == "Wildlands") %>%
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  spread(Class, ClassArea)
+p6 <- per_fire_house_tots %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean*0.00001, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower*0.00001, ymax = Upper*0.00001), width=.2,
+                position=position_dodge(.7)) +
+  xlab('Class') + ylab('Total threathened housing units via SILVIS lab (in 10,000 units)') +
+  scale_y_continuous(limits = c(0,17)) +
+  theme_pub() +
+  theme(legend.position = 'none')
 
-ff <- wuw_eco_poly %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(STUSPS, Class, IGNITION) %>% 
-  summarise(tot_fire = n()) %>%
-  ungroup() %>%
-  spread(IGNITION, tot_fire) %>%
-  mutate(h_ff = ifelse(is.na(as.numeric(Human)), 0 , as.numeric(Human)),
-         l_ff = ifelse(is.na(as.numeric(Lightning)), 0 , as.numeric(Lightning)),
-         pct_ff = h_ff/(h_ff+l_ff)*100) %>%
-  select(STUSPS, Class, h_ff, l_ff, pct_ff)
+grid.arrange(p5, p6, nrow = 1)
 
-bae_stats <- wuw_eco_bae %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(STUSPS, Class, IGNITION) %>% 
-  summarise(burn_area = sum(AREA_km2)) %>%
-  ungroup() %>%
-  spread(IGNITION, burn_area) %>%
-  mutate(h_bae = ifelse(is.na(as.numeric(Human)), 0 , as.numeric(Human)),
-         l_bae = ifelse(is.na(as.numeric(Lightning)), 0 , as.numeric(Lightning)),
-         pct_bae = h_bae/(h_bae+l_bae)*100) %>%
-  select(STUSPS, Class, h_bae, l_bae, pct_bae)
+# What are the housing unit relationships for MTBS fires only?
+pct_bu_totals_mtbs <- as.data.frame(bu_cleaned) %>%
+  filter(!is.na(mtbs_id)) %>% 
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by() %>%
+  summarise(total_bu = sum(bu, na.rm = TRUE))
 
-Eco_IQRstats <- wuw_eco_poly %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(STUSPS, Class, IGNITION) %>% 
-  summarise(fireseason = IQR(DISCOVERY_DOY)) %>%
-  ungroup() %>%
-  spread(IGNITION, fireseason) %>%
-  mutate(h_fsea = ifelse(is.na(as.numeric(Human)), 0 , as.numeric(Human)),
-         l_fsea = ifelse(is.na(as.numeric(Lightning)), 0 , as.numeric(Lightning)),
-         pct_fsea = ifelse(h_fsea > l_fsea, h_fsea/(l_fsea)*100, "--")) %>%
-  select(STUSPS, Class, h_fsea, l_fsea, pct_fsea)
+pct_bu_class_cause_ci_mtbs <- as.data.frame(bu_cleaned) %>%
+  filter(!is.na(mtbs_id)) %>% 
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(discovery_year, class, ignition) %>%
+  summarise(sum_bu = sum(bu, na.rm = TRUE)) %>%
+  mutate(pct_bu = (sum_bu/pct_bu_totals_mtbs$total_bu)*100) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$pct_bu, B = 10000)))) 
 
-conus_IQRstats <- wuw_eco_poly %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(Class, IGNITION) %>% 
-  summarise(fireseason = IQR(DISCOVERY_DOY)) %>%
-  ungroup() %>%
-  spread(IGNITION, fireseason)
+p7 <- pct_bu_class_cause_ci_mtbs %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) +
+  xlab('Class') + ylab('Average yearly threathened housing units via ZTrax and MTBS (%)') +
+  scale_y_continuous(limits = c(0,4)) +
+  theme_pub() +
+  theme(legend.position = 'none')
 
+pct_house_totals_sil_mtbs <- as.data.frame(fpa_bae_wui) %>%
+  filter(!is.na(mtbs_id)) %>% 
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by() %>%
+  summarise(total_house = sum(house_units, na.rm = TRUE))
 
-cost_stats <- wuw_eco_ICS %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(STUSPS, Class, Ignition) %>% 
-  summarise(totcosts = sum(costs)) %>%
-  ungroup() %>%
-  spread(Ignition, totcosts) %>%
-  mutate(h_cost = ifelse(is.na(as.numeric(Human)), 0 , as.numeric(Human)),
-         l_cost = ifelse(is.na(as.numeric(Lightning)), 0 , as.numeric(Lightning)),
-         pct_cost = h_cost/(h_cost+l_cost)*100) %>%
-  select(STUSPS, Class, h_cost, l_cost, pct_cost)
+per_fire_house_tots_sil_mtbs <- as.data.frame(fpa_bae_wui) %>%
+  filter(!is.na(mtbs_id)) %>% 
+  group_by(fpa_id) %>%
+  summarise(per_fire_house = sum(house_units, na.rm = TRUE)) %>%
+  left_join(., fpa_wui, by = 'fpa_id') %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(discovery_year, class, ignition) %>%
+  summarise(sum_house = sum(per_fire_house, na.rm = TRUE)) %>%
+  mutate(pct_house = (sum_house/pct_house_totals_sil_mtbs$total_house)*100) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$pct_house, B = 10000)))) %>%
+  filter(!is.na(class))
 
-hdes_stats <- wuw_eco_ICS %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(STUSPS, Class, Ignition) %>% 
-  summarise(totdes = sum(destroy)) %>%
-  ungroup() %>%
-  spread(Ignition, totdes) %>%
-  mutate(h_des = ifelse(is.na(as.numeric(Human)), 0 , as.numeric(Human)),
-         l_des = ifelse(is.na(as.numeric(Lightning)), 0 , as.numeric(Lightning)),
-         pct_des = h_des/(h_des+l_des)*100) %>%
-  select(STUSPS, Class, h_des, l_des, pct_des)
+p8 <- per_fire_house_tots_sil_mtbs %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) +
+  scale_y_continuous(limits = c(0,4)) +
+  xlab('Class') + ylab('Average yearly threathened housing units via SILVIS and MTBS (%)') +
+  theme_pub() +
+  theme(legend.position = 'none')
 
-fat_stats <- wuw_eco_ICS %>% 
-  transform(Class = factor(Class, levels = c("WUI", "VLD","Wildlands"))) %>%
-  group_by(STUSPS, Class, Ignition) %>% 
-  summarise(totdea = sum(deaths)) %>%
-  ungroup() %>%
-  spread(Ignition, totdea) %>%
-  mutate(h_fat = ifelse(is.na(as.numeric(Human)), 0 , as.numeric(Human)),
-         l_fat = ifelse(is.na(as.numeric(Lightning)), 0 , as.numeric(Lightning)),
-         pct_fat = h_fat/(h_fat+l_fat)*100) %>%
-  select(STUSPS, Class, h_fat, l_fat, pct_fat)
-
-State_Stats <- ff %>%
-  left_join(., bae_stats, by = c("STUSPS", "Class")) %>%
-  left_join(., Eco_IQRstats, by = c("STUSPS", "Class")) %>%
-  left_join(., cost_stats, by = c("STUSPS", "Class")) %>%
-  left_join(., hdes_stats, by = c("STUSPS", "Class")) %>%
-  left_join(., fat_stats, by = c("STUSPS", "Class")) %>%
-  mutate(h_ff = round(ifelse(is.na(as.numeric(h_ff)), 0 , as.numeric(h_ff)),2),
-         l_ff = round(ifelse(is.na(as.numeric(l_ff)), 0 , as.numeric(l_ff)),2),
-         pct_ff = round(ifelse(is.na(as.numeric(pct_ff)), 0 , as.numeric(pct_ff)),2),
-         h_bae = round(ifelse(is.na(as.numeric(h_bae)), 0 , as.numeric(h_bae)),2),
-         l_bae = round(ifelse(is.na(as.numeric(l_bae)), 0 , as.numeric(l_bae)),2),
-         pct_bae = round(ifelse(is.na(as.numeric(pct_bae)), 0 , as.numeric(pct_bae)),2),
-         h_fsea = round(ifelse(is.na(as.numeric(h_fsea)), 0 , as.numeric(h_fsea)),2),
-         l_fsea = round(ifelse(is.na(as.numeric(l_fsea)), 0 , as.numeric(l_fsea)),2),
-         pct_fsea = round(ifelse(is.na(as.numeric(pct_fsea)), 0 , as.numeric(pct_fsea)),2),
-         h_cost = round(ifelse(is.na(as.numeric(h_cost)), 0 , as.numeric(h_cost)),2),
-         l_cost = round(ifelse(is.na(as.numeric(l_cost)), 0 , as.numeric(l_cost)),2),
-         pct_cost = round(ifelse(is.na(as.numeric(pct_cost)), 0 , as.numeric(pct_cost)),2), 
-         h_des = round(ifelse(is.na(as.numeric(h_des)), 0 , as.numeric(h_des)),2),
-         l_des = round(ifelse(is.na(as.numeric(l_des)), 0 , as.numeric(l_des)),2),
-         pct_des = round(ifelse(is.na(as.numeric(pct_des)), 0 , as.numeric(pct_des)),2),
-         h_fat = round(ifelse(is.na(as.numeric(h_fat)), 0 , as.numeric(h_fat)),2),
-         l_fat = round(ifelse(is.na(as.numeric(l_fat)), 0 , as.numeric(l_fat)),2),
-         pct_fat = round(ifelse(is.na(as.numeric(pct_fat)), 0 , as.numeric(pct_fat)),2))
-
-State_Stats_WUI_Wild <- State_Stats %>%
-  filter(Class != "VLD")
-
-State_Stats_VLD <- State_Stats %>%
-  filter(Class == "VLD")              
-
-State_Stats_CONUS <- State_Stats %>%
-  select(., -STUSPS) %>%
-  group_by(Class) %>%
-  summarise_each(funs(sum)) %>%
-  ungroup()
+grid.arrange(p7, p8, nrow = 1)
 
 
+# How many homes were threatened by HUMANS fires started in the WUI
+per_fire_bu_total <- as.data.frame(bu_cleaned) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$bu, B = 10000)))) 
 
+p5 <- per_fire_bu_total %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) +
+  xlab('Class') + ylab('Average threathened housing units per fire via ZTrax') +
+  scale_y_continuous(limits = c(0,170)) +
+  theme_pub() +
+  theme(legend.position = 'none')
+
+per_fire_house_total <- as.data.frame(fpa_bae_wui) %>%
+  group_by(fpa_id) %>%
+  summarise(per_fire_house = sum(house_units, na.rm = TRUE)) %>%
+  left_join(., fpa_wui, by = 'fpa_id') %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(class, ignition) %>%
+  do(data.frame(rbind(smean.cl.boot(.$per_fire_house, B = 10000)))) %>%
+  filter(!is.na(class))
+
+p6 <- per_fire_house_total %>%
+  transform(class = factor(class, levels=c('Intermix WUI', "Interface WUI", "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = class, y = Mean, fill = ignition)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width=.2,
+                position=position_dodge(.7)) +
+  xlab('Class') + ylab('Average threathened housing units per fire via SILVIS lab') +
+  scale_y_continuous(limits = c(0,170)) +
+  theme_pub() +
+  theme(legend.position = 'none')
+
+grid.arrange(p5, p6, nrow = 1)
