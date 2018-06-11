@@ -108,10 +108,6 @@ if (!exists('ecoreg')) {
   } else {
     ecoreg_plain <- st_read( file.path(ecoregion_out, 'us_eco_plain.gpkg'))
     ecoreg <- sf::st_read(file.path(ecoregion_out, 'us_eco_l3.gpkg'))
-    
-    ecoreg_swse <- ecoreg %>%
-      group_by(regions) %>%
-      summarize()
   }
 }
 
@@ -343,9 +339,7 @@ if (!exists('fpa_wui')) {
   } else {
     
     fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg")) %>%
-      mutate(
-             FIRE_SIZE_km2 = FIRE_SIZE_km2.x,
-             seasons = classify_seasons(DISCOVERY_DOY),
+      mutate(seasons = classify_seasons(DISCOVERY_DOY),
              ten_year = ifelse(DISCOVERY_YEAR >= 1994 & DISCOVERY_YEAR <= 2004, '1994-2004',
                                ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA)),
              bidecadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
@@ -374,7 +368,7 @@ if (!exists('fpa_wui')) {
                                      ifelse( Class == 'Intermix WUI' | Class == 'Interface WUI', 'WUI', as.character(Class))),
              size = classify_fire_size_cl(FIRE_SIZE_km2),
              regions = ifelse(regions == 'East', 'North East', as.character(regions))) %>%
-      dplyr::select(-FIRE_SIZE_km2.x, -FIRE_SIZE_km2.y, -stusps.1, -Area_km2) %>%
+      dplyr::select(-stusps.1) %>%
       dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)')) %>%
       setNames(tolower(names(.))) %>%
       left_join(., wuw_area, by = c('class','decadal')) %>%
