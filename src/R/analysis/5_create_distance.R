@@ -129,7 +129,8 @@ if (!file.exists(file.path(distance_out, paste0('distance_fpa.rds')))) {
     do.call(rbind, .) %>%
     as.data.frame() %>%
     dplyr::select(FPA_ID, distance_to_urban) %>%
-    left_join(fpa_wui, ., by = 'FPA_ID')
+    setNames(tolower(names(.))) %>% 
+    left_join(fpa_wui, ., by = 'fpa_id')
 
     write_rds(distance_rds,
             file.path(
@@ -142,6 +143,5 @@ if (!file.exists(file.path(distance_out, paste0('distance_fpa.rds')))) {
 } else {
   distance_rds <- read_rds(file.path(
                              distance_out,
-                             paste0('distance_fpa.rds')
-                           ))
+                             paste0('distance_fpa.rds')))
 }
