@@ -293,6 +293,7 @@ if (!exists('fpa_wui')) {
                             ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
                                    ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
                                           NA))),
+             class = classify_wui(class), 
              seasons = classify_seasons(DISCOVERY_DOY),
              ten_year = ifelse(DISCOVERY_YEAR >= 1994 & DISCOVERY_YEAR <= 2004, '1994-2004',
                                ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA)),
