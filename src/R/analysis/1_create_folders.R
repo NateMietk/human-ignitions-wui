@@ -55,6 +55,7 @@ fishnet_path <- file.path(bounds_crt, "fishnet")
 
 # for pushing and pulling to s3 using the system function
 s3_base <- 's3://earthlab-natem/human-ignitions-wui'
+s3_distance <- 's3://earthlab-natem/human-ignitions-wui/anthro/wui/distance_from_urban'
 s3_bounds_prefix <- 's3://earthlab-natem/human-ignitions-wui/bounds'
 s3_anthro_prefix <- 's3://earthlab-natem/human-ignitions-wui/anthro'
 s3_fire_prefix <- 's3://earthlab-natem/human-ignitions-wui/fire'
