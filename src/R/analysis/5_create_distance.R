@@ -117,8 +117,7 @@ for (i in decades) {
               paste0('distance_fpa_', i, '.rds')
             ))
   system(
-    'aws s3 sync data/anthro/wui/distance_from_urban s3://earthlab-natem/human-ignitions-wui/anthro/wui/distance_from_urban'
-  )
+    paste0('aws s3 sync ', distance_out, ' ', s3_distance))
 }
 
 if (!file.exists(file.path(distance_out, paste0('distance_fpa.rds')))) {
@@ -138,8 +137,8 @@ if (!file.exists(file.path(distance_out, paste0('distance_fpa.rds')))) {
               paste0('distance_fpa.rds')
             ))
   system(
-    'aws s3 sync data/anthro/wui/distance_from_urban s3://earthlab-natem/human-ignitions-wui/anthro/wui/distance_from_urban'
-  )
+    paste0('aws s3 sync ', distance_out, ' ', s3_distance))
+  
 } else {
   distance_rds <- read_rds(file.path(
                              distance_out,
