@@ -1,15 +1,4 @@
 
-
-bu_cleaned <- sum_fpa_bu %>%
-  gather(variable, bu, -ID_sp, -fpa_id) %>%
-  separate(variable,
-           into = c("statistic", 'tmp', "year"),
-           sep = "_") %>%
-  dplyr::select(-tmp) %>%
-  left_join(., as.data.frame(fpa_wui),
-            by = "fpa_id") %>%
-  filter(fire_size_km2 > 0.00025)
-
 # Prep CONUS and REGIONS ---------------------------------------------
 
 region_bu_df <- sum_ecoregions_bu %>%
@@ -311,7 +300,7 @@ fpa_cause_bu_anom <- fpa_cause_bu_df %>%
     size = 1
   ) +
   scale_color_manual(values = c("#b2182b",
-                               '#2166ac')) +
+                                '#2166ac')) +
   theme_pub() +
   xlab("Year") + ylab("Homes threatened by wildfire anomalies (in 100,000 units)") +
   # ggtitle('(b) Proportion of structures contained \nwithin wildfire to total') +
