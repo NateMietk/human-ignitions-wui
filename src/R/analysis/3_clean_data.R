@@ -284,10 +284,11 @@ if (!exists('fpa_fire')) {
 # Spatially join the fpa database to the WUI
 if (!exists('fpa_wui')) {
   if(!file.exists(file.path(fire_pnt, "fpa_wui_conus.gpkg"))) {
-    fpa_wui <- fpa_fire %>%
+    fpa_wui_step1 <- fpa_fire %>%
       st_intersection(., wui) %>%
       st_intersection(., bounds) %>%
-      st_make_valid()  %>%
+      st_make_valid()  
+    fpa_wui <- fpa_wui_step1 %>%
       mutate(class = ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
                             ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
                                    ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
@@ -321,11 +322,9 @@ if (!exists('fpa_wui')) {
                                      ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))),
              size = classify_fire_size_cl(FIRE_SIZE_km2),
              regions = ifelse(regions == 'East', 'North East', as.character(regions))) %>%
-      dplyr::select(-stusps.1) %>%
-      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)')) %>%
       setNames(tolower(names(.))) %>%
-      left_join(., wuw_area, by = c('class','decadal')) %>%
-      left_join(., coarse_wuw_area, by = c('class_coarse','decadal'))
+      dplyr::select(-stusps.1) %>%
+      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|water|shape)'))
     
     st_write(fpa_wui, file.path(fire_pnt, "fpa_wui_conus.gpkg"),
              driver = "GPKG", delete_layer = TRUE)
@@ -334,7 +333,10 @@ if (!exists('fpa_wui')) {
     
   } else {
     
-    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg"))
+    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg")) %>%
+      left_join(., wuw_area, by = c('class','decadal')) %>%
+      left_join(., coarse_wuw_area, by = c('class_coarse','decadal'))
+    
   }
 }
 
