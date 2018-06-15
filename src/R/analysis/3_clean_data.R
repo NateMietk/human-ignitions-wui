@@ -297,7 +297,6 @@ if (!exists('fpa_wui')) {
                             ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
                                    ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
                                           NA)))),
-             seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
              ten_year = as.factor(ifelse(DISCOVERY_YEAR >= 1994 & DISCOVERY_YEAR <= 2004, '1994-2004',
                                ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA))),
              bidecadal = as.factor(ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
@@ -324,6 +323,7 @@ if (!exists('fpa_wui')) {
                                            ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HHU2010, NA ))),
              class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
                                      ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))),
+             seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
              size = as.factor(classify_fire_size_cl(FIRE_SIZE_km2)),
              regions = as.factor(ifelse(regions == 'East', 'North East', as.character(regions)))) %>%
       setNames(tolower(names(.))) %>%
