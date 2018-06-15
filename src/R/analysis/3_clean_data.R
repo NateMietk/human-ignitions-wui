@@ -235,18 +235,23 @@ if (!exists('wui_area')) {
 wuw_area <- read_csv(file.path(wui_out, 'wui_areas.csv')) %>%
   dplyr::select(-X1) %>%
   gather(year, total_class_area, -Class) %>%
-  mutate(decadal = as.numeric(gsub('area_', '', year)),
+  mutate(decadal = as.factor((gsub('area_', '', year))),
          class = as.factor(Class)) %>%
   dplyr::select(-year, -Class)
 
 coarse_wuw_area <- read_csv(file.path(wui_out, 'wui_areas.csv')) %>%
   dplyr::select(-X1) %>%
   gather(year, total_coarse_class_area, -Class) %>%
-  mutate(decadal = as.numeric(gsub('area_', '', year)),
+  mutate(decadal = as.factor((gsub('area_', '', year))),
          class = as.factor(Class),
-         class_coarse =  ifelse(class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
-                                ifelse(class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))) %>%
-  dplyr::select(-year, -Class, -class)
+         class_coarse =  as.factor(ifelse(class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
+                                ifelse(class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))))) %>%
+  dplyr::select(-year, -Class, -class) %>%
+  group_by(decadal, class_coarse) %>%
+  summarise(total_coarse_class_area = sum(total_coarse_class_area))
+
+wuw <- wuw_area %>%
+  left_join(., coarse_wuw_area, by = 'decadal')
 
 
 # Prep FPA-FOD ---------------------------------------------------------
@@ -255,7 +260,7 @@ if (!exists('fpa_fire')) {
   if(!file.exists(file.path(fire_pnt, "fpa_conus.gpkg"))) {
     fpa_fire <- st_read(dsn = file.path(fpa_prefix, "Data", "FPA_FOD_20170508.gdb"),
                         layer = "Fires", quiet= FALSE) %>%
-      filter(!(STATE %in% c("Alaska", "Hawaii", "Puerto Rico") & FIRE_SIZE >= 0.1)) %>%
+      filter(!(STATE %in% c("Alaska", "Hawaii", "Puerto Rico"))) %>%
       dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME,
                     FIRE_YEAR, DISCOVERY_DATE, DISCOVERY_DOY, STAT_CAUSE_DESCR, FIRE_SIZE, STATE) %>%
       mutate(IGNITION = ifelse(STAT_CAUSE_DESCR == "Lightning", "Lightning", "Human"),
@@ -276,8 +281,7 @@ if (!exists('fpa_fire')) {
                   fire_crt, " ",
                   s3_fire_prefix))
   } else {
-    fpa_fire <- st_read(dsn = file.path(fire_pnt, "fpa_conus.gpkg")) %>%
-      st_transform(proj_ea)
+    fpa_fire <- st_read(dsn = file.path(fire_pnt, "fpa_conus.gpkg")) 
   }
 }
 
@@ -289,24 +293,23 @@ if (!exists('fpa_wui')) {
       st_intersection(., bounds) %>%
       st_make_valid()  
     fpa_wui <- fpa_wui_step1 %>%
-      mutate(class = ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
+      mutate(class = as.factor(ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
                             ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
                                    ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
-                                          NA))),
-             class = classify_wui(class), 
-             seasons = classify_seasons(DISCOVERY_DOY),
-             ten_year = ifelse(DISCOVERY_YEAR >= 1994 & DISCOVERY_YEAR <= 2004, '1994-2004',
-                               ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA)),
-             bidecadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
+                                          NA)))),
+             seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
+             ten_year = as.factor(ifelse(DISCOVERY_YEAR >= 1994 & DISCOVERY_YEAR <= 2004, '1994-2004',
+                               ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA))),
+             bidecadal = as.factor(ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
                                 ifelse(DISCOVERY_YEAR >= 1996 & DISCOVERY_YEAR <= 2000, 2000,
                                        ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2005, 2005,
                                               ifelse(DISCOVERY_YEAR >= 2006 & DISCOVERY_YEAR <= 2010, 2010,
                                                      ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2015,
-                                                            DISCOVERY_YEAR ))))),
-             decadal = ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 2000, 1990,
+                                                            DISCOVERY_YEAR )))))),
+             decadal = as.factor(ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 2000, 1990,
                               ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2010, 2000,
                                      ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2010,
-                                            DISCOVERY_YEAR ))),
+                                            DISCOVERY_YEAR )))),
              number_of_persons = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POP1990,
                                          ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POP2000,
                                                  ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POP2010, NA))),
@@ -319,13 +322,14 @@ if (!exists('fpa_wui')) {
              house_units = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, HHU1990,
                                    ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HHU2000,
                                            ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HHU2010, NA ))),
-             class_coarse =  ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
-                                     ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))),
-             size = classify_fire_size_cl(FIRE_SIZE_km2),
-             regions = ifelse(regions == 'East', 'North East', as.character(regions))) %>%
+             class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
+                                     ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))),
+             size = as.factor(classify_fire_size_cl(FIRE_SIZE_km2)),
+             regions = as.factor(ifelse(regions == 'East', 'North East', as.character(regions)))) %>%
       setNames(tolower(names(.))) %>%
       dplyr::select(-stusps.1) %>%
-      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|water|shape)'))
+      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|water|shape)')) %>%
+      left_join(., wuw, by = c('class', 'class_coarse', 'decadal'))
     
     st_write(fpa_wui, file.path(fire_pnt, "fpa_wui_conus.gpkg"),
              driver = "GPKG", delete_layer = TRUE)
@@ -334,9 +338,7 @@ if (!exists('fpa_wui')) {
     
   } else {
     
-    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg")) %>%
-      left_join(., wuw_area, by = c('class','decadal')) %>%
-      left_join(., coarse_wuw_area, by = c('class_coarse','decadal'))
+    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg")) 
     
   }
 }
