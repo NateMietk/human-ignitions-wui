@@ -292,3 +292,93 @@ p6 <- per_fire_house_total %>%
   theme(legend.position = 'none')
 
 grid.arrange(p5, p6, nrow = 1)
+
+
+
+## How different are the SILVIS housing estimates from the ZTrax
+
+decade_silvis_vs_ztrax <- bu_wui_cleaned %>%
+  group_by(year) %>%
+  summarise(ztrax = sum(bu, na.rm = TRUE),
+            silvis = sum(house_units, na.rm = TRUE)) %>%
+  mutate(year = as.factor(year))  %>%
+  gather(housing, value = c('ztrax', 'silvis'), -year) %>%
+  mutate(value = `c("ztrax", "silvis")`) %>% dplyr::select(-`c("ztrax", "silvis")`) %>%
+  ggplot(aes(x = year, y = value*0.0000001, fill = housing)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  xlab('Year') + ylab('Total number of housing units reported (in 1 million units)') +
+  #scale_y_continuous(limits = c(0,170)) +
+  theme_pub()
+
+overall_sums <- bu_wui_cleaned %>%
+  group_by(class, year) %>%
+  summarise(ztrax = sum(bu, na.rm = TRUE),
+            silvis = sum(house_units, na.rm = TRUE)) %>%
+  gather(housing, value = c('ztrax', 'silvis'), -class, -year) %>%
+  mutate(value = `c("ztrax", "silvis")`) %>% dplyr::select(-`c("ztrax", "silvis")`) %>%
+  ggplot(aes(x = year, y = value*0.0000001, fill = housing)) +
+  geom_bar(stat = 'identity', position=position_dodge(.5)) +
+  xlab('Year') + ylab('Difference of Ztrax and SILVIS (in 1 million units)') +
+  #scale_y_continuous(limits = c(0,170)) +
+  theme_pub() +
+  # theme(legend.position = 'none') + 
+  facet_wrap(~ class)
+
+overall_sums2 <- bu_wui_cleaned %>%
+  group_by(class, year) %>%
+  summarise(ztrax = sum(bu, na.rm = TRUE),
+            silvis = sum(house_units, na.rm = TRUE)) %>%
+  mutate(pct_difference = ztrax-silvis) %>%
+  ggplot(aes(x = year, y = pct_difference*0.0000001)) +
+  geom_bar(stat = 'identity', position=position_dodge(.5)) +
+  xlab('Year') + ylab('Difference of Ztrax and SILVIS (in 1 million units)') +
+  #scale_y_continuous(limits = c(0,170)) +
+  theme_pub() +
+  # theme(legend.position = 'none') + 
+  facet_wrap(~ class)
+
+grid.arrange(overall_sums, overall_sums2, nrow = 1)
+
+
+
+total <- as.data.frame(wui_209) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  filter(cause != 'Unk') %>%
+  group_by() %>%
+  summarise(total_costs = sum(costs))
+
+pct_bu_totals <- as.data.frame(bu_cleaned) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by() %>%
+  summarise(total_bu = sum(bu, na.rm = TRUE))
+
+total_costs <- as.data.frame(wui_209) %>%
+  filter(cause != 'Unk') %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(class) %>%
+  summarise(costs = sum(costs)) %>%
+  ungroup() %>%
+  mutate(pct_costs = costs/total$total_costs*100) %>%
+  ggplot(aes(x = class, y = pct_costs)) +
+  geom_bar(stat = 'identity', position=position_dodge(.5)) +
+  xlab('Class') + ylab('Percent of total costs (%)') +
+  theme_pub() 
+
+pct_bu <- as.data.frame(bu_cleaned) %>%
+  filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
+  group_by(class, ignition) %>%
+  summarise(sum_bu = sum(bu, na.rm = TRUE)) %>%
+  mutate(pct_bu = (sum_bu/pct_bu_totals$total_bu)*100) %>%
+  ggplot(aes(x = class, y = pct_bu)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  xlab('Class') + ylab('Percent of total threathened housing units (%)') +
+  theme_pub() 
+
+grid.arrange(total_costs, pct_bu, nrow = 1)  
+
+
+
+
+
+
+
