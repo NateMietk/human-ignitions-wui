@@ -32,7 +32,9 @@ if (!exists('sum_ecoregions_bu')) {
       summarise() %>%
       st_cast('POLYGON')
     
-    sum_ecoregions_bu <- bu_velox$extract(sp = ecoregions, fun = function(x) sum(x, na.rm=TRUE), small = TRUE, df = TRUE) %>%
+    sum_ecoregions_bu <- bu_velox$extract(sp = ecoregions, 
+                                          fun = function(x) sum(x, na.rm=TRUE), 
+                                          small = TRUE, df = TRUE) %>%
       as_tibble() %>%
       mutate(us_l3name = as.data.frame(ecoregions)$us_l3name,
              sum_bu_1990 = X1,
@@ -68,20 +70,22 @@ if (!exists('sum_wui_bu')) {
         system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
         
       } else {
-        wui_projzt <- 
+        wui_zt <- 
           st_read(file.path(wui_out, "wui_bounds_ztrax_projection.gpkg"))
       }
     }
     
-    sum_wui_bu <- bu_velox$extract(sp = wui_zt, fun = function(x) sum(x, na.rm=TRUE), small = TRUE, df = TRUE) %>%
+    sum_wui_bu <- bu_velox$extract(sp = wui_zt, 
+                                   fun = function(x) sum(x, na.rm = TRUE), 
+                                   small = TRUE, df = TRUE) %>%
       as_tibble() %>%
       mutate(BLK10 = as.data.frame(wui_zt)$BLK10,
              sum_bu_1990 = X1,
-             sum_bu_1995 = X1,
-             sum_bu_2000 = X1,
-             sum_bu_2005 = X1,
-             sum_bu_2010 = X1,
-             sum_bu_2015 = X1) %>%
+             sum_bu_1995 = X2,
+             sum_bu_2000 = X3,
+             sum_bu_2005 = X4,
+             sum_bu_2010 = X5,
+             sum_bu_2015 = X6) %>%
       dplyr::select(-starts_with('X'))
     
     write_rds(sum_wui_bu, file.path(bu_out, 'summary_wui_bu.rds'))
