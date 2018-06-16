@@ -9,7 +9,7 @@ if (!exists("usa_shp")){
                        outname = "usa") %>%
     filter(!(NAME %in% c("Alaska", "Hawaii", "Puerto Rico"))) %>%
     st_transform(proj_ea) %>%  # e.g. US National Atlas Equal Area
-    dplyr::select(STUSPS) %>%
+    dplyr::select(STATEFP, STUSPS) %>%
     setNames(tolower(names(.)))
 }
 
