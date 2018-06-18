@@ -11,7 +11,7 @@ if (!exists("usa_shp")){
     st_transform(proj_ea) %>%  # e.g. US National Atlas Equal Area
     dplyr::select(STATEFP, STUSPS) %>%
     setNames(tolower(names(.)))
-}
+  }
 
 # Import the Level 1 Ecoregions
 if (!exists('ecoregl1')) {

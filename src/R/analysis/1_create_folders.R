@@ -33,7 +33,11 @@ anthro_out <- file.path(prefix, "anthro")
 wui_out <- file.path(anthro_out, "wui")
 distance_out <- file.path(wui_out, "distance_from_urban")
 ztrax_out <- file.path(anthro_out, 'ztrax')
-zpoints <- file.path(ztrax_out, 'ztrax_points')
+zpoints_out <- file.path(ztrax_out, 'ztrax_points')
+ztrax_res_out <- file.path(zpoints_out, 'wui_residential_rds')
+cleaned_ztrax_out <- file.path(zpoints_out, 'cleaned_wui_residential_rds')
+zpoints <- file.path(zpoints_out, 'raw_residential_gpkg')
+
 bui_out <- file.path(ztrax_out, 'built_up_intensity')
 bui_out <- file.path(bui_out, 'BUI')
 bu_out <- file.path(ztrax_out, 'building_counts')
@@ -66,5 +70,6 @@ s3_raw_prefix <- 's3://earthlab-natem/human-ignitions-wui/raw'
 # Check if directory exists for all variable aggregate outputs, if not then create
 var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt, ztrax_out, ztrax_prefix,
                 bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out, bui_out, bu_out,
-                swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly, zpoints)
+                swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly, 
+                zpoints_out, zpoints, ztrax_res_out, cleaned_ztrax_out)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
