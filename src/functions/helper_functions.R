@@ -250,8 +250,7 @@ classify_bu <-  function(x) {
          ifelse(x >= 25 & x < 250, "25 - 250",
                 ifelse(x >= 250 & x < 1000, "250 - 1000",
                        ifelse(x >= 1000 & x < 10000, "1000 - 10000",
-                              ifelse(x >= 10000 & x < 100000, "10000 - 100000",
-                                     "> 100000")))))
+                              "> 10000"))))
 }
 
 classify_bu_per_fire <-  function(x) {

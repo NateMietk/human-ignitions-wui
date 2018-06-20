@@ -26,6 +26,48 @@ totals_by_cause_class <- as.data.frame(fpa_wui) %>%
          pct_of_all_firefreq = (firefreq/totals$all_firefreq)*100,
          pct_of_all_firearea = (firearea/totals$all_firearea)*100)
 
+# Cost of human-started wildfires
+
+as.data.frame(wui_209) %>%
+  group_by(cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(percent = costs/sum(costs))
+
+# Cost of human-started wildfires originating in the WUI
+
+as.data.frame(wui_209) %>%
+  filter(class == 'WUI') %>%
+  group_by(cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(percent = costs/sum(costs))
+
+# How many wildfires originating in the WUI
+
+as_tibble(as.data.frame(fpa_wui)) %>%
+  group_by(class_coarse) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(percent = n/sum(n))
+
+# Residential homes threatened by human-started wildfires
+
+as_tibble(as.data.frame(cleaned_fpa_decades)) %>%
+  filter(!is.na(year)) %>%
+  filter(year >= 1999) %>%
+  group_by(ignition) %>%
+  summarise(threat = sum(threatened_residential_built_up)) %>%
+  mutate(percent = threat/sum(threat))
+
+# Residential homes threatened by human-started wildfires originating in the WUI
+
+as_tibble(as.data.frame(cleaned_fpa_decades)) %>%
+  filter(class_coarse == 'WUI' & !is.na(year)) %>%
+  filter(year >= 1999) %>%
+  group_by(ignition) %>%
+  summarise(threat = sum(threatened_residential_built_up)) %>%
+  mutate(percent = threat/sum(threat))
+            
+            
 # What is the average yearly percent burn per CLASS
 pct_burn_class_ci <- as.data.frame(fpa_bae_wui) %>%
   filter(!(class_coarse %in% c('Other', 'Urban'))) %>%
@@ -375,8 +417,72 @@ pct_bu <- as.data.frame(bu_cleaned) %>%
 grid.arrange(total_costs, pct_bu, nrow = 1)  
 
 
+g <- as.data.frame(wui_209) %>%
+  filter(class != 'Other') %>%
+  group_by(eyear, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  ggplot(aes(group = cause, fill = cause)) +
+  geom_bar(aes(x = eyear, y = costs), stat = 'identity', position=position_dodge(.7)) +
+  xlab('Class') + ylab('Percent of total threathened housing units (%)') +
+  theme_pub() 
+
+g <- as.data.frame(cleaned_fpa_decades) %>%
+  filter(class_coarse != 'Other' & !is.na(year)) %>%
+  group_by(year, ignition) %>%
+  summarise(threat = sum(threatened_residential_built_up),
+            burned_area = sum(fire_size_km2)) %>%
+  ggplot(aes(group = ignition, fill = ignition)) +
+  geom_bar(aes(x = year, y = burned_area), stat = 'identity', position=position_dodge(.7)) +
+  xlab('Class') + ylab('Percent of total threathened housing units (%)') +
+  theme_pub() 
+
+g <- as.data.frame(cleaned_fpa_decades) %>%
+  filter(class_coarse != 'Other' & !is.na(year)) %>%
+  group_by(year, ignition) %>%
+  summarise(threat = sum(threatened_residential_built_up),
+            burned_area = sum(fire_size_km2)) %>%
+  ggplot(aes(group = ignition, fill = ignition)) +
+  geom_bar(aes(x = year, y = threat), stat = 'identity', position=position_dodge(.7)) +
+  xlab('Class') + ylab('Percent of total threathened housing units (%)') +
+  theme_pub() 
+
+gg <- as.data.frame(cleaned_fpa_decades) %>%
+  filter(!is.na(year)) %>%
+  group_by(fishid50k) %>%
+  summarise(threat = sum(threatened_residential_built_up, na.rm = TRUE)) %>%
+  mutate(quant = quantile(threat, probs=0.99)) %>%
+  filter(threat < quant) %>%
+  left_join(fishnet_50k, ., by = 'fishid50k') %>%
+  group_by(fishid50k) %>%
+  summarise(threat = sum(threat, na.rm = TRUE)) %>%
+  na.omit(threat) %>%
+  st_cast('POLYGON')
+gg %>%
+  ggplot() +
+  geom_sf(aes(fill = threat_class, colour = threat_class))
 
 
 
+library(spdep)
+library(leaflet)
+gg_sp <- gg %>%
+  st_transform('+init=epsg:3857') %>%
+  as(., "Spatial")
+
+gg_weights <- poly2nb(gg_sp, row.names = gg_sp$fishid50k)
+
+g <- localG(gg_sp$threat, nb2listw(include.self(poly2nb(gg_sp))))
+gg_sp$g <- as.numeric(g)
+
+gg_df <- fortify(gg_sp, region = 'fishid50k') %>%
+  mutate(fishid50k = as.integer(id))
+gg_df <- left_join(gg_df, gg_sp@data, by = 'fishid50k')
+names(gg_df) <- tolower(names(gg_df))
 
 
+p1 <- st_as_sf(gg_sp) %>%
+  ggplot() +
+  geom_sf(aes(fill = g)) +
+  scale_fill_gradientn(colours = rev(brewer.pal(8, 'RdBu')),
+                    breaks = c(min(gg_df$g), -2.58, -1.96, -1.65, 
+                               1.65, 1.96, 2.58, max(gg_df$g))) 

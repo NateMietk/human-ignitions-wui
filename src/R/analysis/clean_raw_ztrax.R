@@ -489,6 +489,10 @@ if(!file.exists(file.path(cleaned_ztrax_fpa_out, 'all_cleaned_fpa_residential.rd
   stopCluster(cl)
   
   #bind all of these together in one dataframe
+  cleaned_fpa_decades <- lapply(list.files(cleaned_ztrax_fpa_out, pattern = ".rds", full.names = TRUE),
+                                FUN = function(x)
+                                  imported <- read_rds(x))
+  
   cleaned_fpa_decades <- do.call(rbind, cleaned_fpa_decades) %>%
     na.omit()  %>%
     mutate(year = year_built,
@@ -503,5 +507,6 @@ if(!file.exists(file.path(cleaned_ztrax_fpa_out, 'all_cleaned_fpa_residential.rd
   
 } else {
   
-  cleaned_fpa_decades <- read_rds(file.path(cleaned_ztrax_fpa_out, 'all_cleaned_fpa_residential.rds'))
+  cleaned_fpa_decades <- read_rds(file.path(cleaned_ztrax_fpa_out, 'all_cleaned_fpa_residential.rds')) %>%
+    left_join(fpa_wui, ., by = 'fpa_id')
 }
