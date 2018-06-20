@@ -22,7 +22,6 @@ if (!file.exists(file.path(bu_out, 'bu_masked_1990.tif'))) {
   bu_velox <- velox(bu_stack)
 }
 
-
 # Housing units per ecoregion
 if (!exists('sum_ecoregions_bu')) {
   if (!file.exists(file.path(bu_out, 'summary_ecoregion_bu.rds'))) {
@@ -115,6 +114,29 @@ if (!exists('sum_fpa_bu')) {
     
   } else {
     sum_fpa_bu <- read_rds(file.path(bu_out, 'summary_fpa_bu.rds'))
+  }
+}
+
+# Housing units per FPA fire perimeters with WUI classes
+if (!exists('sum_fpa_wui_bu')) {
+  if (!file.exists(file.path(bu_out, 'summary_fpa_wui_bu.rds'))) {
+    
+    sum_fpa_wui_bu <- bu_velox$extract(sp = fpa_bae_wui, fun = function(x) sum(x, na.rm=TRUE), 
+                                       small = TRUE, df = TRUE) %>%
+      as_tibble() %>%
+      mutate(fpa_id = as.data.frame(fpa_bae_wui)$FPA_ID,
+             sum_bu_1990 = X1,
+             sum_bu_1995 = X2,
+             sum_bu_2000 = X3,
+             sum_bu_2005 = X4,
+             sum_bu_2010 = X5,
+             sum_bu_2015 = X6) %>%
+      dplyr::select(-starts_with('X'))
+    write_rds(sum_fpa_wui_bu, file.path(bu_out, 'summary_fpa_wui_bu.rds'))
+    system(paste0("aws s3 sync ", prefix, " ", s3_base))
+    
+  } else {
+    sum_fpa_wui_bu <- read_rds(file.path(bu_out, 'summary_fpa_wui_bu.rds'))
   }
 }
 

@@ -92,9 +92,7 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
 } else {
   fpa_bae_wui <- st_read(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg")) 
-  
 }
-
 
 if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
   

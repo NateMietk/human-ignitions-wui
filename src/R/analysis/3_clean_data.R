@@ -11,7 +11,7 @@ if (!exists("usa_shp")){
     st_transform(proj_ea) %>%  # e.g. US National Atlas Equal Area
     dplyr::select(STATEFP, STUSPS) %>%
     setNames(tolower(names(.)))
-  }
+}
 
 # Import the Level 1 Ecoregions
 if (!exists('ecoregl1')) {
@@ -212,11 +212,15 @@ if (!exists('wui')) {
              driver = "GPKG",
              update=TRUE)
     
-    system(paste0("aws s3 sync ",
-                  anthro_out, " ",
-                  s3_anthro_prefix))
+    as.data.frame(wui) %>%
+      dplyr::select(-geom) %>%
+      write_rds(., file.path(wui_out, "wui_bounds.rds"))
+    
+    system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
+    
   } else {
     wui <- st_read(dsn = file.path(wui_out, "wui_bounds.gpkg"))
+    
   }
 }
 
@@ -245,7 +249,7 @@ coarse_wuw_area <- read_csv(file.path(wui_out, 'wui_areas.csv')) %>%
   mutate(decadal = as.factor((gsub('area_', '', year))),
          class = as.factor(Class),
          class_coarse =  as.factor(ifelse(class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
-                                ifelse(class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))))) %>%
+                                          ifelse(class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))))) %>%
   dplyr::select(-year, -Class, -class) %>%
   group_by(decadal, class_coarse) %>%
   summarise(total_coarse_class_area = sum(total_coarse_class_area))
@@ -294,21 +298,21 @@ if (!exists('fpa_wui')) {
       st_make_valid()  
     fpa_wui <- fpa_wui_step1 %>%
       mutate(class = as.factor(ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
-                            ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
-                                   ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
-                                          NA)))),
+                                      ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
+                                             ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
+                                                    NA)))),
              ten_year = as.factor(ifelse(DISCOVERY_YEAR >= 1994 & DISCOVERY_YEAR <= 2004, '1994-2004',
-                               ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA))),
+                                         ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA))),
              bidecadal = as.factor(ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
-                                ifelse(DISCOVERY_YEAR >= 1996 & DISCOVERY_YEAR <= 2000, 2000,
-                                       ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2005, 2005,
-                                              ifelse(DISCOVERY_YEAR >= 2006 & DISCOVERY_YEAR <= 2010, 2010,
-                                                     ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2015,
-                                                            DISCOVERY_YEAR )))))),
+                                          ifelse(DISCOVERY_YEAR >= 1996 & DISCOVERY_YEAR <= 2000, 2000,
+                                                 ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2005, 2005,
+                                                        ifelse(DISCOVERY_YEAR >= 2006 & DISCOVERY_YEAR <= 2010, 2010,
+                                                               ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2015,
+                                                                      DISCOVERY_YEAR )))))),
              decadal = as.factor(ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 2000, 1990,
-                              ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2010, 2000,
-                                     ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2010,
-                                            DISCOVERY_YEAR )))),
+                                        ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2010, 2000,
+                                               ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2010,
+                                                      DISCOVERY_YEAR )))),
              number_of_persons = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POP1990,
                                          ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POP2000,
                                                  ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POP2010, NA))),
@@ -322,7 +326,7 @@ if (!exists('fpa_wui')) {
                                    ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HHU2000,
                                            ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HHU2010, NA ))),
              class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
-                                     ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))),
+                                               ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))),
              seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
              size = as.factor(classify_fire_size_cl(FIRE_SIZE_km2)),
              regions = as.factor(ifelse(regions == 'East', 'North East', as.character(regions)))) %>%
@@ -452,7 +456,6 @@ if (!exists('mtbs_pts')) {
 
 
 
-# Prep ICS-209s -----------------------------------------------------------
 # Clean ICS-209 from 1999-2014 -----------------------------
 
 if(!file.exists(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))) {

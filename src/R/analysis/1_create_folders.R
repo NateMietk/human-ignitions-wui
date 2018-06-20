@@ -34,9 +34,21 @@ wui_out <- file.path(anthro_out, "wui")
 distance_out <- file.path(wui_out, "distance_from_urban")
 ztrax_out <- file.path(anthro_out, 'ztrax')
 zpoints_out <- file.path(ztrax_out, 'ztrax_points')
-ztrax_res_out <- file.path(zpoints_out, 'wui_residential_rds')
-cleaned_ztrax_out <- file.path(zpoints_out, 'cleaned_wui_residential_rds')
-zpoints <- file.path(zpoints_out, 'raw_residential_gpkg')
+zpoints_bu <- file.path(zpoints_out, 'ztrax_all_built_up')
+zpoints_res <- file.path(zpoints_out, 'ztrax_residential')
+
+dir_raw_all_built_up_gpkg <- file.path(zpoints_bu, 'raw_all_built_up_gpkg')
+dir_wui_all_built_up_rds <- file.path(zpoints_bu, 'wui_all_built_up_rds')
+dir_cleaned_wui_all_built_up_rds <- file.path(zpoints_bu, 'cleaned_wui_all_built_up_rds')
+dir_fpa_all_built_up_rds <- file.path(zpoints_bu, 'fpa_all_built_up_rds')
+dir_cleaned_fpa_all_built_up_rds <- file.path(zpoints_bu, 'cleaned_fpa_all_built_up_rds')
+
+#residential homes only
+ztrax_res_out <- file.path(zpoints_res, 'wui_residential_rds')
+cleaned_ztrax_out <- file.path(zpoints_res, 'cleaned_wui_residential_rds')
+zpoints_raw_res <- file.path(zpoints_res, 'raw_residential_gpkg')
+ztrax_fpa_out <- file.path(zpoints_res, 'fpa_residential_rds')
+cleaned_ztrax_fpa_out <- file.path(zpoints_res, 'cleaned_fpa_residential_rds')
 
 bui_out <- file.path(ztrax_out, 'built_up_intensity')
 bui_out <- file.path(bui_out, 'BUI')
@@ -71,5 +83,6 @@ s3_raw_prefix <- 's3://earthlab-natem/human-ignitions-wui/raw'
 var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt, ztrax_out, ztrax_prefix,
                 bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out, bui_out, bu_out,
                 swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly, 
-                zpoints_out, zpoints, ztrax_res_out, cleaned_ztrax_out)
+                zpoints_out, zpoints_bu, zpoints_res, dir_raw_all_built_up_gpkg, dir_wui_all_built_up_rds, dir_cleaned_wui_all_built_up_rds, 
+                dir_fpa_all_built_up_rds, dir_cleaned_fpa_all_built_up_rds)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
