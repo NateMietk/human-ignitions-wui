@@ -106,73 +106,6 @@ remove_dollar <- function(vector) {
   return(result)
 }
 
-clean_estimated_costs <- function(x, y, z) {
-  # x = incident_unique_id
-  # y = est_final_costs
-  est_final_costs_c <-
-    ifelse(x == "WA-OWF-199|2003|1"        & y > 39000000, 40000000,
-           ifelse(x == "CO-LRX-329|2012|1"        & y > 39200000, 39200000,
-                  ifelse(x == "MT-FNF-036|2003|1"        & y > 35000000, 37000000,
-                         ifelse(x == "CA-SRF-1126|2008|1"       & y > 24000000, 24000000,
-                                ifelse(x == "WA-OWF-271|2004|1"        & y >  42000000, 28000000,
-                                       ifelse(x == "WA-OWF-271|2004|1"        & y >  42000000, 28000000,
-                                              ifelse(x == "WA-OWF-199|2003|1"        & y > 40000000, 40000000,
-                                                     ifelse(x == "WA-OWF-199|2003|1"        & y > 40000000, 40000000,
-                                                            ifelse(x == "CA-KNF-5659|2012|1"       & y > 28000000, 28000000,
-                                                                   ifelse(x == "CA-SRF-1131|2009|1"       & y > 20000000, 17500000,
-                                                                          ifelse(x == "CA-SRF-997|2006|1"        & y > 20000000, 18000000,
-                                                                                 ifelse(x == "CA-TMU-11011|2007|1"      & y >= 15000000, 13500000,
-                                                                                        ifelse(x =="ID-BOF-000183|2006|1"      & y > 18000000, 18000000,
-                                                                                               ifelse(x == "CA-SHF-002744|2012|1"     & y > 10000000, 10000000,
-                                                                                                      ifelse(x == "AZ-CNF-090|2003|1"        & y > 16400000, 16400000,
-                                                                                                             y)))))))))))))))
-}
-
-clean_costs_to_date <- function(x, y) {
-  # x = incident_unique_id
-  # y = est_final_costs
-
-  costs_to_date_c <-
-    ifelse(x == "CA-BTU-007660|2008|1"   & y == 876000000, 87600000,
-           ifelse(x == "CA-STF-002857|2013|1"   & y == 1161000000, 116100000,
-                  ifelse(x == "CA-CNF-002512|2013|1"   & y == 328900000 | y == 34885970 , 3200000,
-                         ifelse(x == "UT-UIF-18044|2001|1"    & y == 293000000, 29300,
-                                ifelse(x == "CA-ANF-2297|2013|1"     & y == 234000000 | y == 234100000, 23400000,
-                                       ifelse(x == "NM-GNF-000230|2013|1"   & y == 143000000, 14300000,
-                                              ifelse(x == "CA-STF-002857|2013|1"   & y == 1161000000, 116100000,
-                                                     ifelse(x == "AZ-PNF-120266|2012|1"   & y == 122729904, 12272990,
-                                                            ifelse(x == "CA-INF-801|2007|1"      & y == 100000000, 1000000,
-                                                                   ifelse(x == "CA-BTU-0008116|2012|1"  & y == 170000000 | y == 97000000, 9700000,
-                                                                          ifelse(x == "CA-BTU-0008116|2012|1"  & y == 870000000, 87000000,
-                                                                                 ifelse(x == "CA-ENF-017646|2004|1"   & y == 77421200, 7742120,
-                                                                                        ifelse(x == "CA-INF-801|2007|1"      & y == 100000000, 1000000,
-                                                                                               ifelse(x == "CA-LNU -005495|2012|1"  & y == 11000000, 1000000,
-                                                                                                      ifelse(x == "CA-MNF-894|2006|1"      & y == 14389638, 1438963,
-                                                                                                             ifelse(x == "CA-MVU-011019|2011|1"   & y == 12180000, 1518000,
-                                                                                                                    ifelse(x == "CA-RRU-056869|2003|1"   & y == 29060700, 2996070,
-                                                                                                                           ifelse(x == "CA-RRU-56851|2011|1"    & y == 1000000, 100000,
-                                                                                                                                  ifelse(x == "CA-SHF-002744|2012|1"   & y == 364000000, 36400000,
-                                                                                                                                         ifelse(x == "CA-SHF-2521|2012|1"     & y == 36000000, 3600000,
-                                                                                                                                                ifelse(x == "CA-VNC-03080298|2003|1" & y == 27500000, 27500000,
-                                                                                                                                                       ifelse(x == "ID-CWF-050314|2005|1"   & y == 15000000, 1500000,
-                                                                                                                                                              ifelse(x == "CA-MVU-014084|2013|1"   & y == 92000000, 9200000,
-                                                                                                                                                                     ifelse(x == "WA-OWF-000616|2013|1"   & y == 85000000, 850000,
-                                                                                                                                                                            ifelse(x == "CA-ENF-017646|2004|1"   & y == 77421200 | y == 77440000, 7740000,
-                                                                                                                                                                                   ifelse(x == "MT-BRF-005432|2012|1"   & y == 77000000, 7700000,
-                                                                                                                                                                                          ifelse(x == "WY-MB1-062|2002|1"      & y == 75000000, 7500000,
-                                                                                                                                                                                                 ifelse(x == "AK-TAS-313401|2013|1"   & y == 70388044, 7038044,
-                                                                                                                                                                                                        ifelse(x == "OR-MAF-012257|2012|1"   & y == 15847055 | y == 62000000, 6200000,
-                                                                                                                                                                                                               ifelse(x == "WA-OWF-000530|2013|1"   & y == 53252222, 5352222,
-                                                                                                                                                                                                                      ifelse(x == "WY-BTF-014|2002|1"      & y == 48860963, 4886963,
-                                                                                                                                                                                                                             ifelse(x == "OR-UPF-120132|2012|1"   & y == 29981000, 2998100,
-                                                                                                                                                                                                                                    ifelse(x == "ID-CMS-430012|2005|1"   & y == 29000000 | y == 28000000, 2800000,
-                                                                                                                                                                                                                                           ifelse(x == "WA-OWF-398|2006|1"      & y == 68175390, 88175390,
-                                                                                                                                                                                                                                                  ifelse(x == "CA-KNF-3536|2006|1"     & y == 27900000, 2790000,
-                                                                                                                                                                                                                                                         ifelse(x == "NV-HTF-1365|2006|1"     & y == 14000000, 1400000,
-                                                                                                                                                                                                                                                                ifelse(x == "AZ-TCA-130031|2013|1"   & y == 8300000, 830000,
-                                                                                                                                                                                                                                                                       ifelse(x == "CA-BDU-11262|2003|1"    & y > 13000000, 13000000,
-                                                                                                                                                                                                                                                                              y))))))))))))))))))))))))))))))))))))))
-}
 
 # http://www.spatialanalytics.co.nz/post/2017/09/11/a-parallel-function-for-spatial-analysis-in-r/
 # Paralise any simple features analysis.
@@ -305,16 +238,16 @@ classify_occpyear <-  function(x) {
                        "> 75")))
 }
 
-classify_fire_size <-  function(x) {
+
+classify_fire_size_sml <-  function(x) {
   # break out fires into small, med, large
   # input:
   #   - x: vector of fire sizes
   # output:
   #   - y: vector (same length) of classified fire sizes ----- Km2
-  ifelse(x < 3, "0 - 2",
-         ifelse(x >= 3 & x < 11, "3 - 10",
-                ifelse(x >= 11 & x < 100, "11 - 100",
-                       "> 100")))
+  ifelse(x < 4, "Small",
+         ifelse(x >= 4 & x < 500, "Large",
+                ifelse(x > 500, "Very Large")))
 }
 
 classify_wuiburned <-  function(x) {
