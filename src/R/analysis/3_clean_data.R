@@ -227,8 +227,9 @@ if (!exists('wui')) {
 if (!exists('wui_area')) {
   if (!file.exists(file.path(wui_out, "wui_area.rds"))) {
     wuw_area <- wui %>%
-      st_intersection(., ecoreg_plain) 
-    wuw_area2 <- wuw_area %>%
+      st_intersection(., ecoreg_plain) %>%
+      mutate(total_class_area = as.numeric(st_area(geom))/1000000)
+    wuw_area2 <- as.data.frame(wuw_area) %>%
       group_by(BLK10, Class90, Class00, Class10) %>%
       summarize(total_class_area = (as.numeric(st_area(geom))/1000000))
   } else {
@@ -345,6 +346,12 @@ if (!exists('fpa_wui')) {
     fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg")) 
     
   }
+}
+
+# output dataframe for rmarkdown
+if(!file.exists(file.path(rmarkdown_files, 'fpa_wui_df.rds'))) {
+  fpa_wui %>%
+    write_rds(file.path(rmarkdown_files, 'fpa_wui_df.rds'))
 }
 
 # Prep MTBS ---------------------------------------------------------
@@ -610,4 +617,10 @@ if(!file.exists(file.path(ics_spatial, "ics209_wui_conus.gpkg"))) {
   
 } else{
   wui_209 <- st_read(file.path(ics_spatial, "ics209_wui_conus.gpkg"))
+}
+
+# output dataframe for rmarkdown
+if(!file.exists(file.path(rmarkdown_files, 'wui_209_df.rds'))) {
+  wui_209 %>%
+    write_rds(file.path(rmarkdown_files, 'wui_209_df.rds'))
 }
