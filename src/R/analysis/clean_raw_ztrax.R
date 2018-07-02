@@ -34,14 +34,14 @@ pblapply(gdbs,
              gsub('.gdb', '.gpkg', .)
            
            if(!file.exists(file.path(dir_raw_abu_gpkg, outname))) {
-
+             
              layers <- tibble::data_frame(name = sf::st_layers(i)$name)
-
+             
              state_ztrax <- apply(unique(layers), 1,
                                   FUN = function(j, i, usa_shp) {
                                     state_ztrax <- sf::st_read(i, layer = j) %>%
                                       dplyr::filter(geom_wkt != 'POINT(0 0)') %>%
-                                      dplyr::filter(!(str_detect(LU_stdcode, 'VL|AG101|AG102|AG103|AG104|AG107|AG108|PP199|RI|RR'))) %>%
+                                      dplyr::filter(!(str_detect(LU_stdcode, 'AG101|AG102|AG103|AG104|AG107|AG108|PP199|RI|RR'))) %>%
                                       sf::st_transform(sf::st_crs(usa_shp))
                                   }, 
                                   i = i,
@@ -269,7 +269,7 @@ if(!file.exists(file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up
   
 } else {
   
-  cleaned_fpa_decades_abu <- read_rds(file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up.rds'))
+  cleaned_fpa_abu <- read_rds(file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up.rds'))
 }
 
 # All built up units per FPA with 250m buffer
@@ -376,7 +376,7 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_al
   
 } else {
   
-  cleaned_fpa_250m_decades_abu <- read_rds(file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_all_built_up.rds'))
+  cleaned_fpa_250m_abu <- read_rds(file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_all_built_up.rds'))
 }        
 
 #------------------------------- Residential Housing  -------------------------------------------
@@ -402,7 +402,7 @@ pblapply(gdbs,
                                   FUN = function(j, i, usa_shp) {
                                     state_ztrax <- sf::st_read(i, layer = j) %>%
                                       dplyr::filter(geom_wkt != 'POINT(0 0)') %>%
-                                      dplyr::filter(grepl('AG101|AG102|AG103|AG104|AG107|AG108|PP199|RI|RR', LU_stdcode)) %>%
+                                      dplyr::filter(str_detect(LU_stdcode, 'AG101|AG102|AG103|AG104|AG107|AG108|PP199|RI|RR')) %>%
                                       sf::st_transform(sf::st_crs(usa_shp))
                                   }, 
                                   i = i,
@@ -459,12 +459,13 @@ if(!file.exists(file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.
   
   
   ############## Aggregate and clean all ztrax residential dataframes ############################
+
   rdss <- list.files(dir_wui_res_rds, pattern = ".rds", full.names = TRUE)
   
   pboptions(type = 'txt', use_lb = TRUE)
   cl <- makeCluster(getOption("cl.cores", detectCores()))
-  
-  cleaned_wui_residental <- pblapply(rdss,
+
+  cleaned_wui_residential <- pblapply(rdss,
                                      FUN = function(x, dir_cleaned_wui_res_rds) {
                                        require(tidyverse)
                                        
@@ -480,28 +481,29 @@ if(!file.exists(file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.
                                            summarise() %>%
                                            ungroup() %>%
                                            droplevels() %>%
-                                           slice(rep(1:n(), each = 2016-1992)) %>%
-                                           mutate(yearbuilt = (rep(1992:2015, times = length(unique(blk10)))),
+                                           slice(rep(1:n(), each = 2016-1990)) %>%
+                                           mutate(yearbuilt = (rep(1990:2015, times = length(unique(blk10)))),
                                                   year_built = (yearbuilt),
                                                   blk10 = factor(blk10))
                                          
-                                         cleaned_wui_residental <- ungroup(imported) %>%
+                                         cleaned_wui_residential <- ungroup(imported) %>%
                                            filter(yearbuilt != 0) %>%
-                                           mutate(blk10 = factor(blk10)) %>%
+                                           mutate(blk10 = factor(blk10),
+                                                  yearbuilt = ifelse(yearbuilt > 1800 & yearbuilt <= 1990, 1990, yearbuilt)) %>%
                                            group_by(blk10, yearbuilt) %>%
-                                           summarise(res_build_up_count = sum(res_build_up_count),
-                                                     res_build_up_intensity_sqm = sum(res_build_up_intensity_sqm)) %>%  
-                                           mutate(res_build_up_count = cumsum(res_build_up_count),
-                                                  res_build_up_intensity_sqm = cumsum(res_build_up_intensity_sqm)) %>%
-                                           filter(yearbuilt >= 1992) %>%
+                                           summarise(build_up_count = sum(build_up_count),
+                                                     build_up_intensity_sqm = sum(build_up_intensity_sqm)) %>%  
+                                           mutate(build_up_count = cumsum(build_up_count),
+                                                  build_up_intensity_sqm = cumsum(build_up_intensity_sqm)) %>%
                                            group_by(blk10, yearbuilt) %>%
-                                           summarise(res_build_up_count = max(res_build_up_count),
-                                                     res_build_up_intensity_sqm = max(res_build_up_intensity_sqm)) %>%                                      ungroup() %>%
+                                           summarise(build_up_count = max(build_up_count),
+                                                     build_up_intensity_sqm = max(build_up_intensity_sqm)) %>%                                      
+                                           ungroup() %>%
                                            full_join(., blk_grps, by = c('blk10', 'yearbuilt')) %>%
                                            arrange(blk10, yearbuilt) %>%
                                            fill(everything(), .direction = 'up') 
                                          
-                                         cleaned_wui_residental %>%
+                                         cleaned_wui_residential %>%
                                            write_rds(., file.path(dir_cleaned_wui_res_rds, paste0(filename, '_cleaned_wui_residential.rds')))
                                        }
                                      },
@@ -511,12 +513,12 @@ if(!file.exists(file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.
   stopCluster(cl)
   
   #bind all of these together in one dataframe
-  cleaned_wui_residental <- do.call(rbind, cleaned_wui_residental) %>%
+  cleaned_wui_residential <- do.call(rbind, cleaned_wui_residential) %>%
     na.omit()  %>%
     mutate(year = yearbuilt) %>%
     dplyr::select(blk10, year, res_build_up_count, res_build_up_intensity_sqm)
   
-  cleaned_wui_residental %>%
+  cleaned_wui_residential %>%
     write_rds(., file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.rds'))
   
   system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
@@ -524,7 +526,7 @@ if(!file.exists(file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.
   
 } else {
   
-  cleaned_wui_residental <- read_rds(file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.rds'))
+  cleaned_wui_residential <- read_rds(file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.rds'))
 }
 
 # Housing units per FPA
@@ -639,7 +641,7 @@ if(!file.exists(file.path(dir_cleaned_fpa_res_rds, 'all_cleaned_fpa_residential.
   
 } else {
   
-  cleaned_fpa_decades <- read_rds(file.path(dir_cleaned_fpa_res_rds, 'all_cleaned_fpa_residential.rds'))
+  cleaned_fpa_residential <- read_rds(file.path(dir_cleaned_fpa_res_rds, 'all_cleaned_fpa_residential.rds'))
 }
 
 # Housing units per FPA with 250m buffer
@@ -681,90 +683,129 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_res_rds, 'all_cleaned_fpa_250m_re
   pboptions(type = 'txt', use_lb = TRUE)
   cl <- makeCluster(getOption("cl.cores", detectCores()))
   
-  cleaned_fpa_250m_decades <- pblapply(rdss,
-                                       FUN = function(x, dir_cleaned_fpa_250m_res_rds, fpa_250m_years) {
-                                         require(tidyverse)
-                                         
-                                         filename <- strsplit(x, "\\.|/|_") %>%
-                                           lapply(`[`, 12) %>%
-                                           unlist
-                                         
-                                         imported <- read_rds(x) 
-                                         
-                                         blk_grps <- ungroup(imported) %>%
-                                           group_by(fpa_id) %>%
-                                           summarise() %>%
-                                           ungroup() %>%
-                                           droplevels() %>%
-                                           slice(rep(1:n(), each = 2016-1992)) %>%
-                                           mutate(yearbuilt = (rep(1992:2015, times = length(unique(fpa_id)))),
-                                                  year_built = (yearbuilt),
-                                                  fpa_id = factor(fpa_id))
-                                         
-                                         cleaned_fpa_250m_decades <- ungroup(imported) %>%
-                                           filter(yearbuilt != 0) %>%
-                                           mutate(fpa_id = factor(fpa_id)) %>%
-                                           group_by(fpa_id, yearbuilt) %>%
-                                           summarise(res_build_up_count = sum(res_build_up_count),
-                                                     res_build_up_intensity_sqm = sum(res_build_up_intensity_sqm)) %>%  
-                                           mutate(res_build_up_count = cumsum(res_build_up_count),
-                                                  res_build_up_intensity_sqm = cumsum(res_build_up_intensity_sqm)) %>%
-                                           filter(yearbuilt > 1991) %>%
-                                           group_by(fpa_id, yearbuilt) %>%
-                                           summarise(res_build_up_count = max(res_build_up_count),
-                                                     res_build_up_intensity_sqm = max(res_build_up_intensity_sqm)) %>%                                      ungroup() %>%
-                                           full_join(., blk_grps, by = c('fpa_id', 'yearbuilt')) %>%
-                                           arrange(fpa_id, yearbuilt) %>%
-                                           fill(everything(), .direction = 'up')  %>%
-                                           left_join(., fpa_250m_years, by = c('fpa_id', 'yearbuilt')) %>%
-                                           mutate(res_build_up_count = ifelse(year_built == discovery_year, res_build_up_count, NA),
-                                                  res_build_up_intensity_sqm = ifelse(year_built == discovery_year, res_build_up_intensity_sqm, NA)) %>%
-                                           filter(!is.na(res_build_up_count) | !is.na(res_build_up_intensity_sqm)) 
-                                         
-                                         
-                                         if(nrow(cleaned_fpa_250m_decades) > 0) {
-                                           cleaned_fpa_250m_decades %>%
-                                             write_rds(., file.path(dir_cleaned_fpa_250m_res_rds, paste0(filename, '_cleaned_fpa_250m_residential.rds')))
-                                         } 
-                                       },
-                                       dir_cleaned_fpa_250m_res_rds = dir_cleaned_fpa_250m_res_rds,
-                                       fpa_250m_years = fpa_250m_years,
-                                       cl = cl)
+  cleaned_fpa_250m_residential <- pblapply(rdss,
+                                           FUN = function(x, dir_cleaned_fpa_250m_res_rds, fpa_250m_years) {
+                                             require(tidyverse)
+                                             
+                                             filename <- strsplit(x, "\\.|/|_") %>%
+                                               lapply(`[`, 12) %>%
+                                               unlist
+                                             
+                                             imported <- read_rds(x) 
+                                             
+                                             blk_grps <- ungroup(imported) %>%
+                                               group_by(fpa_id) %>%
+                                               summarise() %>%
+                                               ungroup() %>%
+                                               droplevels() %>%
+                                               slice(rep(1:n(), each = 2016-1992)) %>%
+                                               mutate(yearbuilt = (rep(1992:2015, times = length(unique(fpa_id)))),
+                                                      year_built = (yearbuilt),
+                                                      fpa_id = factor(fpa_id))
+                                             
+                                             cleaned_fpa_250m_residential <- ungroup(imported) %>%
+                                               filter(yearbuilt != 0) %>%
+                                               mutate(fpa_id = factor(fpa_id)) %>%
+                                               group_by(fpa_id, yearbuilt) %>%
+                                               summarise(res_build_up_count = sum(res_build_up_count),
+                                                         res_build_up_intensity_sqm = sum(res_build_up_intensity_sqm)) %>%  
+                                               mutate(res_build_up_count = cumsum(res_build_up_count),
+                                                      res_build_up_intensity_sqm = cumsum(res_build_up_intensity_sqm)) %>%
+                                               filter(yearbuilt > 1991) %>%
+                                               group_by(fpa_id, yearbuilt) %>%
+                                               summarise(res_build_up_count = max(res_build_up_count),
+                                                         res_build_up_intensity_sqm = max(res_build_up_intensity_sqm)) %>%                                      ungroup() %>%
+                                               full_join(., blk_grps, by = c('fpa_id', 'yearbuilt')) %>%
+                                               arrange(fpa_id, yearbuilt) %>%
+                                               fill(everything(), .direction = 'up')  %>%
+                                               left_join(., fpa_250m_years, by = c('fpa_id', 'yearbuilt')) %>%
+                                               mutate(res_build_up_count = ifelse(year_built == discovery_year, res_build_up_count, NA),
+                                                      res_build_up_intensity_sqm = ifelse(year_built == discovery_year, res_build_up_intensity_sqm, NA)) %>%
+                                               filter(!is.na(res_build_up_count) | !is.na(res_build_up_intensity_sqm)) 
+                                             
+                                             
+                                             if(nrow(cleaned_fpa_250m_residential) > 0) {
+                                               cleaned_fpa_250m_residential %>%
+                                                 write_rds(., file.path(dir_cleaned_fpa_250m_res_rds, paste0(filename, '_cleaned_fpa_250m_residential.rds')))
+                                             } 
+                                           },
+                                           dir_cleaned_fpa_250m_res_rds = dir_cleaned_fpa_250m_res_rds,
+                                           fpa_250m_years = fpa_250m_years,
+                                           cl = cl)
   
   stopCluster(cl)
   
   #bind all of these together in one dataframe
-  cleaned_fpa_250m_decades <- do.call(rbind, cleaned_fpa_250m_decades) %>%
+  cleaned_fpa_250m_residential <- do.call(rbind, cleaned_fpa_250m_residential) %>%
     na.omit()  %>%
     mutate(year = yearbuilt) %>%
     dplyr::select(fpa_id, year, res_build_up_count, res_build_up_intensity_sqm)
   
-  cleaned_fpa_250m_decades %>%
+  cleaned_fpa_250m_residential %>%
     write_rds(., file.path(dir_cleaned_fpa_250m_res_rds, 'all_cleaned_fpa_250m_residential.rds'))
   
   system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
   
 } else {
   
-  cleaned_fpa_250m_decades <- read_rds(file.path(dir_cleaned_fpa_250m_res_rds, 'all_cleaned_fpa_250m_residential.rds'))
+  cleaned_fpa_250m_residential <- read_rds(file.path(dir_cleaned_fpa_250m_res_rds, 'all_cleaned_fpa_250m_residential.rds'))
 }                            
 
 
 # Combine and explore -----------------------------------------------------
+clean_wui <- wui_df %>%
+  dplyr::select(blk10, house_units_2000, house_units_2010) %>%
+  gather(key = year, built_up_count = c('house_units_2000', 'house_units_2010'), -blk10) %>%
+  mutate(blk10 = as.factor(blk10),
+         year = str_sub(year, start= -4),
+         built_up_count = `-blk10`,
+         class2 = as.factor('Silvis')) %>%
+  dplyr::select(-`-blk10`) %>%
+  mutate(year = as.integer(year))
 
-cleaned_fpa_decades %>%
+cleaned_wui_residential <- cleaned_wui_residential %>%
+  filter(year %in% c(2000, 2010)) %>%
+  mutate(blk10 = as.factor(blk10),
+         class1 = 'Residential')
+
+
+cleaned_wui_residential %>%
+  group_by(year) %>%
+  summarise(res_build_up_count = sum(res_build_up_count)) %>%
+  ggplot(aes(x = year, y = res_build_up_count)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
+              se = TRUE) +
+  theme_pub() 
+
+test <- clean_wui %>%
+  left_join(., cleaned_wui_residential, by = c('blk10', 'year')) %>%
+  # na.omit() %>%
+  mutate(class1 = ifelse(is.na(class1), 'Residential', as.character(class1)),
+         res_build_up_count = ifelse(is.na(res_build_up_count), 0, res_build_up_count)) %>%
+  dplyr::select(-res_build_up_intensity_sqm, -class1, -class2) %>%
+  gather('class', value = value, -blk10, -year) %>%
+  mutate(built_up_class = ifelse(class == 'built_up_count', 'SILVIS', 'Residential'),
+         build_up_count = value) %>%
+  group_by(year, built_up_class) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  ggplot(aes(x = year, y = build_up_count, group = built_up_class, fill = built_up_class)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
+              se = TRUE) +
+  theme_pub() 
+
+cleaned_fpa_250m_residential %>%
   group_by(year) %>%
   summarise(res_build_up_count = sum(res_build_up_count),
             res_build_up_intensity_sqm = sum(res_build_up_intensity_sqm)) %>%
-  ggplot(aes(x = year, y = log(res_build_up_count))) +
+  ggplot(aes(x = year, y = (res_build_up_count))) +
   geom_bar(stat = 'identity', position=position_dodge(.7)) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
               se = TRUE)+
   theme_pub() 
 
-cleaned_fpa_250m_decades %>%
-  mutate(quant = quantile(res_build_up_count, probs = 0.9999)) %>%
-  filter(res_build_up_count < quant) %>%
+cleaned_fpa_residential %>%
   group_by(year) %>%
   summarise(res_build_up_count = sum(res_build_up_count),
             res_build_up_intensity_sqm = sum(res_build_up_intensity_sqm)) %>%
@@ -773,3 +814,102 @@ cleaned_fpa_250m_decades %>%
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
               se = TRUE)+
   theme_pub() 
+
+cleaned_fpa_250m_abu %>%
+  group_by(year) %>%
+  summarise(abu_build_up_count = sum(abu_build_up_count),
+            abu_build_up_intensity_sqm = sum(abu_build_up_intensity_sqm)) %>%
+  ggplot(aes(x = year, y = (abu_build_up_count))) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
+              se = TRUE)+
+  theme_pub() 
+
+cleaned_fpa_abu %>%
+  group_by(year) %>%
+  summarise(abu_build_up_count = sum(abu_build_up_count),
+            abu_build_up_intensity_sqm = sum(abu_build_up_intensity_sqm)) %>%
+  ggplot(aes(x = year, y = abu_build_up_count)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
+              se = TRUE)+
+  theme_pub() 
+
+cleaned_wui_abu %>%
+  group_by(year) %>%
+  summarise(abu_build_up_count = sum(abu_build_up_count),
+            abu_build_up_intensity_sqm = sum(abu_build_up_intensity_sqm)) %>%
+  ggplot(aes(x = year, y = abu_build_up_count)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
+              se = TRUE)+
+  theme_pub() 
+
+################################################################################
+clean_res_wui <- cleaned_wui_residential %>%
+  mutate(build_up_count = res_build_up_count,
+         build_up_intensity_sqm = res_build_up_intensity_sqm,
+         built_up_class = as.factor('Residential')) %>%
+  dplyr::select(-res_build_up_count, -res_build_up_intensity_sqm)
+
+clean_res_fpa <- cleaned_fpa_residential %>%
+  mutate(build_up_count = res_build_up_count,
+         build_up_intensity_sqm = res_build_up_intensity_sqm,
+         built_up_class = as.factor('Residential')) %>%
+  dplyr::select(-res_build_up_count, -res_build_up_intensity_sqm)
+
+clean_res_250 <- cleaned_fpa_250m_residential %>%
+  mutate(build_up_count = res_build_up_count,
+         build_up_intensity_sqm = res_build_up_intensity_sqm,
+         built_up_class = as.factor('Residential')) %>%
+  dplyr::select(-res_build_up_count, -res_build_up_intensity_sqm)
+
+clean_abu_wui <- cleaned_wui_abu %>%
+  mutate(build_up_count = abu_build_up_count,
+         build_up_intensity_sqm = abu_build_up_intensity_sqm,
+         built_up_class = as.factor('Non-Residential')) %>%
+  dplyr::select(-abu_build_up_count, -abu_build_up_intensity_sqm)
+
+clean_abu_fpa <- cleaned_fpa_abu %>%
+  mutate(build_up_count = abu_build_up_count,
+         build_up_intensity_sqm = abu_build_up_intensity_sqm,
+         built_up_class = as.factor('Non-Residential')) %>%
+  dplyr::select(-abu_build_up_count, -abu_build_up_intensity_sqm)
+
+clean_abu_250 <- cleaned_fpa_250m_abu %>%
+  mutate(build_up_count = abu_build_up_count,
+         build_up_intensity_sqm = abu_build_up_intensity_sqm,
+         built_up_class = as.factor('Non-Residential')) %>%
+  dplyr::select(-abu_build_up_count, -abu_build_up_intensity_sqm)
+
+bind_rows(clean_abu_wui, clean_res_wui) %>%
+  group_by(year, built_up_class) %>%
+  summarise(build_up_count = sum(build_up_count),
+            build_up_intensity_sqm = sum(build_up_intensity_sqm)) %>%
+  ggplot(aes(x = year, y = build_up_count, fill = built_up_class, group = built_up_class)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
+              se = TRUE)+
+  theme_pub() 
+
+cleaned_fpa_residential %>%
+  group_by(year) %>%
+  summarise(res_build_up_count = sum(res_build_up_count),
+            res_build_up_intensity_sqm = sum(res_build_up_intensity_sqm)) %>%
+  ggplot(aes(x = year, y = res_build_up_count)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
+              se = TRUE)+
+  theme_pub() 
+
+cleaned_wui_residential %>%
+  group_by(year) %>%
+  summarise(res_build_up_count = sum(res_build_up_count),
+            res_build_up_intensity_sqm = sum(res_build_up_intensity_sqm)) %>%
+  ggplot(aes(x = year, y = res_build_up_count)) +
+  geom_bar(stat = 'identity', position=position_dodge(.7)) +
+  geom_smooth(method = 'glm', method.args = list(family = "poisson"), 
+              se = TRUE)+
+  theme_pub() 
+
+
