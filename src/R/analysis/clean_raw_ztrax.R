@@ -623,6 +623,10 @@ if(!file.exists(file.path(dir_cleaned_fpa_res_rds, 'all_cleaned_fpa_residential.
   
   
   #bind all of these together in one dataframe
+  cleaned_fpa_decades <- lapply(list.files(cleaned_ztrax_fpa_out, pattern = ".rds", full.names = TRUE),
+                                FUN = function(x)
+                                  imported <- read_rds(x))
+  
   cleaned_fpa_decades <- do.call(rbind, cleaned_fpa_decades) %>%
     na.omit()  %>%
     mutate(year = yearbuilt) %>%
