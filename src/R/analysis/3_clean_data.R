@@ -213,13 +213,22 @@ if (!exists('wui')) {
              update=TRUE)
     
     as.data.frame(wui) %>%
-      dplyr::select(-geom) %>%
+      setNames(tolower(names(.))) %>%
+      mutate(house_units_1990 = hhu1990,
+             house_units_2000 = hhu2000,
+             house_units_2010 = hhu2010,
+             house_den_1990 = huden1990,
+             house_den_2000 = huden2000,
+             house_den_2010 = huden2000) %>%
+      dplyr::select(-matches('(huden|hhuden|hu|hhu|shu|shuden|flag|wuiclass|veg|water|shape|geom)')) %>%
+      as_tibble() %>%
       write_rds(., file.path(wui_out, "wui_bounds.rds"))
     
     system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
     
   } else {
     wui <- st_read(dsn = file.path(wui_out, "wui_bounds.gpkg"))
+    wui_df <- read_rds(file.path(wui_out, "wui_bounds.rds")) 
     
   }
 }
