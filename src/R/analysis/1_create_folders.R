@@ -34,26 +34,15 @@ wui_out <- file.path(anthro_out, "wui")
 distance_out <- file.path(wui_out, "distance_from_urban")
 ztrax_out <- file.path(anthro_out, 'ztrax')
 zpoints_out <- file.path(ztrax_out, 'ztrax_points')
-zpoints_res <- file.path(zpoints_out, 'ztrax_residential')
-zpoints_abu <- file.path(zpoints_out, 'ztrax_all_built_up')
 
 #all built up
-dir_raw_abu_gpkg <- file.path(zpoints_abu, 'raw_all_built_up_gpkg')
-dir_wui_abu_rds <- file.path(zpoints_abu, 'wui_all_built_up_rds')
-dir_cleaned_wui_abu_rds <- file.path(zpoints_abu, 'cleaned_wui_all_built_up_rds')
-dir_fpa_abu_rds <- file.path(zpoints_abu, 'fpa_all_built_up_rds')
-dir_cleaned_fpa_abu_rds <- file.path(zpoints_abu, 'cleaned_fpa_all_built_up_rds')
-dir_fpa_250m_abu_rds <- file.path(zpoints_abu, 'fpa_250m_all_built_up_rds')
-dir_cleaned_fpa_250m_abu_rds <- file.path(zpoints_abu, 'cleaned_fpa_250m_all_built_up_rds')
-
-#residential homes only
-dir_raw_res_gpkg <- file.path(zpoints_res, 'raw_residential_gpkg')
-dir_wui_res_rds <- file.path(zpoints_res, 'wui_residential_rds')
-dir_cleaned_wui_res_rds <- file.path(zpoints_res, 'cleaned_wui_residential_rds')
-dir_fpa_res_rds <- file.path(zpoints_res, 'fpa_residential_rds')
-dir_cleaned_fpa_res_rds <- file.path(zpoints_res, 'cleaned_fpa_residential_rds')
-dir_fpa_250m_res_rds <- file.path(zpoints_res, 'fpa_250m_residential_rds')
-dir_cleaned_fpa_250m_res_rds <- file.path(zpoints_res, 'cleaned_fpa_250m_residential_rds')
+dir_raw_ztrax_gpkg <- file.path(zpoints_out, 'raw_built_up_gpkg')
+dir_wui_ztrax_rds <- file.path(zpoints_out, 'wui_built_up_rds')
+dir_cleaned_wui_ztrax_rds <- file.path(zpoints_out, 'cleaned_wui_built_up_rds')
+dir_fpa_ztrax_rds <- file.path(zpoints_out, 'fpa_built_up_rds')
+dir_cleaned_fpa_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_built_up_rds')
+dir_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'fpa_250m_built_up_rds')
+dir_cleaned_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_250m_built_up_rds')
 
 bui_out <- file.path(ztrax_out, 'built_up_intensity')
 bui_out <- file.path(bui_out, 'BUI')
@@ -88,8 +77,6 @@ s3_raw_prefix <- 's3://earthlab-natem/human-ignitions-wui/raw'
 var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt, ztrax_out, ztrax_prefix,
                 bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out, bui_out, bu_out,
                 swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly, 
-                zpoints_out, zpoints_res, dir_raw_res_gpkg, dir_wui_res_rds, dir_fpa_res_rds, dir_cleaned_fpa_res_rds, dir_cleaned_wui_res_rds,
-                dir_fpa_250m_res_rds, dir_cleaned_fpa_250m_res_rds,
-                zpoints_abu, dir_raw_abu_gpkg, dir_wui_abu_rds, dir_cleaned_wui_abu_rds, dir_fpa_abu_rds, dir_cleaned_fpa_abu_rds, 
-                dir_fpa_250m_abu_rds, dir_cleaned_fpa_250m_abu_rds, rmarkdown_files)
+                zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds, 
+                dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
