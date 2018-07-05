@@ -62,7 +62,7 @@ ics_intbls <- file.path(ics_out, "input_tbls")
 ics_famweb <- file.path(ics_intbls, "famweb")
 ics_latlong <- file.path(ics_intbls, "latlong")
 ics_spatial <- file.path(ics_out, "spatial")
-rmarkdown_files <- file.path(prefix, 'rmarkdown_files')
+rmarkdown_files <-'src/R/rmarkdown_files'
 fishnet_path <- file.path(bounds_crt, "fishnet")
 
 # for pushing and pulling to s3 using the system function
