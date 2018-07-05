@@ -204,38 +204,6 @@ classify_fire_size_cl <-  function(x) {
                   ifelse(x >= 50 & x < 250, "5000 - 20000 ha", "> 20000 ha"))))
 }
 
-clean_class <- function(x, y) {
-  if_else(x %in% c("CA-BTU-007660|2008|1","MT-CES-000122|2012|1","WA-OWF-000346|2010|1","CO-PSF-000429|2013|1","CA-BDU-006570|2006|1",
-                   "CA-RRU-080142|2012|1","CA-SHF-1057|2008|1","WA-OWF-000583|2012|1","CA-SRF-1120|2008|1", "CA-HUU-003384|2008|1",
-                   "CA-LNF-3923|2009|1","MT-MCD-000035|2012|1","CA-LNU-006610|2003|1","CA-TGU-4245|2008|1","WA-WEF-709|2001|1",
-                   "CA-MMU-008107|2008|1"), "VLD",
-          if_else(x %in% c("OR-UPF-0000034|2003|1","CA-BDF-5749|2006|1","NV-HTF-3364|2004|1","OR-71S-044|2002|1","AZ-KNF-00872|2009|1",
-                           "CA-RRU-062519|2005|1","AZ-CNF-074|2007|1","NV-HTF-1111|2006|1","CA-MVU-1024|2002|1","ID-SCF-000003|2005|1",
-                           "OR-SIF-003|2002|1"), "Wildlands",
-                  y))
-}
-
-# Helper functions --------------------------------------------------------
-
-remove_dollar <- function(vector) {
-  # Want the vector as character rather than factor while
-  # we're doing text processing operations
-  vector <- as.character(vector)
-  vector <- gsub("(\\$|,)","", vector)
-  # Create a numeric vector to store the results in, this will give you
-  # warning messages about NA values being introduced because the " K" values
-  # can't be converted directly to numeric
-  result <- as.numeric(vector)
-  # Find all the "$N K" values, and modify the result at those positions
-  k_positions <- grep(" K", vector)
-  result[k_positions] <- as.numeric(gsub(" K","", vector[k_positions])) * 1000
-  # Same for the "$ M" value
-  m_positions <- grep(" M", vector)
-  result[m_positions] <- as.numeric(gsub(" M","", vector[m_positions])) * 1000000
-  return(result)
-}
-
-
 # http://www.spatialanalytics.co.nz/post/2017/09/11/a-parallel-function-for-spatial-analysis-in-r/
 # Paralise any simple features analysis.
 st_par <- function(sf_df, sf_func, n_cores, ...){
@@ -276,6 +244,43 @@ st_par_union <- function(sf_df, sf_func, n_cores, ...){
     result <- do.call("rbind", split_results)
   }
 
+  # Return result
+  return(result)
+}
+
+# Paralise any simple features analysis.
+st_parallel <- function(sf_df, sf_func, n_cores, ...){
+  
+  # Create a vector to split the data set up by.
+  split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
+  
+  # Perform GIS analysis
+  split_results <- split(sf_df, split_vector) %>%
+    parallel::mclapply(function(x) sf_func(x, ...), mc.cores = n_cores)
+  
+  
+  # Define the output_class. If length is greater than two, then grab the second variable.
+  output_class <- class(split_results[[1]])
+  if (length(output_class) == 2){
+    output_class <- output_class[2]
+  }
+             
+  # Combine results back together. Method of combining depends on the output from the function.
+  if (output_class == "matrix"){
+    result <- do.call("rbind", split_results)
+    names(result) <- NULL
+  } else if (output_class == "sfc") {
+    result <- do.call("c", split_results)
+    result <- sf_func(result) # do.call combines the list but there are still n_cores of the geometry which had been split up. Running st_union or st_collect gathers them up into one, as is the expected output of these two functions. 
+  } else if (output_class %in% c('list', 'sgbp') ){
+    result <- do.call("c", split_results)
+    names(result) <- NULL
+  } else if (output_class == "data.frame" | output_class == "tbl_df" | output_class == "tbl"){
+    result <- do.call("rbind", split_results)
+  } else {
+    stop("Unknown class. st_parallel only accepts the following outputs at present: sfc, list, sf, matrix, sgbp.")
+  }
+  
   # Return result
   return(result)
 }
