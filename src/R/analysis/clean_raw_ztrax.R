@@ -17,161 +17,73 @@ fpa_250m_years <- as.data.frame(fpa_250m) %>%
   mutate(yearbuilt = discovery_year) %>%
   dplyr::select(fpa_id, yearbuilt, discovery_year) %>% as_tibble() 
 
-
-# ------------------------------- All built up ------------------------------------------------------------
 # Prep data by subsetting and transforming --------------------------------
 gdbs <- list.files(ztrax_prefix, pattern = ".gdb", full.names = TRUE)
 
 pboptions(type = 'txt', use_lb = TRUE)
 cl <- makeCluster(getOption("cl.cores", detectCores()))
 
-pblapply(gdbs,
-         FUN = function(i, usa_shp, dir_raw_abu_gpkg) {
-           require(sf)
-           require(tidyverse)
-           
-           outname <- basename(i) %>%
-             gsub('.gdb', '.gpkg', .)
-           
-           if(!file.exists(file.path(dir_raw_abu_gpkg, outname))) {
-             
-             layers <- tibble::data_frame(name = sf::st_layers(i)$name)
-             
-             state_ztrax <- apply(unique(layers), 1,
-                                  FUN = function(j, i, usa_shp) {
-                                    state_ztrax <- sf::st_read(i, layer = j) %>%
-                                      dplyr::filter(geom_wkt != 'POINT(0 0)') %>%
-                                      dplyr::filter(!(str_detect(LU_stdcode, 'AG101|AG102|AG103|AG104|AG107|AG108|PP199|RI|RR'))) %>%
-                                      sf::st_transform(sf::st_crs(usa_shp))
-                                  }, 
-                                  i = i,
-                                  usa_shp = usa_shp
-             )
-             state_ztrax <- do.call(rbind, state_ztrax)
-             
-             sf::st_write(state_ztrax, file.path(dir_raw_abu_gpkg, outname))
-           }
-         },
-         usa_shp = usa_shp,
-         dir_raw_abu_gpkg = dir_raw_abu_gpkg,
-         cl = cl)
-
+pblapply(gdbs, FUN = subset_ztrax, usa_shp = usa_shp, 
+         out_dir = dir_raw_ztrax_gpkg, cl = cl)
+system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
 stopCluster(cl)
 
-# Extract by WUI and FPA --------------------------------
-# All built up units per FPA
-if(!file.exists(file.path(dir_cleaned_wui_abu_rds, 'all_cleaned_wui_all_build_up.rds'))) {
-  ############## spatial join the wui dataframe to the zillow data ############################
-  
-  # find the number of built-up units and build-up area by census block group and built year
-  gpkgs <- list.files(dir_raw_abu_gpkg, pattern = ".gpkg", full.names = TRUE)
+# Built up units per WUI block groups
+if(!file.exists(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds'))) {
+
+  # find the number of built-up units and build-up area by census block group, built year, and built class
+  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
   
   pboptions(type = 'txt', use_lb = TRUE)
   cl <- makeCluster(getOption("cl.cores", detectCores()/16))
   
   pblapply(gpkgs,
-           FUN = function(x, dir_wui_abu_rds, wui) {
-             require(sf)
-             require(tidyverse)
-             
-             filename <- strsplit(x, "\\.|/|_") %>%
-               lapply(`[`, 18) %>%
-               unlist
-             
-             if(!file.exists(file.path(dir_wui_abu_rds, paste0(filename, '_ztrax_abu_wui_points.rds')))) {
-               
-               imported <- sf::st_read(x) %>%
-                 st_join(., wui, join = st_intersects) %>%
-                 setNames(tolower(names(.))) %>%
-                 as.data.frame() %>%
-                 group_by(blk10, yearbuilt) %>%
-                 summarise(abu_build_up_count = n(),
-                           abu_build_up_intensity_sqm = sum(bdareasqft)*0.092903) 
-               write_rds(imported,  
-                         file.path(dir_wui_abu_rds,  paste0(filename, '_ztrax_abu_wui_points.rds')))
-             }
-           },
-           dir_wui_abu_rds = dir_wui_abu_rds,
-           wui = wui,
+           FUN = intersect_ztrax,
+           mask = wui,
+           which_dataset = '1',
+           out_dir = dir_wui_ztrax_rds,
+           out_name = '_ztrax_wui.rds', 
            cl = cl)
   
   stopCluster(cl)
   
-  
-  ############## Aggregate and clean all ztrax all_build_up dataframes ############################
-  rdss <- list.files(dir_wui_abu_rds, pattern = ".rds", full.names = TRUE)
+  # Aggregate and clean all ztrax all_build_up dataframes 
+  rdss <- list.files(dir_wui_ztrax_rds, pattern = ".rds", full.names = TRUE)
   
   pboptions(type = 'txt', use_lb = TRUE)
   cl <- makeCluster(getOption("cl.cores", detectCores()))
   
-  cleaned_wui_abu <- pblapply(rdss,
-                              FUN = function(x, dir_cleaned_wui_abu_rds) {
-                                require(tidyverse)
-                                
-                                filename <- strsplit(x, "\\.|/|_") %>%
-                                  lapply(`[`, 15) %>%
-                                  unlist
-                                
-                                if(!file.exists(file.path(dir_cleaned_wui_abu_rds, paste0(filename, '_cleaned_wui_all_build_up.rds')))) {
-                                  imported <- read_rds(x)
-                                  
-                                  blk_grps <- imported %>%
-                                    group_by(blk10) %>%
-                                    summarise() %>%
-                                    ungroup() %>%
-                                    droplevels() %>%
-                                    slice(rep(1:n(), each = 2016-1992)) %>%
-                                    mutate(yearbuilt = (rep(1992:2015, times = length(unique(blk10)))),
-                                           year_built = (yearbuilt),
-                                           blk10 = factor(blk10))
-                                  
-                                  cleaned_wui_abu <- ungroup(imported) %>%
-                                    filter(yearbuilt != 0) %>%
-                                    mutate(blk10 = factor(blk10)) %>%
-                                    group_by(blk10, yearbuilt) %>%
-                                    summarise(abu_build_up_count = sum(abu_build_up_count),
-                                              abu_build_up_intensity_sqm = sum(abu_build_up_intensity_sqm)) %>%  
-                                    mutate(abu_build_up_count = cumsum(abu_build_up_count),
-                                           abu_build_up_intensity_sqm = cumsum(abu_build_up_intensity_sqm)) %>%
-                                    filter(yearbuilt >= 1992) %>%
-                                    group_by(blk10, yearbuilt) %>%
-                                    summarise(abu_build_up_count = max(abu_build_up_count),
-                                              abu_build_up_intensity_sqm = max(abu_build_up_intensity_sqm)) %>%                                      ungroup() %>%
-                                    full_join(., blk_grps, by = c('blk10', 'yearbuilt')) %>%
-                                    arrange(blk10, yearbuilt) %>%
-                                    fill(everything(), .direction = 'up') 
-                                  
-                                  cleaned_wui_abu %>%
-                                    write_rds(., file.path(dir_cleaned_wui_abu_rds, paste0(filename, '_cleaned_wui_all_build_up.rds')))
-                                }
-                              },
-                              dir_cleaned_wui_abu_rds = dir_cleaned_wui_abu_rds,
-                              cl = cl)
+  cleaned_wui <- pblapply(rdss,
+                          FUN = aggregate_ztrax,
+                          out_name = '_cleaned_wui_built_up.rds', 
+                          which_dataset = '1',
+                          out_dir = dir_cleaned_wui_ztrax_rds,
+                          cl = cl)
   
   stopCluster(cl)
   
   #bind all of these together in one dataframe
-  cleaned_wui_abu <- do.call(rbind, cleaned_wui_abu) %>%
+  cleaned_wui_all <- do.call(rbind, cleaned_wui) %>%
     na.omit()  %>%
     mutate(year = yearbuilt) %>%
-    dplyr::select(blk10, year, abu_build_up_count, abu_build_up_intensity_sqm)
+    dplyr::select(blk10, year, built_up_class, build_up_count, build_up_intensity_sqm)
   
-  cleaned_wui_abu %>%
-    write_rds(., file.path(dir_cleaned_wui_abu_rds, 'all_cleaned_wui_all_build_up.rds'))
+  cleaned_wui_all %>%
+    write_rds(., file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds'))
   
   system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
   
   
 } else {
   
-  cleaned_wui_abu <- read_rds(file.path(dir_cleaned_wui_abu_rds, 'all_cleaned_wui_all_build_up.rds'))
+  cleaned_wui_all <- read_rds(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_all_build_up.rds'))
 }
 
 
-if(!file.exists(file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up.rds'))) {
+if(!file.exists(file.path(dir_cleaned_fpaztraxrds, 'all_cleaned_fpa_all_built_up.rds'))) {
   ############## spatial join the wui dataframe to the zillow data ############################
   
-  gpkgs <- list.files(dir_raw_abu_gpkg, pattern = ".gpkg", full.names = TRUE)
+  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
   
   cl <- makeCluster(detectCores()/7)
   registerDoParallel(cl)
@@ -184,7 +96,7 @@ if(!file.exists(file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up
       lapply(`[`, 18) %>%
       unlist
     
-    if(!file.exists(file.path(dir_fpa_abu_rds, paste0(filename, '_ztrax_all_built_up_fpa_points.rds')))) {
+    if(!file.exists(file.path(dir_fpa_ztrax_rds, paste0(filename, '_ztrax_all_built_up_fpa_points.rds')))) {
       
       imported <- sf::st_read(x) %>%
         st_join(., bae, join = st_intersects) %>%
@@ -195,19 +107,19 @@ if(!file.exists(file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up
                   abu_build_up_intensity_sqm = sum(bdareasqft)*0.092903) 
       
       write_rds(imported,  
-                file.path(dir_fpa_abu_rds,  paste0(filename, '_ztrax_all_built_up_fpa_points.rds')))
+                file.path(dir_fpa_ztrax_rds,  paste0(filename, '_ztrax_all_built_up_fpa_points.rds')))
     }
   }
   stopCluster(cl)
   
   ############## Aggregate and clean all ztrax all_built_up dataframes ############################
-  rdss <- list.files(dir_fpa_abu_rds, pattern = ".rds", full.names = TRUE)
+  rdss <- list.files(dir_fpa_ztrax_rds, pattern = ".rds", full.names = TRUE)
   
   pboptions(type = 'txt', use_lb = TRUE)
   cl <- makeCluster(getOption("cl.cores", detectCores()))
   
   cleaned_fpa_decades_abu <- pblapply(rdss,
-                                      FUN = function(x, dir_cleaned_fpa_abu_rds, fpa_years) {
+                                      FUN = function(x, dir_cleaned_fpa_ztrax_rds, fpa_years) {
                                         require(tidyverse)
                                         
                                         filename <- strsplit(x, "\\.|/|_") %>%
@@ -247,9 +159,9 @@ if(!file.exists(file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up
                                           na.omit()
                                         
                                         cleaned_fpa_decades %>%
-                                          write_rds(., file.path(dir_cleaned_fpa_abu_rds, paste0(filename, '_cleaned_fpa_all_built_up.rds')))
+                                          write_rds(., file.path(dir_cleaned_fpa_ztrax_rds, paste0(filename, '_cleaned_fpa_all_built_up.rds')))
                                       },
-                                      dir_cleaned_fpa_abu_rds = dir_cleaned_fpa_abu_rds,
+                                      dir_cleaned_fpa_ztrax_rds = dir_cleaned_fpa_ztrax_rds,
                                       fpa_years = fpa_years,
                                       cl = cl)
   
@@ -263,20 +175,20 @@ if(!file.exists(file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up
     dplyr::select(fpa_id, year, abu_build_up_count, abu_build_up_intensity_sqm)
   
   cleaned_fpa_decades_abu %>%
-    write_rds(., file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up.rds'))
+    write_rds(., file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_all_built_up.rds'))
   
   system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
   
 } else {
   
-  cleaned_fpa_abu <- read_rds(file.path(dir_cleaned_fpa_abu_rds, 'all_cleaned_fpa_all_built_up.rds'))
+  cleaned_fpa_abu <- read_rds(file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_all_built_up.rds'))
 }
 
 # All built up units per FPA with 250m buffer
-if(!file.exists(file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_all_built_up.rds'))) {
+if(!file.exists(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_all_built_up.rds'))) {
   ############## spatial join the wui dataframe to the zillow data ############################
   
-  gpkgs <- list.files(dir_raw_abu_gpkg, pattern = ".gpkg", full.names = TRUE)
+  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
   
   cl <- makeCluster(detectCores()/6)
   registerDoParallel(cl)
@@ -289,7 +201,7 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_al
       lapply(`[`, 18) %>%
       unlist
     
-    if(!file.exists(file.path(dir_fpa_250m_abu_rds, paste0(filename, '_ztrax_all_built_up_fpa_250m_points.rds')))) {
+    if(!file.exists(file.path(dir_fpa_250m_ztrax_rds, paste0(filename, '_ztrax_all_built_up_fpa_250m_points.rds')))) {
       
       imported <- sf::st_read(x) %>%
         st_join(., fpa_250m, join = st_intersects) %>%
@@ -300,19 +212,19 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_al
                   abu_build_up_intensity_sqm = sum(bdareasqft)*0.092903) 
       
       write_rds(imported,  
-                file.path(dir_fpa_250m_abu_rds,  paste0(filename, '_ztrax_all_built_up_fpa_250m_points.rds')))
+                file.path(dir_fpa_250m_ztrax_rds,  paste0(filename, '_ztrax_all_built_up_fpa_250m_points.rds')))
     }
   }
   stopCluster(cl)
   
   ############## Aggregate and clean all ztrax all_built_up dataframes ############################
-  rdss <- list.files(dir_fpa_250m_abu_rds, pattern = ".rds", full.names = TRUE)
+  rdss <- list.files(dir_fpa_250m_ztrax_rds, pattern = ".rds", full.names = TRUE)
   
   pboptions(type = 'txt', use_lb = TRUE)
   cl <- makeCluster(getOption("cl.cores", detectCores()))
   
   cleaned_fpa_250m_decades_abu <- pblapply(rdss,
-                                           FUN = function(x, dir_cleaned_fpa_250m_abu_rds, fpa_250m_years) {
+                                           FUN = function(x, dir_cleaned_fpa_250m_ztrax_rds, fpa_250m_years) {
                                              require(tidyverse)
                                              
                                              filename <- strsplit(x, "\\.|/|_") %>%
@@ -354,10 +266,10 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_al
                                              
                                              if(nrow(cleaned_fpa_250m_decades) > 0) {
                                                cleaned_fpa_250m_decades %>%
-                                                 write_rds(., file.path(dir_cleaned_fpa_250m_abu_rds, paste0(filename, '_cleaned_fpa_250m_all_built_up.rds')))
+                                                 write_rds(., file.path(dir_cleaned_fpa_250m_ztrax_rds, paste0(filename, '_cleaned_fpa_250m_all_built_up.rds')))
                                              } 
                                            },
-                                           dir_cleaned_fpa_250m_abu_rds = dir_cleaned_fpa_250m_abu_rds,
+                                           dir_cleaned_fpa_250m_ztrax_rds = dir_cleaned_fpa_250m_ztrax_rds,
                                            fpa_250m_years = fpa_250m_years,
                                            cl = cl)
   
@@ -370,386 +282,14 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_al
     dplyr::select(fpa_id, year, abu_build_up_count, abu_build_up_intensity_sqm)
   
   cleaned_fpa_250m_decades_abu %>%
-    write_rds(., file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_all_built_up.rds'))
+    write_rds(., file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_all_built_up.rds'))
   
   system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
   
 } else {
   
-  cleaned_fpa_250m_abu <- read_rds(file.path(dir_cleaned_fpa_250m_abu_rds, 'all_cleaned_fpa_250m_all_built_up.rds'))
+  cleaned_fpa_250m_abu <- read_rds(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_all_built_up.rds'))
 }        
-
-#------------------------------- Residential Housing  -------------------------------------------
-# Prep data by subsetting and transforming --------------------------------
-gdbs <- list.files(ztrax_prefix, pattern = ".gdb", full.names = TRUE)
-
-pboptions(type = 'txt', use_lb = TRUE)
-cl <- makeCluster(getOption("cl.cores", detectCores()))
-
-pblapply(gdbs,
-         FUN = function(i, usa_shp, dir_raw_res_gpkg) {
-           require(sf)
-           require(tidyverse)
-           
-           outname <- basename(i) %>%
-             gsub('.gdb', '.gpkg', .)
-           
-           if(!file.exists(file.path(dir_raw_res_gpkg, outname))) {
-             
-             layers <- tibble::data_frame(name = sf::st_layers(i)$name)
-             
-             state_ztrax <- apply(unique(layers), 1,
-                                  FUN = function(j, i, usa_shp) {
-                                    state_ztrax <- sf::st_read(i, layer = j) %>%
-                                      dplyr::filter(geom_wkt != 'POINT(0 0)') %>%
-                                      dplyr::filter(str_detect(LU_stdcode, 'AG101|AG102|AG103|AG104|AG107|AG108|PP199|RI|RR')) %>%
-                                      sf::st_transform(sf::st_crs(usa_shp))
-                                  }, 
-                                  i = i,
-                                  usa_shp = usa_shp
-             )
-             state_ztrax <- do.call(rbind, state_ztrax)
-             
-             sf::st_write(state_ztrax, file.path(dir_raw_res_gpkg, outname))
-           }
-         },
-         usa_shp = usa_shp,
-         dir_raw_res_gpkg = dir_raw_res_gpkg,
-         cl = cl)
-
-stopCluster(cl)
-
-# Extract by WUI and FPA --------------------------------
-if(!file.exists(file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.rds'))) {
-  ############## spatial join the wui dataframe to the zillow data ############################
-  
-  # find the number of built-up units and build-up area by census block group and built year
-  gpkgs <- list.files(dir_raw_res_gpkg, pattern = ".gpkg", full.names = TRUE)
-  
-  pboptions(type = 'txt', use_lb = TRUE)
-  cl <- makeCluster(getOption("cl.cores", detectCores()/16))
-  
-  pblapply(gpkgs,
-           FUN = function(x, dir_wui_res_rds, wui) {
-             require(sf)
-             require(tidyverse)
-             
-             filename <- strsplit(x, "\\.|/|_") %>%
-               lapply(`[`, 14) %>%
-               unlist
-             
-             if(!file.exists(file.path(dir_wui_res_rds, paste0(filename, '_ztrax_res_wui_points.rds')))) {
-               
-               imported <- sf::st_read(x) %>%
-                 st_join(., wui, join = st_intersects) %>%
-                 setNames(tolower(names(.))) %>%
-                 as.data.frame() %>%
-                 group_by(blk10, yearbuilt) %>%
-                 summarise(res_build_up_count = n(),
-                           res_build_up_intensity_sqm = sum(bdareasqft)*0.092903) 
-               write_rds(imported,  
-                         file.path(dir_wui_res_rds,  paste0(filename, '_ztrax_res_wui_points.rds')))
-             }
-           },
-           dir_wui_res_rds = dir_wui_res_rds,
-           wui = wui,
-           cl = cl)
-  
-  stopCluster(cl)
-  
-  
-  ############## Aggregate and clean all ztrax residential dataframes ############################
-
-  rdss <- list.files(dir_wui_res_rds, pattern = ".rds", full.names = TRUE)
-  
-  pboptions(type = 'txt', use_lb = TRUE)
-  cl <- makeCluster(getOption("cl.cores", detectCores()))
-
-  cleaned_wui_residential <- pblapply(rdss,
-                                     FUN = function(x, dir_cleaned_wui_res_rds) {
-                                       require(tidyverse)
-                                       
-                                       filename <- strsplit(x, "\\.|/|_") %>%
-                                         lapply(`[`, 11) %>%
-                                         unlist
-                                       
-                                       if(!file.exists(file.path(dir_cleaned_wui_res_rds, paste0(filename, '_cleaned_wui_residential.rds')))) {
-                                         imported <- read_rds(x)
-                                         
-                                         blk_grps <- imported %>%
-                                           group_by(blk10) %>%
-                                           summarise() %>%
-                                           ungroup() %>%
-                                           droplevels() %>%
-                                           slice(rep(1:n(), each = 2016-1990)) %>%
-                                           mutate(yearbuilt = (rep(1990:2015, times = length(unique(blk10)))),
-                                                  year_built = (yearbuilt),
-                                                  blk10 = factor(blk10))
-                                         
-                                         cleaned_wui_residential <- ungroup(imported) %>%
-                                           filter(yearbuilt != 0) %>%
-                                           mutate(blk10 = factor(blk10),
-                                                  yearbuilt = ifelse(yearbuilt > 1800 & yearbuilt <= 1990, 1990, yearbuilt)) %>%
-                                           group_by(blk10, yearbuilt) %>%
-                                           summarise(build_up_count = sum(build_up_count),
-                                                     build_up_intensity_sqm = sum(build_up_intensity_sqm)) %>%  
-                                           mutate(build_up_count = cumsum(build_up_count),
-                                                  build_up_intensity_sqm = cumsum(build_up_intensity_sqm)) %>%
-                                           group_by(blk10, yearbuilt) %>%
-                                           summarise(build_up_count = max(build_up_count),
-                                                     build_up_intensity_sqm = max(build_up_intensity_sqm)) %>%                                      
-                                           ungroup() %>%
-                                           full_join(., blk_grps, by = c('blk10', 'yearbuilt')) %>%
-                                           arrange(blk10, yearbuilt) %>%
-                                           fill(everything(), .direction = 'up') 
-                                         
-                                         cleaned_wui_residential %>%
-                                           write_rds(., file.path(dir_cleaned_wui_res_rds, paste0(filename, '_cleaned_wui_residential.rds')))
-                                       }
-                                     },
-                                     dir_cleaned_wui_res_rds = dir_cleaned_wui_res_rds,
-                                     cl = cl)
-  
-  stopCluster(cl)
-  
-  #bind all of these together in one dataframe
-  cleaned_wui_residential <- do.call(rbind, cleaned_wui_residential) %>%
-    na.omit()  %>%
-    mutate(year = yearbuilt) %>%
-    dplyr::select(blk10, year, res_build_up_count, res_build_up_intensity_sqm)
-  
-  cleaned_wui_residential %>%
-    write_rds(., file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.rds'))
-  
-  system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
-  
-  
-} else {
-  
-  cleaned_wui_residential <- read_rds(file.path(dir_cleaned_wui_res_rds, 'all_cleaned_wui_residential.rds'))
-}
-
-# Housing units per FPA
-if(!file.exists(file.path(dir_cleaned_fpa_res_rds, 'all_cleaned_fpa_residential.rds'))) {
-  ############## spatial join the wui dataframe to the zillow data ############################
-  
-  gpkgs <- list.files(dir_raw_res_gpkg, pattern = ".gpkg", full.names = TRUE)
-  
-  cl <- makeCluster(detectCores()/5)
-  registerDoParallel(cl)
-  
-  ztrax_residential <- foreach(x = unique(gpkgs), .combine = 'rbind') %dopar% {
-    require(sf)
-    require(tidyverse)
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 14) %>%
-      unlist
-    
-    if(!file.exists(file.path(dir_fpa_res_rds, paste0(filename, '_ztrax_residential_fpa_points.rds')))) {
-      
-      imported <- sf::st_read(x) %>%
-        st_join(., bae, join = st_intersects) %>%
-        setNames(tolower(names(.))) %>%
-        as.data.frame() %>%
-        group_by(fpa_id, yearbuilt) %>%
-        summarise(res_build_up_count = n(),
-                  res_build_up_intensity_sqm = sum(bdareasqft)*0.092903) 
-      
-      write_rds(imported,  
-                file.path(dir_fpa_res_rds,  paste0(filename, '_ztrax_residential_fpa_points.rds')))
-    }
-  }
-  stopCluster(cl)
-  
-  ############## Aggregate and clean all ztrax residential dataframes ############################
-  rdss <- list.files(dir_fpa_res_rds, pattern = ".rds", full.names = TRUE)
-  
-  fpa_years <- as.data.frame(bae) %>%
-    setNames(tolower(names(.))) %>%
-    mutate(yearbuilt = discovery_year) %>%
-    dplyr::select(fpa_id, yearbuilt, discovery_year) %>% as_tibble() %>%
-    distinct(., .keep_all = TRUE)
-  
-  pboptions(type = 'txt', use_lb = TRUE)
-  cl <- makeCluster(getOption("cl.cores", detectCores()))
-  
-  cleaned_fpa_decades <- pblapply(rdss,
-                                  FUN = function(x, dir_cleaned_fpa_res_rds, fpa_years) {
-                                    require(tidyverse)
-                                    
-                                    filename <- strsplit(x, "\\.|/|_") %>%
-                                      lapply(`[`, 11) %>%
-                                      unlist
-                                    
-                                    imported <- read_rds(x) 
-                                    
-                                    blk_grps <- ungroup(imported) %>%
-                                      group_by(fpa_id) %>%
-                                      summarise() %>%
-                                      ungroup() %>%
-                                      droplevels() %>%
-                                      slice(rep(1:n(), each = 2016-1984)) %>%
-                                      mutate(yearbuilt = (rep(1984:2015, times = length(unique(fpa_id)))),
-                                             year_built = (yearbuilt),
-                                             fpa_id = factor(fpa_id))
-                                    
-                                    cleaned_fpa_decades <- ungroup(imported) %>%
-                                      filter(yearbuilt != 0) %>%
-                                      mutate(fpa_id = factor(fpa_id)) %>%
-                                      group_by(fpa_id, yearbuilt) %>%
-                                      summarise(res_build_up_count = sum(res_build_up_count),
-                                                res_build_up_intensity_sqm = sum(res_build_up_intensity_sqm)) %>%  
-                                      mutate(res_build_up_count = cumsum(res_build_up_count),
-                                             res_build_up_intensity_sqm = cumsum(res_build_up_intensity_sqm)) %>%
-                                      filter(yearbuilt > 1983) %>%
-                                      group_by(fpa_id, yearbuilt) %>%
-                                      summarise(res_build_up_count = max(res_build_up_count),
-                                                res_build_up_intensity_sqm = max(res_build_up_intensity_sqm)) %>%                                      ungroup() %>%
-                                      full_join(., blk_grps, by = c('fpa_id', 'yearbuilt')) %>%
-                                      arrange(fpa_id, yearbuilt) %>%
-                                      fill(everything(), .direction = 'up') %>%
-                                      left_join(., fpa_years, by = c('fpa_id', 'yearbuilt')) %>%
-                                      mutate(res_build_up_count = ifelse(year_built == discovery_year, res_build_up_count, NA),
-                                             res_build_up_intensity_sqm = ifelse(year_built == discovery_year, res_build_up_intensity_sqm, NA)) %>%
-                                      na.omit()
-                                    
-                                    cleaned_fpa_decades %>%
-                                      write_rds(., file.path(dir_cleaned_fpa_res_rds, paste0(filename, '_cleaned_fpa_residential.rds')))
-                                  },
-                                  dir_cleaned_fpa_res_rds = dir_cleaned_fpa_res_rds,
-                                  fpa_years = fpa_years,
-                                  cl = cl)
-  
-  stopCluster(cl)
-  
-  
-  #bind all of these together in one dataframe
-  cleaned_fpa_decades <- lapply(list.files(cleaned_ztrax_fpa_out, pattern = ".rds", full.names = TRUE),
-                                FUN = function(x)
-                                  imported <- read_rds(x))
-  
-  cleaned_fpa_decades <- do.call(rbind, cleaned_fpa_decades) %>%
-    na.omit()  %>%
-    mutate(year = yearbuilt) %>%
-    dplyr::select(fpa_id, year, res_build_up_count, res_build_up_intensity_sqm)
-  
-  cleaned_fpa_decades %>%
-    write_rds(., file.path(dir_cleaned_fpa_res_rds, 'all_cleaned_fpa_residential.rds'))
-  
-  system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
-  
-} else {
-  
-  cleaned_fpa_residential <- read_rds(file.path(dir_cleaned_fpa_res_rds, 'all_cleaned_fpa_residential.rds'))
-}
-
-# Housing units per FPA with 250m buffer
-if(!file.exists(file.path(dir_cleaned_fpa_250m_res_rds, 'all_cleaned_fpa_250m_residential.rds'))) {
-  ############## spatial join the wui dataframe to the zillow data ############################
-  
-  gpkgs <- list.files(dir_raw_res_gpkg, pattern = ".gpkg", full.names = TRUE)
-  
-  cl <- makeCluster(detectCores()/6)
-  registerDoParallel(cl)
-  
-  ztrax_residential <- foreach(x = unique(gpkgs), .combine = 'rbind') %dopar% {
-    require(sf)
-    require(tidyverse)
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 14) %>%
-      unlist
-    
-    if(!file.exists(file.path(dir_fpa_250m_res_rds, paste0(filename, '_ztrax_residential_fpa_250m_points.rds')))) {
-      
-      imported <- sf::st_read(x) %>%
-        st_join(., fpa_250m, join = st_intersects) %>%
-        setNames(tolower(names(.))) %>%
-        as.data.frame() %>%
-        group_by(fpa_id, yearbuilt) %>%
-        summarise(res_build_up_count = n(),
-                  res_build_up_intensity_sqm = sum(bdareasqft)*0.092903) 
-      
-      write_rds(imported,  
-                file.path(dir_fpa_250m_res_rds,  paste0(filename, '_ztrax_residential_fpa_250m_points.rds')))
-    }
-  }
-  stopCluster(cl)
-  
-  ############## Aggregate and clean all ztrax residential dataframes ############################
-  rdss <- list.files(dir_fpa_250m_res_rds, pattern = ".rds", full.names = TRUE)
-  
-  pboptions(type = 'txt', use_lb = TRUE)
-  cl <- makeCluster(getOption("cl.cores", detectCores()))
-  
-  cleaned_fpa_250m_residential <- pblapply(rdss,
-                                           FUN = function(x, dir_cleaned_fpa_250m_res_rds, fpa_250m_years) {
-                                             require(tidyverse)
-                                             
-                                             filename <- strsplit(x, "\\.|/|_") %>%
-                                               lapply(`[`, 12) %>%
-                                               unlist
-                                             
-                                             imported <- read_rds(x) 
-                                             
-                                             blk_grps <- ungroup(imported) %>%
-                                               group_by(fpa_id) %>%
-                                               summarise() %>%
-                                               ungroup() %>%
-                                               droplevels() %>%
-                                               slice(rep(1:n(), each = 2016-1992)) %>%
-                                               mutate(yearbuilt = (rep(1992:2015, times = length(unique(fpa_id)))),
-                                                      year_built = (yearbuilt),
-                                                      fpa_id = factor(fpa_id))
-                                             
-                                             cleaned_fpa_250m_residential <- ungroup(imported) %>%
-                                               filter(yearbuilt != 0) %>%
-                                               mutate(fpa_id = factor(fpa_id)) %>%
-                                               group_by(fpa_id, yearbuilt) %>%
-                                               summarise(res_build_up_count = sum(res_build_up_count),
-                                                         res_build_up_intensity_sqm = sum(res_build_up_intensity_sqm)) %>%  
-                                               mutate(res_build_up_count = cumsum(res_build_up_count),
-                                                      res_build_up_intensity_sqm = cumsum(res_build_up_intensity_sqm)) %>%
-                                               filter(yearbuilt > 1991) %>%
-                                               group_by(fpa_id, yearbuilt) %>%
-                                               summarise(res_build_up_count = max(res_build_up_count),
-                                                         res_build_up_intensity_sqm = max(res_build_up_intensity_sqm)) %>%                                      ungroup() %>%
-                                               full_join(., blk_grps, by = c('fpa_id', 'yearbuilt')) %>%
-                                               arrange(fpa_id, yearbuilt) %>%
-                                               fill(everything(), .direction = 'up')  %>%
-                                               left_join(., fpa_250m_years, by = c('fpa_id', 'yearbuilt')) %>%
-                                               mutate(res_build_up_count = ifelse(year_built == discovery_year, res_build_up_count, NA),
-                                                      res_build_up_intensity_sqm = ifelse(year_built == discovery_year, res_build_up_intensity_sqm, NA)) %>%
-                                               filter(!is.na(res_build_up_count) | !is.na(res_build_up_intensity_sqm)) 
-                                             
-                                             
-                                             if(nrow(cleaned_fpa_250m_residential) > 0) {
-                                               cleaned_fpa_250m_residential %>%
-                                                 write_rds(., file.path(dir_cleaned_fpa_250m_res_rds, paste0(filename, '_cleaned_fpa_250m_residential.rds')))
-                                             } 
-                                           },
-                                           dir_cleaned_fpa_250m_res_rds = dir_cleaned_fpa_250m_res_rds,
-                                           fpa_250m_years = fpa_250m_years,
-                                           cl = cl)
-  
-  stopCluster(cl)
-  
-  #bind all of these together in one dataframe
-  cleaned_fpa_250m_residential <- do.call(rbind, cleaned_fpa_250m_residential) %>%
-    na.omit()  %>%
-    mutate(year = yearbuilt) %>%
-    dplyr::select(fpa_id, year, res_build_up_count, res_build_up_intensity_sqm)
-  
-  cleaned_fpa_250m_residential %>%
-    write_rds(., file.path(dir_cleaned_fpa_250m_res_rds, 'all_cleaned_fpa_250m_residential.rds'))
-  
-  system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
-  
-} else {
-  
-  cleaned_fpa_250m_residential <- read_rds(file.path(dir_cleaned_fpa_250m_res_rds, 'all_cleaned_fpa_250m_residential.rds'))
-}                            
 
 
 # Combine and explore -----------------------------------------------------
