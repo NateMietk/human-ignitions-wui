@@ -1,4 +1,139 @@
 
+subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
+  require(sf)
+  require(tidyverse)
+  
+  outname <- basename(i) %>%
+    gsub('.gdb', '.gpkg', .)
+  
+  if(!file.exists(file.path(out_dir, outname))) {
+    
+    layers <- tibble::data_frame(name = sf::st_layers(i)$name)
+    
+    state_ztrax <- apply(unique(layers), 1,
+                         FUN = function(j) {
+                           state_ztrax <- sf::st_read(i, layer = j) %>%
+                             dplyr::filter(geom_wkt != 'POINT(0 0)') %>%
+                             dplyr::filter(YearBuilt != 0) %>%
+                             dplyr::mutate(built_class = ifelse(str_detect(LU_stdcode, 'RI|RR'), 'Residential', 'Non-Residential')) %>%
+                             dplyr::select(-geom_wkt, -ImptPrclID, -LU_desc, -LU_code)
+                         }) 
+    
+    do.call(rbind, state_ztrax) %>%
+      sf::st_transform(sf::st_crs(usa_shp)) %>%
+      sf::st_write(., file.path(out_dir, outname))
+  }
+}
+
+intersect_ztrax <- function(x, mask, out_dir, out_name, which_dataset) {
+  require(sf)
+  require(tidyverse)
+  
+  if (which_dataset == '1') {
+    
+    filename <- strsplit(x, "\\.|/|_") %>%
+      lapply(`[`, 13) %>%
+      unlist
+    
+    if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+      
+    imported <- sf::st_read(x) %>%
+      st_join(., mask, join = st_intersects) %>%
+      setNames(tolower(names(.))) %>%
+      as.data.frame() %>%
+      mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1990, 1990, yearbuilt)) %>%
+      group_by(blk10, built_class, yearbuilt) %>%
+      summarise(build_up_count = n(),
+                build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
+      ungroup() 
+    
+    write_rds(imported,
+              file.path(out_dir,  paste0(filename, out_name)))    }
+  } else {
+    
+    filename <- strsplit(x, "\\.|/|_") %>%
+      lapply(`[`, 13) %>%
+      unlist
+    
+    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+      
+    imported <- sf::st_read(x) %>%
+      st_join(., mask, join = st_intersects) %>%
+      setNames(tolower(names(.))) %>%
+      as.data.frame() %>%
+      mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1992, 1992, yearbuilt)) %>%
+      group_by(fpa_id, built_class, yearbuilt) %>%
+      summarise(build_up_count = n(),
+                build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
+      ungroup()
+    
+    write_rds(imported,
+              file.path(out_dir,  paste0(filename, out_name)))    
+    }
+  }
+}
+
+aggregate_ztrax <- function(x, out_dir, out_name, which_dataset) {
+  require(tidyverse)
+  
+  if (which_dataset == '1') {
+    
+    filename <- strsplit(x, "\\.|/|_") %>%
+      lapply(`[`, 10) %>%
+      unlist
+    
+    if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+      imported <- read_rds(x)
+    
+      cleaned <- imported %>%
+        mutate(blk10 = factor(blk10)) %>%
+        group_by(blk10, built_class, yearbuilt) %>%
+        summarise(build_up_count = sum(build_up_count),
+                  build_up_intensity_sqm = sum(build_up_intensity_sqm)) %>%
+        mutate(build_up_count = cumsum(build_up_count),
+               build_up_intensity_sqm = cumsum(build_up_intensity_sqm)) %>%
+        ungroup() %>%
+        complete(nesting(blk10, built_class), yearbuilt = 1990:2015) %>%
+        group_by(blk10, built_class) %>%
+        fill(everything(), .direction = 'up') %>%
+        ungroup() %>%
+        group_by(blk10, built_class) %>%
+        fill(everything(), .direction = 'down')
+      
+      cleaned %>%
+        write_rds(., file.path(out_dir, paste0(filename, out_name)))
+    }
+  } else if (which_dataset == '2') {
+    
+    filename <- strsplit(x, "\\.|/|_") %>%
+      lapply(`[`, 10) %>%
+      unlist
+    
+    if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+      imported <- read_rds(x)
+      
+      cleaned <- imported %>%
+        mutate(fpa_id = factor(fpa_id)) %>%
+        group_by(fpa_id, built_class, yearbuilt) %>%
+        summarise(build_up_count = sum(build_up_count),
+                  build_up_intensity_sqm = sum(build_up_intensity_sqm)) %>%
+        mutate(build_up_count = cumsum(build_up_count),
+               build_up_intensity_sqm = cumsum(build_up_intensity_sqm)) %>%
+        ungroup() %>%
+        complete(nesting(fpa_id, built_class), yearbuilt = 1992:2015) %>%
+        group_by(fpa_id, built_class) %>%
+        fill(everything(), .direction = 'up') %>%
+        ungroup() %>%
+        group_by(fpa_id, built_class) %>%
+        fill(everything(), .direction = 'down')
+      
+      cleaned %>%
+        write_rds(., file.path(out_dir, paste0(filename, out_name)))
+    }
+  }
+}
+
+
 mode <- function(v) {
   uniqv <- na.omit(unique(v))
   uniqv[base::which.max(tabulate(match(v, uniqv)))]
