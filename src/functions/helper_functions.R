@@ -29,59 +29,55 @@ intersect_ztrax <- function(x, mask, out_dir, out_name, which_dataset) {
   require(sf)
   require(tidyverse)
   
-  if (which_dataset == '1') {
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 13) %>%
-      unlist
-    
+  filename <- x %>%
+    basename() %>%
+    str_extract(., "[[:digit:]]+")
+  
+  if (which_dataset == '1') { 
     if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
       
     imported <- sf::st_read(x) %>%
-      st_join(., mask, join = st_intersects) %>%
+      sf::st_join(., mask, join = st_intersects) %>%
       setNames(tolower(names(.))) %>%
       as.data.frame() %>%
-      mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1990, 1990, yearbuilt)) %>%
-      group_by(blk10, built_class, yearbuilt) %>%
-      summarise(build_up_count = n(),
+      dplyr::mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1990, 1990, yearbuilt)) %>%
+      dplyr::group_by(blk10, built_class, yearbuilt) %>%
+      dplyr::summarise(build_up_count = n(),
                 build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
-      ungroup() 
+      dplyr::ungroup() 
     
-    write_rds(imported,
-              file.path(out_dir,  paste0(filename, out_name)))    }
-  } else {
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 13) %>%
-      unlist
-    
-    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
-      
-    imported <- sf::st_read(x) %>%
-      st_join(., mask, join = st_intersects) %>%
-      setNames(tolower(names(.))) %>%
-      as.data.frame() %>%
-      mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1992, 1992, yearbuilt)) %>%
-      group_by(fpa_id, built_class, yearbuilt) %>%
-      summarise(build_up_count = n(),
-                build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
-      ungroup()
-    
-    write_rds(imported,
+    readr::write_rds(imported,
               file.path(out_dir,  paste0(filename, out_name)))    
     }
   }
+  
+  if (which_dataset == '2') { 
+    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+      
+    imported <- sf::st_read(x) %>%
+      sf::st_join(., mask, join = st_intersects) %>%
+      setNames(tolower(names(.))) %>%
+      as.data.frame() %>%
+      dplyr::mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1992, 1992, yearbuilt)) %>%
+      dplyr::group_by(fpa_id, built_class, yearbuilt) %>%
+      dplyr::summarise(build_up_count = n(),
+                build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
+      dplyr::ungroup()
+    
+    readr::write_rds(imported,
+              file.path(out_dir,  paste0(filename, out_name)))    
+    }
+  } 
 }
 
 aggregate_ztrax <- function(x, out_dir, out_name, which_dataset) {
   require(tidyverse)
   
+  filename <- x %>%
+    basename() %>%
+    str_extract(., "[[:digit:]]+")
+  
   if (which_dataset == '1') {
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 10) %>%
-      unlist
-    
     if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
       imported <- read_rds(x)
     
@@ -103,11 +99,9 @@ aggregate_ztrax <- function(x, out_dir, out_name, which_dataset) {
       cleaned %>%
         write_rds(., file.path(out_dir, paste0(filename, out_name)))
     }
-  } else if (which_dataset == '2') {
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 10) %>%
-      unlist
+  } 
+  
+  if (which_dataset == '2') {
     
     if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
       imported <- read_rds(x)
