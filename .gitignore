@@ -6,6 +6,7 @@
 .RData
 .rstudio
 .DS_Store
+*.Rproj
 
 # Example code in package build process
 *-Ex.R
@@ -41,3 +42,6 @@ results
 figs
 data
 .aws
+
+src/R/rmarkdown_files/*.rds
+src/R/rmarkdown_files/*_cache
