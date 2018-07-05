@@ -481,10 +481,12 @@ if (!exists('wui_df')) {
   # Clean ICS-209 from 1999-2014 -----------------------------
   
   if(!file.exists(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))) {
-    ics_209 <- read_csv(file.path(ics_intbls, "ics209_1999_2014.csv")) %>%
+    ics_209 <- fread(file.path(ics_intbls, "ics209_1999_2014.csv")) %>%
       mutate_all(funs(replace(., is.na(.), 0))) %>%
       as_tibble() %>%
-      setNames(tolower(names(.)))
+      setNames(tolower(names(.))) %>%
+      filter(inctyp_abbreviation == 'WF') %>%
+      mutate(curr_incident_area = ifelse(curr_incident_area == 350082388, 3500, curr_incident_area))
     
     latlong_legacy <- read_csv(file.path(ics_latlong, "legacy_cleaned_ll.csv")) %>%
       setNames(tolower(names(.)))  %>%
@@ -582,12 +584,12 @@ if (!exists('wui_df')) {
   # Clip the ICS-209 data to the CONUS and remove unknown cause
   if(!file.exists(file.path(ics_spatial, "ics209_conus.gpkg"))) {
     # Make the cleaned ICS-209 data spatial
-    conus_209 <- st_par(ics_209_incidents, st_as_sf, n_cores = ncores,
+    conus_209 <- st_as_sf(ics_209_incidents,
                         coords = c("long", "lat"),
                         crs = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs") %>%
-      st_par(., st_transform, n_cores = ncores, crs = proj_ea) %>%
-      st_par(., st_intersection, n_cores = ncores, y = st_union(usa_shp)) %>%
-      st_par(., st_intersection, n_cores = ncores, y = bounds)
+      st_transform(crs = proj_ea) %>%
+      st_intersection(., st_union(usa_shp)) %>%
+      st_intersection(., bounds)
     plot(st_geometry(conus_209))
     
     st_write(conus_209, file.path(ics_spatial, "ics209_conus.gpkg"),
