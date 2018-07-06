@@ -63,7 +63,7 @@ if(!file.exists(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.r
   
 } else {
   
-  cleaned_wui_all <- read_rds(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_build_up.rds'))
+  cleaned_wui_all <- read_rds(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds'))
 }
 
 # Built up units per ICS 209 block groups
@@ -101,7 +101,7 @@ if(!file.exists(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.r
   
 } else {
   
-  cleaned_ics_all <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_build_up.rds'))
+  cleaned_ics_all <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.rds'))
 }
 
 # Built up units per FPA perimeters
@@ -138,7 +138,7 @@ if(!file.exists(file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_built_up.r
   
 } else {
   
-  cleaned_fpa_all <- read_rds(file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_build_up.rds'))
+  cleaned_fpa_all <- read_rds(file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_built_up.rds'))
 }
 
 # Built up units per FPA 250m perimeters
@@ -175,5 +175,5 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_
   
 } else {
   
-  cleaned_fpa_250m_all <- read_rds(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_build_up.rds'))
+  cleaned_fpa_250m_all <- read_rds(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_built_up.rds'))
 }
