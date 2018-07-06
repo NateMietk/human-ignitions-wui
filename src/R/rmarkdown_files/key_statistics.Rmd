@@ -193,8 +193,6 @@ as_tibble(as.data.frame(fpa_wui_df)) %>%
 ```
 # Results - Human-related ignitions contributed substantially to U.S. wildfire costs
 
-
-
 # Supplemental Tables
 #### Table 1 
 ```{r eval=TRUE}

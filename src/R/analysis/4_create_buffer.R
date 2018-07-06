@@ -1,5 +1,5 @@
 
-# Buffer FPA points based on radius, remove MTBS present in FPA, replace with the actual MTBS polygons
+# Buffered FPA perimeters
 if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
   # Create the distance variable to create the simple buffers
   
@@ -34,7 +34,7 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
   bae <- st_read(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))
 }
 
-# Create the buffered fpa points intersected with the WUI data
+# Buffered FPA perimeters intersected with the WUI data
 if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
   fpa_df <- as_tibble(as.data.frame(fpa_fire)) %>%
     dplyr::select(-geom)
@@ -94,11 +94,10 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
   fpa_bae_wui <- st_read(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg")) 
 }
 
-# Create the 250m buffered fpa points intersected with the WUI data
+# Buffered FPA 250m perimeters 
 if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
   
   fpa_250m <- bae %>%
-    filter(FIRE_SIZE_km2 >= 0.00025) %>%
     st_buffer(., dist = 250) 
   
   st_write(fpa_250m, file.path(fire_poly, "fpa_buffer_250m.gpkg"),
@@ -110,7 +109,7 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
   fpa_250m <- st_read(file.path(fire_poly, "fpa_buffer_250m.gpkg"))
 }
 
-# Buffer FPA points based on radius, remove MTBS present in FPA, replace with the actual MTBS polygons
+# Buffer ICS 209 perimeters
 if (!file.exists(file.path(fire_poly, "ics209_bae.gpkg"))) {
   # Create the distance variable to create the simple buffers
   

@@ -445,7 +445,6 @@ if (!exists('mtbs_pts')) {
       unlink(dest)
       assert_that(file.exists(mtbs_shp))
     }
-    
     mtbs_pts <- st_read(dsn = mtbs_prefix,
                         layer = "mtbs_fod_pts_20170501", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%
@@ -477,8 +476,6 @@ if (!exists('mtbs_pts')) {
     mtbs_pts <- st_read(dsn = file.path(mtbs_out, "mtbs_conus.gpkg"))
   }
 }
-
-
 
 # Clean ICS-209 from 1999-2014 -----------------------------
 
@@ -579,9 +576,9 @@ if(!file.exists(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))) {
   write_rds(ics_209_incidents, file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds')) 
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
-} else {
+  } else {
   ics_209_incidents <- read_rds(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))
-}
+  }
 
 # Clip the ICS-209 data to the CONUS and remove unknown cause
 if(!file.exists(file.path(ics_spatial, "ics209_conus.gpkg"))) {
@@ -592,7 +589,6 @@ if(!file.exists(file.path(ics_spatial, "ics209_conus.gpkg"))) {
     st_transform(crs = proj_ea) %>%
     st_intersection(., st_union(usa_shp)) %>%
     st_intersection(., bounds)
-  plot(st_geometry(conus_209))
   
   st_write(conus_209, file.path(ics_spatial, "ics209_conus.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
