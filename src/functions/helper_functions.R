@@ -100,7 +100,7 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
     
     if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
       
-      cleaned <- imported %>%
+      cleaned <- ungroup(imported) %>%
         mutate(fpa_id = factor(fpa_id)) %>%
         group_by(fpa_id, built_class, yearbuilt) %>%
         summarise(build_up_count = sum(build_up_count),
@@ -116,7 +116,7 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         fill(everything(), .direction = 'down')
       
       cleaned %>%
-        write_rds(., file.path(out_dir, paste0(filename, out_name)))
+        write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
     } else {
       cleaned <- read_rds(file.path(out_dir_cleaned,  paste0(filename, out_name_cleaned)))
     }
