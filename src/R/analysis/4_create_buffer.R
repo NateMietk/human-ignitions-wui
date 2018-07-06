@@ -7,23 +7,23 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
     mutate(MTBS_ACRES = NA,
            MTBS_DISCOVERY_YEAR = NA,
            MTBS_DISCOVERY_MONTH = NA,
-           MTBS_DISCOVERY_DAY = NA) %>%
+           MTBS_DISCOVERY_DAY = NA,
+           RADIUS = NA) %>%
     dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
                   MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
-                  MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION)
+                  MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS)
   
   bae <- fpa_fire %>%
     st_transform(proj_ed) %>%
     mutate(RADIUS = sqrt(FIRE_SIZE_m2/pi)) %>%
     filter(is.na(MTBS_ID))
   
-  bae <- st_parallel(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS)
+  bae <- st_parallel(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS) %>%
+    st_transform(proj_ea) 
   
-  bae <- rbind(bae, mtbs_fire) %>%
-    st_transform(proj_ztrax) %>%
+  bae <- do.call(rbind, list(bae = bae, mtbs_fire = mtbs_fire)) %>%
     st_cast('POLYGON') %>%
-    left_join(., as.data.frame(fpa_fire), by = 'FPA_ID') %>%
-    dplyr::select(FPA_ID, FIRE_SIZE_km2, geometry) 
+    dplyr::select(FPA_ID, DISCOVERY_YEAR, FIRE_SIZE_km2, geometry) 
   
   st_write(bae, file.path(fire_poly, "fpa_mtbs_bae.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
@@ -94,13 +94,6 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
   fpa_bae_wui <- st_read(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg")) 
 }
 
-# output dataframe for rmarkdown
-if(!file.exists(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))) {
-  as_tibble(as.data.frame(fpa_bae_wui)) %>%
-    dplyr::select(-c(latitude, longitude, geom, ics_209_incident_number, ics_209_name, mtbs_id, mtbs_fire_name)) %>%
-    write_rds(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))
-}
-
 # Create the 250m buffered fpa points intersected with the WUI data
 if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
   
@@ -117,4 +110,42 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
   fpa_250m <- st_read(file.path(fire_poly, "fpa_buffer_250m.gpkg"))
 }
 
+# Buffer FPA points based on radius, remove MTBS present in FPA, replace with the actual MTBS polygons
+if (!file.exists(file.path(fire_poly, "ics209_bae.gpkg"))) {
+  # Create the distance variable to create the simple buffers
+  
+  ics209_bae <- wui_209 %>%
+    st_transform(proj_ed) %>%
+    mutate(RADIUS = sqrt(area_km2*1000000/pi))
+  
+  ics209_bae <- ics209_bae %>%
+    st_buffer(., dist = ics209_bae$RADIUS) %>%
+    st_transform(proj_ea) %>%
+    st_cast('POLYGON')
+  
+  st_write(ics209_bae, file.path(fire_poly, "ics209_bae.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  
+  system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
+  
+} else {
+  ics209_bae <- st_read(file.path(fire_poly, "ics209_bae.gpkg"))
+}
 
+
+# output dataframe for rmarkdown
+if(!file.exists(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))) {
+  as_tibble(as.data.frame(fpa_bae_wui)) %>%
+    dplyr::select(-c(latitude, longitude, geom, ics_209_incident_number, ics_209_name, mtbs_id, mtbs_fire_name)) %>%
+    write_rds(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))
+  system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+  
+}
+
+# output dataframe for rmarkdown
+if(!file.exists(file.path(rmarkdown_files, 'ics209_bae_df.rds'))) {
+  as_tibble(as.data.frame(ics209_bae)) %>%
+    dplyr::select(-c(geometry)) %>%
+    write_rds(file.path(rmarkdown_files, 'ics209_bae_df.rds'))
+  system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+}
