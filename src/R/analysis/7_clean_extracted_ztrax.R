@@ -6,11 +6,12 @@ bu_ics_cleaned <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics
   mutate(built_class = ifelse(is.na(built_class), 'No Structures', built_class)) %>%
   dplyr::select(-year)
 
-if (!file.exists(file.path(dir_cleaned_wui_ztrax_rds, 'bu_wui_cleaned.csv'))) {
+if (!file.exists(file.path(dir_cleaned_wui_ztrax_rds, 'bu_wui_cleaned.rds'))) {
   
-  bu_wui_cleaned <- read_rds(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds')) %>%
+  bu_wui_cleaned <- ungroup(read_rds(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds'))) %>%
     left_join(., wui_df, by = "blk10") %>%
     filter((year %in% c('1990', '2000', '2010'))) %>%
+    ungroup() %>%
     mutate(year = as.integer(year),
            class = case_when(year == 1990 ~ as.character(class90),
                              year == 2000 ~ as.character(class00),
@@ -21,24 +22,27 @@ if (!file.exists(file.path(dir_cleaned_wui_ztrax_rds, 'bu_wui_cleaned.csv'))) {
            pop_den = case_when(year == 1990 ~ popden1990,
                                year == 2000 ~ popden2000,
                                year == 2010 ~ popden2010, TRUE ~ NA_real_),
-           house_den = case_when(year == 1990 ~ huden1990,
-                                 year == 2000 ~ huden2000,
-                                 year == 2010 ~ huden2010, TRUE ~ NA_real_),
-           house_units = case_when(year == 1990 ~ hhu1990,
-                                   year == 2000 ~ hhu2000,
-                                   year == 2010 ~ hhu2010, TRUE ~ NA_integer_)) %>%
+           house_den = case_when(year == 1990 ~ house_den_1990,
+                                 year == 2000 ~ house_den_2000,
+                                 year == 2010 ~ house_den_2010, TRUE ~ NA_real_),
+           house_units = case_when(year == 1990 ~ house_units_1990,
+                                   year == 2000 ~ house_units_2000,
+                                   year == 2010 ~ house_units_2010, TRUE ~ NA_integer_)) %>%
     dplyr::select(blk10, year, class, built_class, build_up_count, build_up_intensity_sqm, number_of_persons, house_units, pop_den, house_den) %>%
     mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
     mutate(built_class = ifelse(is.na(built_class), 'No Structures', built_class))
   
-    write_csv(bu_wui_cleaned, file.path(dir_cleaned_wui_ztrax_rds, 'bu_wui_cleaned.csv'))
+  test <- bu_wui_cleaned %>%
+    mutate(classy = 'SILVIS') %>%
+    gather(built_class, test, -blk10, -year, -class, -build_up_intensity_sqm, -number_of_persons, -house_units, -pop_den)
+  
+    write_rds(bu_wui_cleaned, file.path(dir_cleaned_wui_ztrax_rds, 'bu_wui_cleaned.rds'))
     system(paste0("aws s3 sync ", prefix, " ", s3_base))
     
   } else {
   
-  bu_wui_cleaned <- read_csv(file.path(dir_cleaned_wui_ztrax_rds, 'bu_wui_cleaned.csv'))
+  bu_wui_cleaned <- read_csv(file.path(dir_cleaned_wui_ztrax_rds, 'bu_wui_cleaned.rds'))
   }
-  
 
 bu_fpa_cleaned <- read_rds(file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_built_up.rds')) %>%
   mutate(discovery_year = year) %>%
