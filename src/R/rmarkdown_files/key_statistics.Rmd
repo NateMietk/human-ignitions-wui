@@ -14,6 +14,7 @@ library(kableExtra)
 fpa_wui_df <- read_rds('fpa_wui_df.rds')
 fpa_bae_wui_df <- read_rds('fpa_bae_wui_df.rds')
 wui_209_df <- read_rds('wui_209_df.rds')
+bu_ics_cleaned <- read_rds('bu_ics_cleaned.rds')
 classify_fire_size_sml <-  function(x) {
   # break out fires into small, med, large
   # input:
@@ -193,8 +194,6 @@ as_tibble(as.data.frame(fpa_wui_df)) %>%
 ```
 # Results - Human-related ignitions contributed substantially to U.S. wildfire costs
 
-
-
 # Supplemental Tables
 #### Table 1 
 ```{r eval=TRUE}
@@ -241,9 +240,1028 @@ as_tibble(as.data.frame(wui_209_df)) %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
 ```
+#### Table 2
+````{r eval = TRUE}
+bu_ics_cleaned %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class != 'Non-Residential') %>%
+  droplevels() %>%
+  filter(cause != 'Unk') %>%
+  group_by(class, cause, built_class) %>%
+  summarise(freq = n(),
+            wildfire_area = sum(area_km2),
+            costs = sum(costs),
+            risky_built_up = sum(build_up_count)) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+bu_ics_cleaned %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class != 'Residential') %>%
+  droplevels() %>%
+  filter(cause != 'Unk') %>%
+  group_by(class, cause, built_class) %>%
+  summarise(freq = n(),
+            wildfire_area = sum(area_km2),
+            costs = sum(costs),
+            risky_built_up = sum(build_up_count)) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+#### Table 3
+```{r eval=TRUE}
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  group_by(class, ignition) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  group_by(class, ignition) %>%
+  summarise(class_burned_area = sum(wui_area_km2),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_class_burned_area = (class_burned_area/total_class_area)*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class != 'No Structures') %>%
+  group_by(class, ignition, built_class) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  arrange(desc(class, ignition, built_class)) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  filter(cause != 'Unk') %>%
+  group_by(class, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(pct_costs = (costs/sum(costs))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+```
+#### Table 4a
+```{r eval=TRUE}
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  group_by(fire_size, ignition) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  group_by(fire_size, ignition) %>%
+  summarise(class_burned_area = sum(wui_area_km2),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_class_burned_area = (class_burned_area/total_class_area)*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  group_by(fire_size, ignition, built_class) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  filter(cause != 'Unk') %>%
+  mutate(fire_size = classify_fire_size_sml(area_km2)) %>%
+  group_by(fire_size, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(pct_costs = (costs/sum(costs))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+```
+
+#### Table 4b
+```{r eval=TRUE}
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'VLD', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'VLD', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(class_burned_area = sum(wui_area_km2),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_class_burned_area = (class_burned_area/total_class_area)*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  arrange(desc(class, fire_size, ignition)) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'VLD', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition, built_class) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'VLD', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI'))) %>%
+  filter(cause != 'Unk') %>%
+  mutate(fire_size = classify_fire_size_sml(area_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(pct_costs = (costs/sum(costs))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+
+#### Table 4c
+```{r eval=TRUE}
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('VLD'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('VLD'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(class_burned_area = sum(wui_area_km2),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_class_burned_area = (class_burned_area/total_class_area)*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  arrange(desc(class, fire_size, ignition)) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('VLD'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition, built_class) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('VLD'))) %>%
+  filter(cause != 'Unk') %>%
+  mutate(fire_size = classify_fire_size_sml(area_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(pct_costs = (costs/sum(costs))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+#### Table 4d
+````{r eval = TRUE}
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+  transform(class = factor(class, levels=c('Wildlands'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+  transform(class = factor(class, levels=c('Wildlands'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(class_burned_area = sum(wui_area_km2),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_class_burned_area = (class_burned_area/total_class_area)*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  arrange(desc(class, fire_size, ignition)) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+  transform(class = factor(class, levels=c('Wildlands'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition, built_class) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+  transform(class = factor(class, levels=c('Wildlands'))) %>%
+  filter(cause != 'Unk') %>%
+  mutate(fire_size = classify_fire_size_sml(area_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(pct_costs = (costs/sum(costs))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+
+#### Table 5a
+```{r eval=TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(cause = ignition) %>%
+  group_by(region, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
+
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(cause != 'Unk') %>%
+  group_by(region, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'region')) %>%
+  left_join(., t2, by = c('cause', 'region')) %>%
+  left_join(., t3, by = c('cause', 'region')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+
+#### Table 5b
+```{r eval=TRUE}
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'VLD', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'VLD', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(class_burned_area = sum(wui_area_km2),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_class_burned_area = (class_burned_area/total_class_area)*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  arrange(desc(class, fire_size, ignition)) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'VLD', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition, built_class) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'VLD', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI'))) %>%
+  filter(cause != 'Unk') %>%
+  mutate(fire_size = classify_fire_size_sml(area_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(pct_costs = (costs/sum(costs))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+
+#### Table 5c
+```{r eval=TRUE}
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('VLD'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('VLD'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(class_burned_area = sum(wui_area_km2),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_class_burned_area = (class_burned_area/total_class_area)*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  arrange(desc(class, fire_size, ignition)) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('VLD'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition, built_class) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('VLD'))) %>%
+  filter(cause != 'Unk') %>%
+  mutate(fire_size = classify_fire_size_sml(area_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(pct_costs = (costs/sum(costs))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+#### Table 5d
+````{r eval = TRUE}
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+  transform(class = factor(class, levels=c('Wildlands'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+  transform(class = factor(class, levels=c('Wildlands'))) %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  filter(!is.na(fire_size)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition) %>%
+  summarise(class_burned_area = sum(wui_area_km2),
+            total_class_area = first(total_class_area)) %>%
+  mutate(pct_class_burned_area = (class_burned_area/total_class_area)*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  arrange(desc(class, fire_size, ignition)) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+  transform(class = factor(class, levels=c('Wildlands'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(fire_size = classify_fire_size_sml(fire_size_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, ignition, built_class) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+  transform(class = factor(class, levels=c('Wildlands'))) %>%
+  filter(cause != 'Unk') %>%
+  mutate(fire_size = classify_fire_size_sml(area_km2)) %>%
+  transform(fire_size = factor(fire_size, levels=c('Small', 'Large', 'Very Large'))) %>%
+  group_by(class, fire_size, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate(pct_costs = (costs/sum(costs))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+#### Table 5b
+```{r eval = TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(cause = ignition) %>%
+  group_by(region, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
+
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(cause != 'Unk') %>%
+  group_by(region, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'region')) %>%
+  left_join(., t2, by = c('cause', 'region')) %>%
+  left_join(., t3, by = c('cause', 'region')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+```
+
+### Table 5c Interface WUI
+```{r eval = TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(cause = ignition) %>%
+  group_by(region, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
+
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(cause != 'Unk') %>%
+  group_by(region, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'region')) %>%
+  left_join(., t2, by = c('cause', 'region')) %>%
+  left_join(., t3, by = c('cause', 'region')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+```
 
 
+### Table 5d - VLD
+```{r eval = TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
 
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(cause = ignition) %>%
+  group_by(region, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
 
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(cause != 'Unk') %>%
+  group_by(region, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
 
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'region')) %>%
+  left_join(., t2, by = c('cause', 'region')) %>%
+  left_join(., t3, by = c('cause', 'region')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
 
+```
+#### Table 5e - Wildlands
+```{r eval = TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(built_class != 'No Structures') %>%
+  mutate(cause = ignition) %>%
+  group_by(region, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
+
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  filter(cause != 'Unk') %>%
+  group_by(region, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  transform(region = factor(region, levels=c('East', 'Central', 'West'))) %>%
+  mutate(cause = ignition) %>%
+  group_by(region, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2),
+            fire_season_length = IQR(discovery_doy)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'region')) %>%
+  left_join(., t2, by = c('cause', 'region')) %>%
+  left_join(., t3, by = c('cause', 'region')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+```
+#### Table 6a
+```{r eval = TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  filter(built_class != 'No Structures') %>%
+  group_by(seasons, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
+
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  filter(cause != 'Unk') %>%
+  mutate(seasons = classify_seasons(start_doy)) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'seasons')) %>%
+  left_join(., t2, by = c('cause', 'seasons')) %>%
+  left_join(., t3, by = c('cause', 'seasons')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+
+#### Table 6b
+```{r eval = TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  filter(built_class != 'No Structures') %>%
+  group_by(seasons, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
+
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  filter(cause != 'Unk') %>%
+  mutate(seasons = classify_seasons(start_doy)) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'seasons')) %>%
+  left_join(., t2, by = c('cause', 'seasons')) %>%
+  left_join(., t3, by = c('cause', 'seasons')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+#### Table 6c
+```{r eval = TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  filter(built_class != 'No Structures') %>%
+  group_by(seasons, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
+
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  filter(cause != 'Unk') %>%
+  mutate(seasons = classify_seasons(start_doy)) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'seasons')) %>%
+  left_join(., t2, by = c('cause', 'seasons')) %>%
+  left_join(., t3, by = c('cause', 'seasons')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+
+#### Table 6d
+```{r eval = TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  filter(built_class != 'No Structures') %>%
+  group_by(seasons, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
+
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  filter(cause != 'Unk') %>%
+  mutate(seasons = classify_seasons(start_doy)) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'seasons')) %>%
+  left_join(., t2, by = c('cause', 'seasons')) %>%
+  left_join(., t3, by = c('cause', 'seasons')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
+#### Table 6e
+```{r eval = TRUE}
+t1 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(class_burned_area = sum(wui_area_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+t2 <- as_tibble(as.data.frame(bu_fpa_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  filter(built_class != 'No Structures') %>%
+  group_by(seasons, built_class, cause) %>%
+  summarise(build_up_count = sum(build_up_count)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  spread(built_class, build_up_count)
+
+t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%  
+  filter(cause != 'Unk') %>%
+  mutate(seasons = classify_seasons(start_doy)) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(costs = sum(costs)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+as_tibble(as.data.frame(fpa_wui_df)) %>%
+  # filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%  
+  mutate(seasons = classify_seasons(discovery_doy),
+         cause = ignition) %>%
+  transform(seasons = factor(seasons, levels=c('Spring', 'Summer', 'Fall', 'Winter'))) %>%
+  group_by(seasons, cause) %>%
+  summarise(fire_frequency = n(),
+            wildfire_burned_area = sum(fire_size_km2)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  left_join(., t1, by = c('cause', 'seasons')) %>%
+  left_join(., t2, by = c('cause', 'seasons')) %>%
+  left_join(., t3, by = c('cause', 'seasons')) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+```
