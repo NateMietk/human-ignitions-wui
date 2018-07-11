@@ -1,23 +1,5 @@
-# Global variables ------------------------------------------------------
-fpa <- as_tibble(as.data.frame(fpa_fire)) %>%
-  dplyr::select(FPA_ID, DISCOVERY_YEAR)
 
-bae <- bae %>%
-  dplyr::select(-FIRE_SIZE_km2) %>%
-  left_join(., fpa, by = 'FPA_ID')
-
-fpa_years <- as.data.frame(bae) %>%
-  setNames(tolower(names(.))) %>%
-  mutate(yearbuilt = discovery_year) %>%
-  dplyr::select(fpa_id, yearbuilt, discovery_year) %>% as_tibble() %>%
-  distinct(., .keep_all = TRUE)
-
-fpa_250m_years <- as.data.frame(fpa_250m) %>%
-  setNames(tolower(names(.))) %>%
-  mutate(yearbuilt = discovery_year) %>%
-  dplyr::select(fpa_id, yearbuilt, discovery_year) %>% as_tibble() 
-
-# Prep data by subsetting and transforming --------------------------------
+# Prep data by subsetting and transforming 
 gdbs <- list.files(ztrax_prefix, pattern = ".gdb", full.names = TRUE)
 
 pboptions(type = 'txt', use_lb = TRUE)
@@ -25,7 +7,7 @@ cl <- makeCluster(getOption("cl.cores", detectCores()))
 
 pblapply(gdbs, FUN = subset_ztrax, usa_shp = usa_shp, 
          out_dir = dir_raw_ztrax_gpkg, cl = cl)
-system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
+system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
 stopCluster(cl)
 
 # Built up units per WUI block groups
@@ -58,12 +40,12 @@ if(!file.exists(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.r
   cleaned_wui_all %>%
     write_rds(., file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds'))
   
-  system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-wui/anthro")
+  system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
   
   
 } else {
   
-  cleaned_wui_all <- read_rds(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds'))
+  cleaned_wui_all <- read_rds(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_build_up.rds'))
 }
 
 # Built up units per ICS 209 block groups
@@ -96,12 +78,12 @@ if(!file.exists(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.r
   cleaned_ics_all %>%
     write_rds(., file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.rds'))
   
-  system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-ics/anthro")
+  system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
   
   
 } else {
   
-  cleaned_ics_all <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.rds'))
+  cleaned_ics_all <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_build_up.rds'))
 }
 
 # Built up units per FPA perimeters
@@ -134,11 +116,11 @@ if(!file.exists(file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_built_up.r
   cleaned_fpa_all %>%
     write_rds(., file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_built_up.rds'))
   
-  system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-fpa/anthro")
+  system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
   
 } else {
   
-  cleaned_fpa_all <- read_rds(file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_built_up.rds'))
+  cleaned_fpa_all <- read_rds(file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_build_up.rds'))
 }
 
 # Built up units per FPA 250m perimeters
@@ -148,9 +130,9 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_
   gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
   
   pboptions(type = 'txt', use_lb = TRUE)
-  cl <- makeCluster(getOption("cl.cores", detectCores()/5))
+  cl <- makeCluster(getOption("cl.cores", detectCores()/6))
   
-  cleaned_fpa <- pblapply(gpkgs,
+  cleaned_fpa_250m <- pblapply(gpkgs,
                           FUN = intersect_ztrax,
                           mask = fpa_250m,
                           which_dataset = '2',
@@ -163,17 +145,17 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_
   stopCluster(cl)
   
   #bind all of these together in one dataframe
-  cleaned_fpa_250m_all <- do.call(rbind, cleaned_fpa) %>%
+  cleaned_fpa_250m_all <- do.call(rbind, cleaned_fpa_250m) %>%
     na.omit()  %>%
     mutate(year = yearbuilt) %>%
-    dplyr::select(fpa_250m_id, year, built_class, build_up_count, build_up_intensity_sqm)
+    dplyr::select(fpa_id, year, built_class, build_up_count, build_up_intensity_sqm)
   
   cleaned_fpa_250m_all %>%
     write_rds(., file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_built_up.rds'))
   
-  system("aws s3 sync data/anthro s3://earthlab-natem/human-ignitions-fpa/anthro")
+  system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
   
 } else {
   
-  cleaned_fpa_250m_all <- read_rds(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_built_up.rds'))
+  cleaned_fpa_250m_all <- read_rds(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_build_up.rds'))
 }
