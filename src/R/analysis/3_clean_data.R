@@ -16,7 +16,7 @@ if (!exists("usa_shp")){
 # Import the Level 1 Ecoregions
 if (!exists('ecoregl1')) {
   if (!file.exists(file.path(ecoregion_out, 'us_eco_l1.gpkg'))) {
-    
+
     # Download the Level 1 Ecoregions
     ecoregion_shp <- file.path(ecoregion_out, "NA_CEC_Eco_Level1.shp")
     if (!file.exists(ecoregion_shp)) {
@@ -27,7 +27,7 @@ if (!exists('ecoregl1')) {
       unlink(dest)
       assert_that(file.exists(ecoregion_shp))
     }
-    
+
     ecoregl1 <- st_read(dsn = ecoregion_out, layer = "NA_CEC_Eco_Level1") %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       #st_simplify(., preserveTopology = TRUE, dTolerance = 1000) %>%
@@ -43,14 +43,14 @@ if (!exists('ecoregl1')) {
                                                                  "NORTHWESTERN FORESTED MOUNTAINS",
                                                                  "MARINE WEST COAST FOREST"), "West", "Central")))) %>%
       setNames(tolower(names(.)))
-    
+
     st_write(ecoregl1, file.path(ecoregion_out, 'us_eco_l1.gpkg'),
              driver = 'GPKG', delete_layer = TRUE)
-    
+
     system(paste0("aws s3 sync ",
                   prefix, " ",
                   s3_base))
-    
+
   } else {
     ecoregl1 <- sf::st_read(file.path(ecoregion_out, 'us_eco_l1.gpkg'))
   }
@@ -59,7 +59,7 @@ if (!exists('ecoregl1')) {
 # Import the Level 3 Ecoregions
 if (!exists('ecoreg')) {
   if (!file.exists(file.path(ecoregion_out, 'us_eco_l3.gpkg'))) {
-    
+
     # Download the Level 3 Ecoregions
     ecoregion_shp <- file.path(ecoregion_out, "us_eco_l3.shp")
     if (!file.exists(ecoregion_shp)) {
@@ -70,14 +70,14 @@ if (!exists('ecoreg')) {
       unlink(dest)
       assert_that(file.exists(ecoregion_shp))
     }
-    
+
     ecoreg_plain <- st_read(dsn = ecoregion_out, layer = "us_eco_l3", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME) %>%
       st_make_valid() %>%
       st_intersection(., st_union(usa_shp)) %>%
       setNames(tolower(names(.)))
-    
+
     ecoreg <- st_read(dsn = ecoregion_out, layer = "us_eco_l3", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       dplyr::select(US_L3CODE, US_L3NAME, NA_L2CODE, NA_L2NAME, NA_L1CODE, NA_L1NAME) %>%
@@ -97,14 +97,14 @@ if (!exists('ecoreg')) {
                                                                                   "MA", "WI", "IL", "IN", "OH", "WV", "VA", "KY", "MO", "IA", "MN"), "North East",
                                                  as.character(region))))) %>%
       setNames(tolower(names(.)))
-    
+
     st_write(ecoreg_plain, file.path(ecoregion_out, 'us_eco_plain.gpkg'),
              driver = 'GPKG', delete_layer = TRUE)
     st_write(ecoreg, file.path(ecoregion_out, 'us_eco_l3.gpkg'),
              driver = 'GPKG', delete_layer = TRUE)
-    
+
     system(paste0("aws s3 sync ", prefix, " ", s3_base))
-    
+
   } else {
     ecoreg_plain <- sf::st_read( file.path(ecoregion_out, 'us_eco_plain.gpkg'))
     ecoreg <- sf::st_read(file.path(ecoregion_out, 'us_eco_l3.gpkg'))
@@ -119,11 +119,11 @@ if (!exists("fishnet_50k")) {
     fishnet_50k <- sf::st_make_grid(usa_shp, cellsize = 50000, what = 'polygons') %>%
       sf::st_sf('geometry' = ., data.frame('fishid50k' = 1:length(.))) %>%
       sf::st_intersection(., st_union(usa_shp))
-    
+
     sf::st_write(fishnet_50k,
                  file.path(fishnet_path, "fishnet_50k.gpkg"),
                  driver = "GPKG")
-    
+
     system(paste0("aws s3 sync ",
                   fishnet_path, " ",
                   s3_bounds_prefix, "/fishnet"))
@@ -135,15 +135,15 @@ if (!exists("fishnet_50k")) {
 # 25k Fishnet
 if (!exists("fishnet_25k")) {
   if (!file.exists(file.path(fishnet_path, "fishnet_25k.gpkg"))) {
-    
+
     fishnet_25k <- sf::st_make_grid(usa_shp, cellsize = 25000, what = 'polygons') %>%
       sf::st_sf('geometry' = ., data.frame('fishid25k' = 1:length(.))) %>%
       sf::st_intersection(., st_union(usa_shp))
-    
+
     sf::st_write(fishnet_25k,
                  file.path(fishnet_path, "fishnet_25k.gpkg"),
                  driver = "GPKG")
-    
+
     system(paste0("aws s3 sync ",
                   fishnet_path, " ",
                   s3_bounds_prefix, "/fishnet"))
@@ -155,15 +155,15 @@ if (!exists("fishnet_25k")) {
 # 10k Fishnet
 if (!exists("fishnet_10k")) {
   if (!file.exists(file.path(fishnet_path, "fishnet_10k.gpkg"))) {
-    
+
     fishnet_10k <- sf::st_make_grid(usa_shp, cellsize = 10000, what = 'polygons') %>%
       sf::st_sf('geometry' = ., data.frame('fishid10k' = 1:length(.))) %>%
       sf::st_intersection(., st_union(usa_shp))
-    
+
     sf::st_write(fishnet_10k,
                  file.path(fishnet_path, "fishnet_10k.gpkg"),
                  driver = "GPKG")
-    
+
     system(paste0("aws s3 sync ",
                   fishnet_path, " ",
                   s3_bounds_prefix, "/fishnet"))
@@ -179,11 +179,11 @@ if (!exists("bounds")) {
       st_intersection(., fishnet_50k) %>%
       st_intersection(., fishnet_25k) %>%
       st_intersection(., fishnet_10k)
-    
+
     sf::st_write(bounds,
                  file.path(bounds_crt, "eco_fish_bounds.gpkg"),
                  driver = "GPKG")
-    
+
     system(paste0("aws s3 sync ",
                   bounds_crt, " ",
                   s3_bounds_prefix))
@@ -197,7 +197,7 @@ if (!exists("bounds")) {
 if (!exists('wui')) {
   if (!file.exists(file.path(wui_out, "wui_bounds.gpkg"))) {
     # st_layers(dsn = file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb"))
-    
+
     wui <- st_read(dsn = file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb"),
                    layer = "CONUS_WUI_cp12") %>%
       st_make_valid() %>%
@@ -207,11 +207,11 @@ if (!exists('wui')) {
              Class10 = classify_wui(WUICLASS10))  %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       st_make_valid()
-    
+
     st_write(wui, file.path(wui_out, "wui_bounds.gpkg"),
              driver = "GPKG",
              update=TRUE)
-    
+
   } else {
     wui <- st_read(dsn = file.path(wui_out, "wui_bounds.gpkg"))
   }
@@ -219,8 +219,8 @@ if (!exists('wui')) {
 
 if (!exists('wui_df')) {
   if (!file.exists(file.path(rmarkdown_files, "wui_df.rds"))) {
-    
-    wui %>%
+
+    wui_df <- wui %>%
       as.data.frame() %>%
       setNames(tolower(names(.))) %>%
       mutate(house_units_1990 = hhu1990,
@@ -231,11 +231,38 @@ if (!exists('wui_df')) {
              house_den_2010 = huden2000) %>%
       dplyr::select(-matches('(huden|hhuden|hu|hhu|shu|shuden|flag|wuiclass|veg|water|shape|geom)')) %>%
       as_tibble() %>%
-      write_rds(., file.path(rmarkdown_files, "wui_df.rds"))
-    
+      mutate( year = 0) %>%
+      complete(
+        nesting(blk10, pop1990, popden1990, pop2000, popden2000, pop2010, popden2010,
+                class90, class00, class10, house_units_1990, house_units_2000, house_units_2010,
+                house_den_1990, house_den_2000, house_den_2010),
+        year = c(1990, 2000, 2010)) %>%
+      mutate(year = as.integer(year),
+             class = as.factor(case_when(year == 1990 ~ as.character(class90),
+                                         year == 2000 ~ as.character(class00),
+                                         year == 2010 ~ as.character(class10), TRUE ~ NA_character_)),
+             house_units = case_when(year == 1990 ~ house_units_1990,
+                                     year == 2000 ~ house_units_2000,
+                                     year == 2010 ~ house_units_2010, TRUE ~ NA_integer_),
+             number_of_persons = case_when(year == 1990 ~ pop1990,
+                                           year == 2000 ~ pop2000,
+                                           year == 2010 ~ pop2010, TRUE ~ NA_integer_),
+             pop_den = case_when(year == 1990 ~ popden1990,
+                                 year == 2000 ~ popden2000,
+                                 year == 2010 ~ popden2010, TRUE ~ NA_real_),
+             house_den = case_when(year == 1990 ~ house_den_1990,
+                                   year == 2000 ~ house_den_2000,
+                                   year == 2010 ~ house_den_2010, TRUE ~ NA_real_),
+             class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
+                                               ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))))) %>%
+      dplyr::select(blk10, year, class, class_coarse, house_units, number_of_persons, pop_den, house_den)
+
+    write_rds(wui_df, file.path(rmarkdown_files, "wui_df.rds"))
+
     system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+
   } else {
-    wui_df <- read_rds(file.path(rmarkdown_files, "wui_df.rds")) 
+    wui_df <- read_rds(file.path(rmarkdown_files, "wui_df.rds"))
   }
 }
 
@@ -248,9 +275,9 @@ if (!exists('wui_area')) {
       group_by(BLK10, Class90, Class00, Class10) %>%
       summarize(total_class_area = (as.numeric(st_area(geom))/1000000))
   } else {
-    wuw_area <- read_csv(file.path(wui_out, 'wui_areas.rds'))
+    wuw_area <- read_rds(file.path(wui_out, 'wui_areas.rds'))
   }
-} 
+}
 
 wuw_area <- read_csv(file.path(wui_out, 'wui_areas.csv')) %>%
   dplyr::select(-X1) %>%
@@ -292,16 +319,16 @@ if (!exists('fpa_fire')) {
              DISCOVERY_YEAR = FIRE_YEAR)  %>%
       st_transform(st_crs(usa_shp)) %>%
       st_intersection(., st_union(usa_shp))
-    
+
     st_write(fpa_fire, file.path(fire_pnt, "fpa_conus.gpkg"),
              driver = "GPKG",
              update=TRUE)
-    
+
     system(paste0("aws s3 sync ",
                   fire_crt, " ",
                   s3_fire_prefix))
   } else {
-    fpa_fire <- st_read(dsn = file.path(fire_pnt, "fpa_conus.gpkg")) 
+    fpa_fire <- st_read(dsn = file.path(fire_pnt, "fpa_conus.gpkg"))
   }
 }
 
@@ -311,7 +338,7 @@ if (!exists('fpa_wui')) {
     fpa_wui_step1 <- fpa_fire %>%
       st_intersection(., wui) %>%
       st_intersection(., bounds) %>%
-      st_make_valid()  
+      st_make_valid()
     fpa_wui <- fpa_wui_step1 %>%
       mutate(class = as.factor(ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
                                       ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
@@ -350,16 +377,16 @@ if (!exists('fpa_wui')) {
       dplyr::select(-stusps.1) %>%
       dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|water|shape)')) %>%
       left_join(., wuw, by = c('class', 'class_coarse', 'decadal'))
-    
+
     st_write(fpa_wui, file.path(fire_pnt, "fpa_wui_conus.gpkg"),
              driver = "GPKG", delete_layer = TRUE)
-    
+
     system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
-    
+
   } else {
-    
-    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg")) 
-    
+
+    fpa_wui <- st_read(dsn = file.path(fire_pnt, "fpa_wui_conus.gpkg"))
+
   }
 }
 
@@ -368,7 +395,7 @@ if(!file.exists(file.path(rmarkdown_files, 'fpa_wui_df.rds'))) {
   fpa_wui %>%
     write_rds(file.path(rmarkdown_files, 'fpa_wui_df.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
-  
+
 } else {
   fpa_wui_df <- read_rds(file.path(rmarkdown_files, 'fpa_wui_df.rds'))
 }
@@ -393,11 +420,11 @@ if (!exists('mtbs_fire')) {
                     MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
                     MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS)  %>%
       st_make_valid()
-    
+
     st_write(mtbs_fire, file.path(mtbs_out, "mtbs_conus.gpkg"),
              driver = "GPKG",
              update=TRUE)
-    
+
     system(paste0("aws s3 sync ",
                   fire_crt, " ",
                   s3_fire_prefix))
@@ -420,11 +447,11 @@ if (!exists('mtbs_wui')) {
                             ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
                                    ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
                                           NA))))
-    
+
     st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),
              driver = "GPKG",
              delete_layer = TRUE)
-    
+
     system(paste0("aws s3 sync ",
                   fire_crt, " ",
                   s3_fire_prefix))
@@ -436,7 +463,7 @@ if (!exists('mtbs_wui')) {
 #Clean and prep the MTBS data
 if (!exists('mtbs_pts')) {
   if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
-    
+
     # Download the MTBS fire polygons
     mtbs_shp <- file.path(mtbs_prefix, 'mtbs_fod_pts_20170501.shp')
     if (!file.exists(mtbs_shp)) {
@@ -467,10 +494,10 @@ if (!exists('mtbs_pts')) {
       dplyr::select(MTBS_ID, MTBS_FIRE_NAME, MTBS_DISCOVERY_DAY, MTBS_DISCOVERY_MONTH, MTBS_DISCOVERY_YEAR, MTBS_ACRES, FIRE_BIDECADAL) %>%
       st_intersection(., ecoreg) %>%
       setNames(tolower(names(.)))
-    
+
     st_write(mtbs_pts, file.path(mtbs_out, "mtbs_pts.gpkg"),
              driver = "GPKG")
-    
+
     system(paste0("aws s3 sync ",
                   prefix, " ",
                   s3_base))
@@ -488,43 +515,43 @@ if(!file.exists(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))) {
     setNames(tolower(names(.))) %>%
     filter(inctyp_abbreviation == 'WF') %>%
     mutate(curr_incident_area = ifelse(curr_incident_area == 350082388, 3500, curr_incident_area))
-  
+
   latlong_legacy <- read_csv(file.path(ics_latlong, "legacy_cleaned_ll.csv")) %>%
     setNames(tolower(names(.)))  %>%
     mutate(lat = ifelse(is.na(lat_c), 0, lat_c),
            long = ifelse(is.na(long_c), 0, long_c)) %>%
     dplyr::select(incident_unique_id, lat, long, confidence)
-  
+
   latlong_historic <- read_csv(file.path(ics_latlong, "historical_cleaned_ll.csv")) %>%
     setNames(tolower(names(.)))  %>%
     mutate(lat = ifelse(is.na(lat_c), 0, lat_c),
            long = ifelse(is.na(long_c), 0, long_c)) %>%
     dplyr::select(incident_unique_id, lat, long, confidence)
-  
+
   latlong_2014 <- read_csv(file.path(ics_latlong, '2014_cleaned_ll.csv') )%>%
     setNames(tolower(names(.)))  %>%
     mutate(lat = ifelse(is.na(c_lat), 0, c_lat),
            long = ifelse(is.na(c_long), 0, c_long)) %>%
     dplyr::select(incident_unique_id, lat, long, confidence)
-  
+
   latlongs <- rbind(latlong_legacy, latlong_historic, latlong_2014) %>%
     group_by(incident_unique_id) %>%
     summarise(lat_c = max(lat),
               long_c = min(long)) %>%
-    filter(lat_c != 0) 
-  
+    filter(lat_c != 0)
+
   ics_209_reports <- ics_209 %>%
     mutate(incident_unique_id = as.factor(incident_unique_id),
            incident_number = as.factor(incident_number),
            incident_name = as.factor(incident_name),
-           lat = poo_latitude, 
+           lat = poo_latitude,
            long = poo_longitude,
            report_to_date = ymd(as.Date(report_to_date, origin='1970-01-01')),
            report_to_doy = ifelse(is.na(yday(report_to_date)), 0, yday(report_to_date)),
            report_to_month = ifelse(is.na(month(report_to_date)), 0, month(report_to_date)),
            report_to_day = ifelse(is.na(day(report_to_date)), 0, day(report_to_date)),
            report_to_year = ifelse(is.na(year(report_to_date)), 0, year(report_to_date)),
-           
+
            area_measurement = if_else(area_measurement == "", 'Acres', area_measurement),
            area_ha = ifelse(area_measurement == "Square Miles", curr_incident_area*258.99903998855,
                             ifelse(area_measurement == "Acres", curr_incident_area*0.4046859376605,
@@ -539,17 +566,17 @@ if(!file.exists(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))) {
                           projected_final_im_cost)) %>%
     dplyr::select( -projected_final_im_cost,-poo_latitude, -poo_longitude,
                    -est_im_cost_to_date, -est_final_costs)
-  
+
   ics_209_incidents_max <- ics_209_reports %>%
     group_by(incident_unique_id) %>%
     arrange(desc(incident_unique_id, report_to_date)) %>%
     summarise_at(
-      .vars= vars(area_km2, costs), 
-      .funs =  max) 
-  
+      .vars= vars(area_km2, costs),
+      .funs =  max)
+
   ics_209_incidents <- ics_209_reports %>%
     group_by(incident_unique_id) %>%
-    arrange(desc(incident_unique_id, report_to_date)) %>% 
+    arrange(desc(incident_unique_id, report_to_date)) %>%
     summarise(incident_number = last(incident_number),
               incident_name = last(incident_name),
               lat = max(lat),
@@ -574,10 +601,10 @@ if(!file.exists(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))) {
            long = ifelse(is.na(long_c), long, long_c),
            long = ifelse(long > 0, -long, long)) %>%
     dplyr::select(-lat_c, -long_c, -confidence, -start_date, -end_date)
-  
-  write_rds(ics_209_incidents, file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds')) 
+
+  write_rds(ics_209_incidents, file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
-  
+
   } else {
   ics_209_incidents <- read_rds(file.path(ics_outtbls, 'ics209_1999_2014_incidents.rds'))
   }
@@ -591,18 +618,18 @@ if(!file.exists(file.path(ics_spatial, "ics209_conus.gpkg"))) {
     st_transform(crs = proj_ea) %>%
     st_intersection(., st_union(usa_shp)) %>%
     st_intersection(., bounds)
-  
+
   st_write(conus_209, file.path(ics_spatial, "ics209_conus.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
-  
+
 } else {
   conus_209 <- st_read(file.path(ics_spatial, "ics209_conus.gpkg"))
 }
 
 # Spatially join the 209 data to the WUI
 if(!file.exists(file.path(ics_spatial, "ics209_wui_conus.gpkg"))) {
-  
+
   wui_209 <- st_intersection(conus_209, wui) %>%
     mutate(class = ifelse(start_year >= 1992 | start_year < 2000, as.character(Class90),
                           ifelse(start_year >= 2000 | start_year < 2009, as.character(Class00),
@@ -626,12 +653,12 @@ if(!file.exists(file.path(ics_spatial, "ics209_wui_conus.gpkg"))) {
     setNames(tolower(names(.))) %>%
     dplyr::select(-stusps.1) %>%
     dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)'))
-  
+
   # Write out the shapefile.
   st_write(wui_209, file.path(ics_spatial, "ics209_wui_conus.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
-  
+
 } else{
   wui_209 <- st_read(file.path(ics_spatial, "ics209_wui_conus.gpkg"))
 }
