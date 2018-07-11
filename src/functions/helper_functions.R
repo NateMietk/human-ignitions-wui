@@ -25,66 +25,36 @@ subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
   }
 }
 
-intersect_ztrax <- function(x, mask, out_dir, out_name, which_dataset) {
+intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir, out_name, which_dataset) {
   require(sf)
   require(tidyverse)
   
-  if (which_dataset == '1') {
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 13) %>%
-      unlist
-    
-    if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
-      
-    imported <- sf::st_read(x) %>%
-      st_join(., mask, join = st_intersects) %>%
-      setNames(tolower(names(.))) %>%
-      as.data.frame() %>%
-      mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1990, 1990, yearbuilt)) %>%
-      group_by(blk10, built_class, yearbuilt) %>%
-      summarise(build_up_count = n(),
-                build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
-      ungroup() 
-    
-    write_rds(imported,
-              file.path(out_dir,  paste0(filename, out_name)))    }
-  } else {
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 13) %>%
-      unlist
-    
-    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
-      
-    imported <- sf::st_read(x) %>%
-      st_join(., mask, join = st_intersects) %>%
-      setNames(tolower(names(.))) %>%
-      as.data.frame() %>%
-      mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1992, 1992, yearbuilt)) %>%
-      group_by(fpa_id, built_class, yearbuilt) %>%
-      summarise(build_up_count = n(),
-                build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
-      ungroup()
-    
-    write_rds(imported,
-              file.path(out_dir,  paste0(filename, out_name)))    
-    }
-  }
-}
-
-aggregate_ztrax <- function(x, out_dir, out_name, which_dataset) {
-  require(tidyverse)
+  filename <- x %>%
+    basename() %>%
+    str_extract(., "[[:digit:]]+")
   
-  if (which_dataset == '1') {
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 10) %>%
-      unlist
-    
+  if (which_dataset == '1') { 
     if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
-      imported <- read_rds(x)
+      
+      imported <- sf::st_read(x) %>%
+        sf::st_join(., mask, join = st_intersects) %>%
+        setNames(tolower(names(.))) %>%
+        as.data.frame() %>%
+        dplyr::mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1990, 1990, yearbuilt)) %>%
+        dplyr::group_by(blk10, built_class, yearbuilt) %>%
+        dplyr::summarise(build_up_count = n(),
+                         build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
+        dplyr::ungroup() %>%
+        as.data.frame() 
+      
+      imported %>%
+        readr::write_rds(., file.path(out_dir,  paste0(filename, out_name)))   
+    } else {
+      imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
+    }
     
+    if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
+      
       cleaned <- imported %>%
         mutate(blk10 = factor(blk10)) %>%
         group_by(blk10, built_class, yearbuilt) %>%
@@ -101,18 +71,36 @@ aggregate_ztrax <- function(x, out_dir, out_name, which_dataset) {
         fill(everything(), .direction = 'down')
       
       cleaned %>%
-        write_rds(., file.path(out_dir, paste0(filename, out_name)))
+        write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
+    } else {
+      cleaned <- read_rds(file.path(out_dir_cleaned,  paste0(filename, out_name_cleaned)))
     }
-  } else if (which_dataset == '2') {
-    
-    filename <- strsplit(x, "\\.|/|_") %>%
-      lapply(`[`, 10) %>%
-      unlist
-    
-    if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
-      imported <- read_rds(x)
+    return(cleaned)
+  }
+  
+  if (which_dataset == '2') { 
+    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
       
-      cleaned <- imported %>%
+      imported <- sf::st_read(x) %>%
+        sf::st_join(., mask, join = st_intersects) %>%
+        setNames(tolower(names(.))) %>%
+        as.data.frame() %>%
+        dplyr::mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1992, 1992, yearbuilt)) %>%
+        dplyr::group_by(fpa_id, built_class, yearbuilt) %>%
+        dplyr::summarise(build_up_count = n(),
+                         build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
+        dplyr::ungroup() %>%
+        as.data.frame() 
+      
+      readr::write_rds(imported,
+                       file.path(out_dir,  paste0(filename, out_name)))    
+    } else {
+      imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
+    }
+    
+    if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
+      
+      cleaned <- ungroup(imported) %>%
         mutate(fpa_id = factor(fpa_id)) %>%
         group_by(fpa_id, built_class, yearbuilt) %>%
         summarise(build_up_count = sum(build_up_count),
@@ -128,10 +116,59 @@ aggregate_ztrax <- function(x, out_dir, out_name, which_dataset) {
         fill(everything(), .direction = 'down')
       
       cleaned %>%
-        write_rds(., file.path(out_dir, paste0(filename, out_name)))
+        write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
+    } else {
+      cleaned <- read_rds(file.path(out_dir_cleaned,  paste0(filename, out_name_cleaned)))
     }
+    return(cleaned)
   }
-}
+  
+  if (which_dataset == '3') { 
+    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+      
+      imported <- sf::st_read(x) %>%
+        sf::st_join(., mask, join = st_intersects) %>%
+        setNames(tolower(names(.))) %>%
+        as.data.frame() %>%
+        dplyr::mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1999, 1999, yearbuilt)) %>%
+        dplyr::group_by(incident_unique_id, built_class, yearbuilt) %>%
+        dplyr::summarise(build_up_count = n(),
+                         build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
+        dplyr::ungroup() %>%
+        as.data.frame() 
+      
+      readr::write_rds(imported,
+                       file.path(out_dir,  paste0(filename, out_name)))    
+    } else {
+      imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
+    }
+    
+    if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
+      
+      cleaned <- ungroup(imported) %>%
+        mutate(incident_unique_id = factor(incident_unique_id)) %>%
+        group_by(incident_unique_id, built_class, yearbuilt) %>%
+        summarise(build_up_count = sum(build_up_count),
+                  build_up_intensity_sqm = sum(build_up_intensity_sqm)) %>%
+        mutate(build_up_count = cumsum(build_up_count),
+               build_up_intensity_sqm = cumsum(build_up_intensity_sqm)) %>%
+        ungroup() %>%
+        complete(nesting(incident_unique_id, built_class), yearbuilt = 1999:2014) %>%
+        group_by(incident_unique_id, built_class) %>%
+        fill(everything(), .direction = 'up') %>%
+        ungroup() %>%
+        group_by(incident_unique_id, built_class) %>%
+        fill(everything(), .direction = 'down')
+      
+      cleaned %>%
+        write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
+    } else {
+      cleaned <- read_rds(file.path(out_dir_cleaned,  paste0(filename, out_name_cleaned)))
+    }
+    return(cleaned)
+  }
+  
+} 
 
 
 mode <- function(v) {
@@ -150,47 +187,47 @@ extract_one <- function(filename, shapefile_extractor,
   # shapefile_extractor -> the shapefile (point or polygon) to extract climate data
   require(tidyverse)
   require(raster)
-
+  
   if (use_varname == TRUE) {
-
+    
     file_split <- filename %>%
       basename %>%
       strsplit(split = "_") %>%
       unlist
     year <- file_split[max(length(file_split))]
     dir_name <- dirname(filename)
-
+    
     out_name <- paste0(dir_name, '/', varname, year)
     out_name <- gsub('.tif', '.csv', out_name)
     out_name
-
-    } else {
-      out_name <- gsub('.tif', '.csv', filename)
-      out_name
-
-    }
+    
+  } else {
+    out_name <- gsub('.tif', '.csv', filename)
+    out_name
+    
   }
+}
 
 get_polygons <- function(decade) {
-
+  
   if ( decade == '1990') {
     polygons <- urban_1990
-    } else if ( decade == '2000') {
-      polygons <- urban_2000
-    } else if ( decade == '2010') {
-      polygons <- urban_2010
-    }
+  } else if ( decade == '2000') {
+    polygons <- urban_2000
+  } else if ( decade == '2010') {
+    polygons <- urban_2010
+  }
 }
 
 load_data <- function(url, dir, layer, outname) {
   file <- paste0(dir, "/", layer, ".shp")
-
+  
   if (!file.exists(file)) {
     download.file(url, destfile = paste0(dir, ".zip"))
     unzip(paste0(dir, ".zip"),
           exdir = dir)
     unlink(paste0(dir, ".zip"))
-
+    
   }
   name <- paste0(outname, "_shp")
   name <- sf::st_read(dsn = dir, layer = layer)
@@ -206,53 +243,21 @@ classify_fire_size_cl <-  function(x) {
   #   - y: vector (same length) of classified fire sizes ----- Km2
   ifelse(x < 0.25, "< 10 ha",
          ifelse(x >= 0.25 & x < 4, "10 - 400 ha",
-           ifelse(x >= 4 & x < 50, "400 - 5000 ha",
-                  ifelse(x >= 50 & x < 250, "5000 - 20000 ha", "> 20000 ha"))))
+                ifelse(x >= 4 & x < 50, "400 - 5000 ha",
+                       ifelse(x >= 50 & x < 250, "5000 - 20000 ha", "> 20000 ha"))))
 }
-
-clean_class <- function(x, y) {
-  if_else(x %in% c("CA-BTU-007660|2008|1","MT-CES-000122|2012|1","WA-OWF-000346|2010|1","CO-PSF-000429|2013|1","CA-BDU-006570|2006|1",
-                   "CA-RRU-080142|2012|1","CA-SHF-1057|2008|1","WA-OWF-000583|2012|1","CA-SRF-1120|2008|1", "CA-HUU-003384|2008|1",
-                   "CA-LNF-3923|2009|1","MT-MCD-000035|2012|1","CA-LNU-006610|2003|1","CA-TGU-4245|2008|1","WA-WEF-709|2001|1",
-                   "CA-MMU-008107|2008|1"), "VLD",
-          if_else(x %in% c("OR-UPF-0000034|2003|1","CA-BDF-5749|2006|1","NV-HTF-3364|2004|1","OR-71S-044|2002|1","AZ-KNF-00872|2009|1",
-                           "CA-RRU-062519|2005|1","AZ-CNF-074|2007|1","NV-HTF-1111|2006|1","CA-MVU-1024|2002|1","ID-SCF-000003|2005|1",
-                           "OR-SIF-003|2002|1"), "Wildlands",
-                  y))
-}
-
-# Helper functions --------------------------------------------------------
-
-remove_dollar <- function(vector) {
-  # Want the vector as character rather than factor while
-  # we're doing text processing operations
-  vector <- as.character(vector)
-  vector <- gsub("(\\$|,)","", vector)
-  # Create a numeric vector to store the results in, this will give you
-  # warning messages about NA values being introduced because the " K" values
-  # can't be converted directly to numeric
-  result <- as.numeric(vector)
-  # Find all the "$N K" values, and modify the result at those positions
-  k_positions <- grep(" K", vector)
-  result[k_positions] <- as.numeric(gsub(" K","", vector[k_positions])) * 1000
-  # Same for the "$ M" value
-  m_positions <- grep(" M", vector)
-  result[m_positions] <- as.numeric(gsub(" M","", vector[m_positions])) * 1000000
-  return(result)
-}
-
 
 # http://www.spatialanalytics.co.nz/post/2017/09/11/a-parallel-function-for-spatial-analysis-in-r/
 # Paralise any simple features analysis.
 st_par <- function(sf_df, sf_func, n_cores, ...){
-
+  
   # Create a vector to split the data set up by.
   split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
-
+  
   # Perform GIS analysis
   split_results <- split(sf_df, split_vector) %>%
     mclapply(function(x) sf_func(x, ...), mc.cores = n_cores)
-
+  
   # Combine results back together. Method of combining depends on the output from the function.
   if (class(split_results[[1]]) == 'list' ){
     result <- do.call("c", split_results)
@@ -260,20 +265,20 @@ st_par <- function(sf_df, sf_func, n_cores, ...){
   } else {
     result <- do.call(rbind, split_results)
   }
-
+  
   # Return result
   return(result)
 }
 
 st_par_union <- function(sf_df, sf_func, n_cores, ...){
-
+  
   # Create a vector to split the data set up by.
   split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
-
+  
   # Perform GIS analysis
   split_results <- split(sf_df, split_vector) %>%
     mclapply(function(x) sf_func(x), mc.cores = n_cores)
-
+  
   # Combine results back together. Method of combining depends on the output from the function.
   if ( length(class(split_results[[1]]))>1 | class(split_results[[1]])[1] == 'list' ){
     result <- do.call("c", split_results)
@@ -281,7 +286,44 @@ st_par_union <- function(sf_df, sf_func, n_cores, ...){
   } else {
     result <- do.call("rbind", split_results)
   }
+  
+  # Return result
+  return(result)
+}
 
+# Paralise any simple features analysis.
+st_parallel <- function(sf_df, sf_func, n_cores, ...){
+  
+  # Create a vector to split the data set up by.
+  split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
+  
+  # Perform GIS analysis
+  split_results <- split(sf_df, split_vector) %>%
+    parallel::mclapply(function(x) sf_func(x, ...), mc.cores = n_cores)
+  
+  
+  # Define the output_class. If length is greater than two, then grab the second variable.
+  output_class <- class(split_results[[1]])
+  if (length(output_class) == 2){
+    output_class <- output_class[2]
+  }
+             
+  # Combine results back together. Method of combining depends on the output from the function.
+  if (output_class == "matrix"){
+    result <- do.call("rbind", split_results)
+    names(result) <- NULL
+  } else if (output_class == "sfc") {
+    result <- do.call("c", split_results)
+    result <- sf_func(result) # do.call combines the list but there are still n_cores of the geometry which had been split up. Running st_union or st_collect gathers them up into one, as is the expected output of these two functions. 
+  } else if (output_class %in% c('list', 'sgbp') ){
+    result <- do.call("c", split_results)
+    names(result) <- NULL
+  } else if (output_class == "data.frame" | output_class == "tbl_df" | output_class == "tbl"){
+    result <- do.call("rbind", split_results)
+  } else {
+    stop("Unknown class. st_parallel only accepts the following outputs at present: sfc, list, sf, matrix, sgbp.")
+  }
+  
   # Return result
   return(result)
 }
@@ -439,7 +481,7 @@ classify_suppresscosts <-  function(x) {
                                             ifelse(x >= 20000000 & x < 30000000, "20,000,000 - 30,000,000",
                                                    ifelse(x >= 30000000 & x < 40000000, "30,000,000 - 40,000,000",
                                                           "> 40,000,001"))))))))
-
+  
 }
 
 classify_pctbae <-  function(x) {
@@ -456,7 +498,7 @@ classify_pctbae <-  function(x) {
                                      ifelse(x >= 30 & x < 40, "30 - 40",
                                             ifelse(x >= 40 & x < 50, "40 - 50",
                                                    "> 50")))))))
-
+  
 }
 
 classify_suppresscosts2 <-  function(x) {
@@ -473,7 +515,7 @@ classify_suppresscosts2 <-  function(x) {
                                      ifelse(x >= 10000000 & x < 20000000, 20000000,
                                             ifelse(x >= 20000000 & x < 40000000, 40000000,
                                                    40000001)))))))
-
+  
 }
 
 classify_new_categories <-  function(x) {
@@ -573,25 +615,25 @@ theme_pub <- function(base_size=11, base_family="") {
   library(ggthemes)
   (theme_foundation(base_size=base_size, base_family=base_family)
     + theme(plot.title = element_text(hjust = 0.05, size = 13),
-
+            
             panel.border = element_rect(colour = NA),
             panel.background = element_rect(colour = NA),
             panel.grid.major = element_line(colour="#f0f0f0"),
             panel.grid.minor = element_blank(),
             plot.background = element_rect(colour = NA),
-
+            
             axis.line = element_line(colour="black"),
             axis.ticks = element_line(),
-
+            
             legend.title = element_text(size=11),
             legend.position = "right",
             legend.text = element_text(size=11),
             legend.direction = "vertical",
             legend.key = element_rect(colour = "transparent", fill = "white"),
-
+            
             strip.background=element_rect(colour=NA),
             strip.text.x = element_text(size = 10),
-
+            
             axis.title = element_text(size = 11),
             axis.text.x = element_text(size = 10, angle = 65, hjust = 1),
             axis.text.y = element_text(size = 11)))

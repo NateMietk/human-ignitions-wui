@@ -43,6 +43,8 @@ dir_fpa_ztrax_rds <- file.path(zpoints_out, 'fpa_built_up_rds')
 dir_cleaned_fpa_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_built_up_rds')
 dir_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'fpa_250m_built_up_rds')
 dir_cleaned_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_250m_built_up_rds')
+dir_ics_ztrax_rds <- file.path(zpoints_out, 'ics_built_up_rds')
+dir_cleaned_ics_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_built_up_rds')
 
 bui_out <- file.path(ztrax_out, 'built_up_intensity')
 bui_out <- file.path(bui_out, 'BUI')
@@ -62,11 +64,12 @@ ics_intbls <- file.path(ics_out, "input_tbls")
 ics_famweb <- file.path(ics_intbls, "famweb")
 ics_latlong <- file.path(ics_intbls, "latlong")
 ics_spatial <- file.path(ics_out, "spatial")
-rmarkdown_files <- file.path(prefix, 'rmarkdown_files')
+rmarkdown_files <-'src/R/rmarkdown_files'
 fishnet_path <- file.path(bounds_crt, "fishnet")
 
 # for pushing and pulling to s3 using the system function
 s3_base <- 's3://earthlab-natem/human-ignitions-wui'
+s3_rmarkdown <- 's3://earthlab-natem/src/R/rmarkdown_files'
 s3_distance <- 's3://earthlab-natem/human-ignitions-wui/anthro/wui/distance_from_urban'
 s3_bounds_prefix <- 's3://earthlab-natem/human-ignitions-wui/bounds'
 s3_anthro_prefix <- 's3://earthlab-natem/human-ignitions-wui/anthro'
@@ -78,5 +81,5 @@ var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa
                 bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out, bui_out, bu_out,
                 swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly, 
                 zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds, 
-                dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files)
+                dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
