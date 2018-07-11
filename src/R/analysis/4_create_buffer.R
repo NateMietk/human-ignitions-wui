@@ -139,6 +139,8 @@ if(!file.exists(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))) {
     write_rds(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
   
+} else {
+  fpa_bae_wui_df <- read_rds(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))
 }
 
 # output dataframe for rmarkdown
@@ -147,4 +149,7 @@ if(!file.exists(file.path(rmarkdown_files, 'ics209_bae_df.rds'))) {
     dplyr::select(-c(geometry)) %>%
     write_rds(file.path(rmarkdown_files, 'ics209_bae_df.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+}  else {
+  ics209_bae_df <- read_rds(file.path(rmarkdown_files, 'ics209_bae_df.rds'))
 }
+

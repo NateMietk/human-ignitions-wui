@@ -307,7 +307,7 @@ st_parallel <- function(sf_df, sf_func, n_cores, ...){
   if (length(output_class) == 2){
     output_class <- output_class[2]
   }
-             
+  
   # Combine results back together. Method of combining depends on the output from the function.
   if (output_class == "matrix"){
     result <- do.call("rbind", split_results)
@@ -423,8 +423,7 @@ classify_fire_size_sml <-  function(x) {
   # output:
   #   - y: vector (same length) of classified fire sizes ----- Km2
   ifelse(x < 4, "Small",
-         ifelse(x >= 4 & x < 500, "Large",
-                ifelse(x > 500, "Very Large")))
+         ifelse(x >= 4 & x < 500, "Large", "Very Large"))
 }
 
 classify_wuiburned <-  function(x) {

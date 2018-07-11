@@ -218,7 +218,7 @@ if (!exists('wui')) {
 }
 
 if (!exists('wui_df')) {
-  if (!file.exists(file.path(wui_out, "wui_bounds.rds"))) {
+  if (!file.exists(file.path(rmarkdown_files, "wui_df.rds"))) {
     
     wui %>%
       as.data.frame() %>%
@@ -235,7 +235,7 @@ if (!exists('wui_df')) {
     
     system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
   } else {
-    wui_df <- read_rds(file.path(wui_out, "wui_bounds.rds")) 
+    wui_df <- read_rds(file.path(rmarkdown_files, "wui_df.rds")) 
   }
 }
 
@@ -369,6 +369,8 @@ if(!file.exists(file.path(rmarkdown_files, 'fpa_wui_df.rds'))) {
     write_rds(file.path(rmarkdown_files, 'fpa_wui_df.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
   
+} else {
+  fpa_wui_df <- read_rds(file.path(rmarkdown_files, 'fpa_wui_df.rds'))
 }
 
 # Prep MTBS ---------------------------------------------------------
@@ -639,4 +641,6 @@ if(!file.exists(file.path(rmarkdown_files, 'wui_209_df.rds'))) {
   as.data.frame(wui_209) %>%
     write_rds(file.path(rmarkdown_files, 'wui_209_df.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+} else{
+  wui_209_df <- read_rds(file.path(rmarkdown_files, "wui_209_df.rds"))
 }
