@@ -2,14 +2,14 @@
 subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
   require(sf)
   require(tidyverse)
-
+  
   outname <- basename(i) %>%
     gsub('.gdb', '.gpkg', .)
-
+  
   if(!file.exists(file.path(out_dir, outname))) {
-
+    
     layers <- tibble::data_frame(name = sf::st_layers(i)$name)
-
+    
     state_ztrax <- apply(unique(layers), 1,
                          FUN = function(j) {
                            state_ztrax <- sf::st_read(i, layer = j) %>%
@@ -17,7 +17,7 @@ subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
                              dplyr::mutate(built_class = ifelse(str_detect(LU_stdcode, 'RI|RR'), 'Residential', 'Non-Residential')) %>%
                              dplyr::select(-geom_wkt, -ImptPrclID, -LU_desc, -LU_code)
                          })
-
+    
     do.call(rbind, state_ztrax) %>%
       sf::st_transform(sf::st_crs(usa_shp)) %>%
       sf::st_write(., file.path(out_dir, outname))
@@ -27,14 +27,14 @@ subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
 intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir, out_name, which_dataset) {
   require(sf)
   require(tidyverse)
-
+  
   filename <- x %>%
     basename() %>%
     str_extract(., "[[:digit:]]+")
-
+  
   if (which_dataset == '1') {
     if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
-
+      
       imported <- sf::st_read(x) %>%
         sf::st_join(., mask, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
@@ -45,15 +45,15 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
         dplyr::ungroup() %>%
         as.data.frame()
-
+      
       imported %>%
         readr::write_rds(., file.path(out_dir,  paste0(filename, out_name)))
     } else {
       imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
     }
-
+    
     if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
-
+      
       cleaned <- imported %>%
         mutate(blk10 = factor(blk10)) %>%
         group_by(blk10, built_class, yearbuilt) %>%
@@ -62,13 +62,13 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         mutate(build_up_count = cumsum(build_up_count),
                build_up_intensity_sqm = cumsum(build_up_intensity_sqm)) %>%
         ungroup() %>%
-        complete(nesting(blk10, built_class), yearbuilt = 1990:2015) %>%
+        complete(nesting(blk10, built_class), yearbuilt = c(0, 1990:2015)) %>%
         group_by(blk10, built_class) %>%
         fill(everything(), .direction = 'up') %>%
         ungroup() %>%
         group_by(blk10, built_class) %>%
         fill(everything(), .direction = 'down')
-
+      
       cleaned %>%
         write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
     } else {
@@ -76,10 +76,10 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
     }
     return(cleaned)
   }
-
+  
   if (which_dataset == '2') {
     if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
-
+      
       imported <- sf::st_read(x) %>%
         sf::st_join(., mask, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
@@ -90,15 +90,15 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
         dplyr::ungroup() %>%
         as.data.frame()
-
+      
       readr::write_rds(imported,
                        file.path(out_dir,  paste0(filename, out_name)))
     } else {
       imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
     }
-
+    
     if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
-
+      
       cleaned <- ungroup(imported) %>%
         mutate(fpa_id = factor(fpa_id)) %>%
         group_by(fpa_id, built_class, yearbuilt) %>%
@@ -113,7 +113,7 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         ungroup() %>%
         group_by(fpa_id, built_class) %>%
         fill(everything(), .direction = 'down')
-
+      
       cleaned %>%
         write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
     } else {
@@ -121,10 +121,10 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
     }
     return(cleaned)
   }
-
+  
   if (which_dataset == '3') {
     if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
-
+      
       imported <- sf::st_read(x) %>%
         sf::st_join(., mask, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
@@ -135,15 +135,15 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
         dplyr::ungroup() %>%
         as.data.frame()
-
+      
       readr::write_rds(imported,
                        file.path(out_dir,  paste0(filename, out_name)))
     } else {
       imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
     }
-
+    
     if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
-
+      
       cleaned <- ungroup(imported) %>%
         mutate(incident_unique_id = factor(incident_unique_id)) %>%
         group_by(incident_unique_id, built_class, yearbuilt) %>%
@@ -158,7 +158,7 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         ungroup() %>%
         group_by(incident_unique_id, built_class) %>%
         fill(everything(), .direction = 'down')
-
+      
       cleaned %>%
         write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
     } else {
@@ -166,7 +166,7 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
     }
     return(cleaned)
   }
-
+  
 }
 
 
@@ -186,29 +186,29 @@ extract_one <- function(filename, shapefile_extractor,
   # shapefile_extractor -> the shapefile (point or polygon) to extract climate data
   require(tidyverse)
   require(raster)
-
+  
   if (use_varname == TRUE) {
-
+    
     file_split <- filename %>%
       basename %>%
       strsplit(split = "_") %>%
       unlist
     year <- file_split[max(length(file_split))]
     dir_name <- dirname(filename)
-
+    
     out_name <- paste0(dir_name, '/', varname, year)
     out_name <- gsub('.tif', '.csv', out_name)
     out_name
-
+    
   } else {
     out_name <- gsub('.tif', '.csv', filename)
     out_name
-
+    
   }
 }
 
 get_polygons <- function(decade) {
-
+  
   if ( decade == '1990') {
     polygons <- urban_1990
   } else if ( decade == '2000') {
@@ -220,13 +220,13 @@ get_polygons <- function(decade) {
 
 load_data <- function(url, dir, layer, outname) {
   file <- paste0(dir, "/", layer, ".shp")
-
+  
   if (!file.exists(file)) {
     download.file(url, destfile = paste0(dir, ".zip"))
     unzip(paste0(dir, ".zip"),
           exdir = dir)
     unlink(paste0(dir, ".zip"))
-
+    
   }
   name <- paste0(outname, "_shp")
   name <- sf::st_read(dsn = dir, layer = layer)
@@ -249,14 +249,14 @@ classify_fire_size_cl <-  function(x) {
 # http://www.spatialanalytics.co.nz/post/2017/09/11/a-parallel-function-for-spatial-analysis-in-r/
 # Paralise any simple features analysis.
 st_par <- function(sf_df, sf_func, n_cores, ...){
-
+  
   # Create a vector to split the data set up by.
   split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
-
+  
   # Perform GIS analysis
   split_results <- split(sf_df, split_vector) %>%
     mclapply(function(x) sf_func(x, ...), mc.cores = n_cores)
-
+  
   # Combine results back together. Method of combining depends on the output from the function.
   if (class(split_results[[1]]) == 'list' ){
     result <- do.call("c", split_results)
@@ -264,20 +264,20 @@ st_par <- function(sf_df, sf_func, n_cores, ...){
   } else {
     result <- do.call(rbind, split_results)
   }
-
+  
   # Return result
   return(result)
 }
 
 st_par_union <- function(sf_df, sf_func, n_cores, ...){
-
+  
   # Create a vector to split the data set up by.
   split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
-
+  
   # Perform GIS analysis
   split_results <- split(sf_df, split_vector) %>%
     mclapply(function(x) sf_func(x), mc.cores = n_cores)
-
+  
   # Combine results back together. Method of combining depends on the output from the function.
   if ( length(class(split_results[[1]]))>1 | class(split_results[[1]])[1] == 'list' ){
     result <- do.call("c", split_results)
@@ -285,28 +285,28 @@ st_par_union <- function(sf_df, sf_func, n_cores, ...){
   } else {
     result <- do.call("rbind", split_results)
   }
-
+  
   # Return result
   return(result)
 }
 
 # Paralise any simple features analysis.
 st_parallel <- function(sf_df, sf_func, n_cores, ...){
-
+  
   # Create a vector to split the data set up by.
   split_vector <- rep(1:n_cores, each = nrow(sf_df) / n_cores, length.out = nrow(sf_df))
-
+  
   # Perform GIS analysis
   split_results <- split(sf_df, split_vector) %>%
     parallel::mclapply(function(x) sf_func(x, ...), mc.cores = n_cores)
-
-
+  
+  
   # Define the output_class. If length is greater than two, then grab the second variable.
   output_class <- class(split_results[[1]])
   if (length(output_class) == 2){
     output_class <- output_class[2]
   }
-
+  
   # Combine results back together. Method of combining depends on the output from the function.
   if (output_class == "matrix"){
     result <- do.call("rbind", split_results)
@@ -322,7 +322,7 @@ st_parallel <- function(sf_df, sf_func, n_cores, ...){
   } else {
     stop("Unknown class. st_parallel only accepts the following outputs at present: sfc, list, sf, matrix, sgbp.")
   }
-
+  
   # Return result
   return(result)
 }
@@ -480,7 +480,7 @@ classify_suppresscosts <-  function(x) {
                                             ifelse(x >= 20000000 & x < 30000000, "20,000,000 - 30,000,000",
                                                    ifelse(x >= 30000000 & x < 40000000, "30,000,000 - 40,000,000",
                                                           "> 40,000,001"))))))))
-
+  
 }
 
 classify_pctbae <-  function(x) {
@@ -497,7 +497,7 @@ classify_pctbae <-  function(x) {
                                      ifelse(x >= 30 & x < 40, "30 - 40",
                                             ifelse(x >= 40 & x < 50, "40 - 50",
                                                    "> 50")))))))
-
+  
 }
 
 classify_suppresscosts2 <-  function(x) {
@@ -514,7 +514,7 @@ classify_suppresscosts2 <-  function(x) {
                                      ifelse(x >= 10000000 & x < 20000000, 20000000,
                                             ifelse(x >= 20000000 & x < 40000000, 40000000,
                                                    40000001)))))))
-
+  
 }
 
 classify_new_categories <-  function(x) {
@@ -614,25 +614,25 @@ theme_pub <- function(base_size=11, base_family="") {
   library(ggthemes)
   (theme_foundation(base_size=base_size, base_family=base_family)
     + theme(plot.title = element_text(hjust = 0.05, size = 13),
-
+            
             panel.border = element_rect(colour = NA),
             panel.background = element_rect(colour = NA),
             panel.grid.major = element_line(colour="#f0f0f0"),
             panel.grid.minor = element_blank(),
             plot.background = element_rect(colour = NA),
-
+            
             axis.line = element_line(colour="black"),
             axis.ticks = element_line(),
-
+            
             legend.title = element_text(size=11),
             legend.position = "right",
             legend.text = element_text(size=11),
             legend.direction = "vertical",
             legend.key = element_rect(colour = "transparent", fill = "white"),
-
+            
             strip.background=element_rect(colour=NA),
             strip.text.x = element_text(size = 10),
-
+            
             axis.title = element_text(size = 11),
             axis.text.x = element_text(size = 10, angle = 65, hjust = 1),
             axis.text.y = element_text(size = 11)))

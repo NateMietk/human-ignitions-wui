@@ -12,7 +12,7 @@ stopCluster(cl)
 
 # Built up units per WUI block groups
 if(!file.exists(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds'))) {
-
+  
   # find the number of built-up units and build-up area by census block group, built year, and built class
   gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
   
@@ -20,14 +20,14 @@ if(!file.exists(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.r
   cl <- makeCluster(getOption("cl.cores", detectCores()/16))
   
   cleaned_wui <- pblapply(gpkgs,
-           FUN = intersect_ztrax,
-           mask = wui,
-           which_dataset = '1',
-           out_dir_cleaned = dir_cleaned_wui_ztrax_rds,
-           out_name_cleaned = '_cleaned_wui_built_up.rds', 
-           out_dir = dir_wui_ztrax_rds,
-           out_name = '_ztrax_wui.rds', 
-           cl = cl)
+                          FUN = intersect_ztrax,
+                          mask = wui,
+                          which_dataset = '1',
+                          out_dir_cleaned = dir_cleaned_wui_ztrax_rds,
+                          out_name_cleaned = '_cleaned_wui_built_up.rds', 
+                          out_dir = dir_wui_ztrax_rds,
+                          out_name = '_ztrax_wui.rds', 
+                          cl = cl)
   
   stopCluster(cl)
   
@@ -133,14 +133,14 @@ if(!file.exists(file.path(dir_cleaned_fpa_250m_ztrax_rds, 'all_cleaned_fpa_250m_
   cl <- makeCluster(getOption("cl.cores", detectCores()/6))
   
   cleaned_fpa_250m <- pblapply(gpkgs,
-                          FUN = intersect_ztrax,
-                          mask = fpa_250m,
-                          which_dataset = '2',
-                          out_dir_cleaned = dir_cleaned_fpa_250m_ztrax_rds,
-                          out_name_cleaned = '_cleaned_fpa_250m_built_up.rds', 
-                          out_dir = dir_fpa_250m_ztrax_rds,
-                          out_name = '_ztrax_fpa_250m.rds', 
-                          cl = cl)
+                               FUN = intersect_ztrax,
+                               mask = fpa_250m,
+                               which_dataset = '2',
+                               out_dir_cleaned = dir_cleaned_fpa_250m_ztrax_rds,
+                               out_name_cleaned = '_cleaned_fpa_250m_built_up.rds', 
+                               out_dir = dir_fpa_250m_ztrax_rds,
+                               out_name = '_ztrax_fpa_250m.rds', 
+                               cl = cl)
   
   stopCluster(cl)
   
