@@ -1,4 +1,6 @@
 
+st_erase = function(x, y) st_difference(x, st_union(st_combine(y)))
+
 subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
   require(sf)
   require(tidyverse)
@@ -15,7 +17,7 @@ subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
                            state_ztrax <- sf::st_read(i, layer = j) %>%
                              dplyr::filter(geom_wkt != 'POINT(0 0)') %>%
                              dplyr::mutate(built_class = ifelse(str_detect(LU_stdcode, 'RI|RR'), 'Residential', 'Non-Residential')) %>%
-                             dplyr::select(-geom_wkt, -ImptPrclID, -LU_desc, -LU_code)
+                             dplyr::select(-geom_wkt, -ImptPrclID, -LU_stdcode, -LU_desc, -LU_code)
                          })
     
     do.call(rbind, state_ztrax) %>%
@@ -39,7 +41,8 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         sf::st_join(., mask, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
         as.data.frame() %>%
-        dplyr::mutate(yearbuilt = ifelse(yearbuilt >= 0 & yearbuilt <= 1990, 1990, yearbuilt)) %>%
+        dplyr::mutate(yearbuilt = ifelse(yearbuilt == 0, 0,
+                                         ifelse(yearbuilt != 0 & yearbuilt <= 1990, 1990, yearbuilt))) %>%
         dplyr::group_by(blk10, built_class, yearbuilt) %>%
         dplyr::summarise(build_up_count = n(),
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
@@ -84,7 +87,8 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         sf::st_join(., mask, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
         as.data.frame() %>%
-        dplyr::mutate(yearbuilt = ifelse(yearbuilt >= 0 & yearbuilt <= 1992, 1992, yearbuilt)) %>%
+        dplyr::mutate(yearbuilt = ifelse(yearbuilt == 0, 0,
+                                         ifelse(yearbuilt != 0 & yearbuilt <= 1990, 1990, yearbuilt))) %>%
         dplyr::group_by(fpa_id, built_class, yearbuilt) %>%
         dplyr::summarise(build_up_count = n(),
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
@@ -107,7 +111,7 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         mutate(build_up_count = cumsum(build_up_count),
                build_up_intensity_sqm = cumsum(build_up_intensity_sqm)) %>%
         ungroup() %>%
-        complete(nesting(fpa_id, built_class), yearbuilt = 1992:2015) %>%
+        complete(nesting(fpa_id, built_class), yearbuilt = c(0, 1990:2015)) %>%
         group_by(fpa_id, built_class) %>%
         fill(everything(), .direction = 'up') %>%
         ungroup() %>%

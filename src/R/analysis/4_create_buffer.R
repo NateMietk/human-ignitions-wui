@@ -2,7 +2,7 @@
 # Buffered FPA perimeters
 if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
   # Create the distance variable to create the simple buffers
-
+  
   fpa_fire <- fpa_fire %>%
     mutate(MTBS_ACRES = NA,
            MTBS_DISCOVERY_YEAR = NA,
@@ -12,54 +12,84 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
     dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
                   MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
                   MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS)
-
+  
   bae <- fpa_fire %>%
     st_transform(proj_ed) %>%
     mutate(RADIUS = sqrt(FIRE_SIZE_m2/pi)) %>%
     filter(is.na(MTBS_ID))
-
+  
   bae <- st_parallel(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS) %>%
     st_transform(proj_ea)
-
+  
   bae <- do.call(rbind, list(bae = bae, mtbs_fire = mtbs_fire)) %>%
     st_cast('POLYGON') %>%
     dplyr::select(FPA_ID, DISCOVERY_YEAR, FIRE_SIZE_km2, geometry)
-
+  
   st_write(bae, file.path(fire_poly, "fpa_mtbs_bae.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
-
+  
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
-
+  
 } else {
   bae <- st_read(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))
 }
 
 # Buffered FPA 250m perimeters
 if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
-
+  
   fpa_250m <- bae %>%
-    st_buffer(., dist = 250)
-
+    st_buffer(., dist = 250) 
+  
   st_write(fpa_250m, file.path(fire_poly, "fpa_buffer_250m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
-
+  
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
-
+  
 } else {
   fpa_250m <- st_read(file.path(fire_poly, "fpa_buffer_250m.gpkg"))
+}
+
+# Buffered FPA 500m perimeters
+if (!file.exists(file.path(fire_poly, 'fpa_buffer_500m.gpkg'))) {
+  
+  fpa_500m <- bae %>%
+    st_buffer(., dist = 500)
+  
+  st_write(fpa_500m, file.path(fire_poly, "fpa_buffer_500m.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  
+  system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
+  
+} else {
+  fpa_500m <- st_read(file.path(fire_poly, "fpa_buffer_500m.gpkg"))
+}
+
+# Buffered FPA 1000m perimeters
+if (!file.exists(file.path(fire_poly, 'fpa_buffer_1000m.gpkg'))) {
+  
+  fpa_1000m <- bae %>%
+    st_buffer(., dist = 1000)
+  
+  st_write(fpa_1000m, file.path(fire_poly, "fpa_buffer_1000m.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  
+  system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
+  
+} else {
+  fpa_1000m <- st_read(file.path(fire_poly, "fpa_buffer_1000m.gpkg"))
 }
 
 # Buffered FPA perimeters intersected with the WUI data
 if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
   fpa_df <- as_tibble(as.data.frame(fpa_fire)) %>%
     dplyr::select(-geom)
-
+  
   fpa_bae_wui1 <- bae %>%
     st_intersection(., wui) %>%
     st_intersection(., bounds) %>%
     st_make_valid() %>%
     left_join(., fpa_df, by = 'FPA_ID')
-
+  
   fpa_bae_wui  <- fpa_bae_wui1 %>%
     mutate(wui_area_km2 = (as.numeric(st_area(geom))/1000000),
            class = as.factor(ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
@@ -100,10 +130,10 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
     dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)')) %>%
     setNames(tolower(names(.)))  %>%
     left_join(., wuw, by = c('class', 'class_coarse', 'decadal'))
-
+  
   st_write(fpa_bae_wui, file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
-
+  
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
 } else {
   fpa_bae_wui <- st_read(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))
@@ -112,21 +142,21 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
 # Buffer ICS 209 perimeters
 if (!file.exists(file.path(fire_poly, "ics209_bae.gpkg"))) {
   # Create the distance variable to create the simple buffers
-
+  
   ics209_bae <- wui_209 %>%
     st_transform(proj_ed) %>%
     mutate(RADIUS = sqrt(area_km2*1000000/pi))
-
+  
   ics209_bae <- ics209_bae %>%
     st_buffer(., dist = ics209_bae$RADIUS) %>%
     st_transform(proj_ea) %>%
     st_cast('POLYGON')
-
+  
   st_write(ics209_bae, file.path(fire_poly, "ics209_bae.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
-
+  
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
-
+  
 } else {
   ics209_bae <- st_read(file.path(fire_poly, "ics209_bae.gpkg"))
 }
@@ -141,7 +171,6 @@ if(!file.exists(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))) {
   fpa_bae_wui_df <- read_rds(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))
 }
 
-# output dataframe for rmarkdown
 if(!file.exists(file.path(rmarkdown_files, 'ics209_bae_df.rds'))) {
   ics209_bae_df <- as_tibble(as.data.frame(ics209_bae)) %>%
     dplyr::select(-c(geometry)) %>%
