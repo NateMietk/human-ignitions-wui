@@ -10,7 +10,6 @@ source("src/functions/plot_theme.R")
 
 proj_ed <- "+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs" #USA_Contiguous_Equidistant_Conic
 proj_ea <- "+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"
-proj_ztrax <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
 ncores <- 5
 
 # Raw data folders
@@ -39,12 +38,16 @@ zpoints_out <- file.path(ztrax_out, 'ztrax_points')
 dir_raw_ztrax_gpkg <- file.path(zpoints_out, 'raw_built_up_gpkg')
 dir_wui_ztrax_rds <- file.path(zpoints_out, 'wui_built_up_rds')
 dir_cleaned_wui_ztrax_rds <- file.path(zpoints_out, 'cleaned_wui_built_up_rds')
+dir_ics_ztrax_rds <- file.path(zpoints_out, 'ics_built_up_rds')
+dir_cleaned_ics_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_built_up_rds')
 dir_fpa_ztrax_rds <- file.path(zpoints_out, 'fpa_built_up_rds')
 dir_cleaned_fpa_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_built_up_rds')
 dir_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'fpa_250m_built_up_rds')
 dir_cleaned_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_250m_built_up_rds')
-dir_ics_ztrax_rds <- file.path(zpoints_out, 'ics_built_up_rds')
-dir_cleaned_ics_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_built_up_rds')
+dir_fpa_500m_ztrax_rds <- file.path(zpoints_out, 'fpa_500m_built_up_rds')
+dir_cleaned_fpa_500m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_500m_built_up_rds')
+dir_fpa_1000m_ztrax_rds <- file.path(zpoints_out, 'fpa_1000m_built_up_rds')
+dir_cleaned_fpa_1000m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_1000m_built_up_rds')
 
 bui_out <- file.path(ztrax_out, 'built_up_intensity')
 bui_out <- file.path(bui_out, 'BUI')
@@ -81,5 +84,6 @@ var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa
                 bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out, bui_out, bu_out,
                 swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly, 
                 zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds, 
-                dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds)
+                dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds,
+                dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
