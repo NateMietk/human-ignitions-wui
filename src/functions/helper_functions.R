@@ -133,7 +133,8 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         sf::st_join(., mask, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
         as.data.frame() %>%
-        dplyr::mutate(yearbuilt = ifelse(yearbuilt > 1600 & yearbuilt <= 1999, 1999, yearbuilt)) %>%
+        dplyr::mutate(yearbuilt = ifelse(yearbuilt == 0, 0,
+                                         ifelse(yearbuilt != 0 & yearbuilt <= 1999, 1999, yearbuilt))) %>%
         dplyr::group_by(incident_unique_id, built_class, yearbuilt) %>%
         dplyr::summarise(build_up_count = n(),
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
@@ -156,7 +157,7 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         mutate(build_up_count = cumsum(build_up_count),
                build_up_intensity_sqm = cumsum(build_up_intensity_sqm)) %>%
         ungroup() %>%
-        complete(nesting(incident_unique_id, built_class), yearbuilt = 1999:2014) %>%
+        complete(nesting(incident_unique_id, built_class), yearbuilt = c(0, 1999:2014)) %>%
         group_by(incident_unique_id, built_class) %>%
         fill(everything(), .direction = 'up') %>%
         ungroup() %>%

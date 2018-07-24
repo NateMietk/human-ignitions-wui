@@ -79,12 +79,11 @@ if(!file.exists(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.r
     write_rds(., file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.rds'))
   
   system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
-  
-  
-} else {
-  
-  cleaned_ics_all <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_build_up.rds'))
-}
+    
+  } else {
+    
+    cleaned_ics_all <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_build_up.rds'))
+  }
 
 # Built up units per FPA perimeters
 if(!file.exists(file.path(dir_cleaned_fpa_ztrax_rds, 'all_cleaned_fpa_built_up.rds'))) {
