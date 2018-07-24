@@ -1,6 +1,6 @@
 # Libraries ---------------------------------------------------------------
 x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom', 'nabor', 'velox', 'Hmisc', 'pbapply',
-       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel')
+       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 'mblm')
 lapply(x, library, character.only = TRUE, verbose = FALSE)
 
 source("src/functions/helper_functions.R")
