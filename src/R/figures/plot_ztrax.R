@@ -1,10 +1,38 @@
 
+bu_wui_cleaned_validation %>%
+  filter(built_class != 'Non-Residential') %>%
+  group_by(year, built_class) %>%
+  summarise(build_up_count = sum(build_up_count),
+            build_up_count_no_zero = sum(build_up_count_no_zero)) %>%
+  ungroup() %>%
+  mutate(build_up_count_no_zero = ifelse(build_up_count_no_zero == 0, build_up_count, build_up_count_no_zero),
+           year = ifelse(year == 0, 1989, year)) %>%
+  gather(built_up_count_class, c(build_up_count, build_up_count_no_zero), -year, -built_class ) %>%
+  mutate(build_up_count = `c(build_up_count, build_up_count_no_zero)`) %>%
+  dplyr::select(-`c(build_up_count, build_up_count_no_zero)`) %>%
+  mutate(build_up_count = ifelse(build_up_count == 135298077 & year == 1989, 0, build_up_count)) %>%
+  unite(built_class, built_class, built_up_count_class) %>%
+  filter(built_class != 'SILVIS_build_up_count_no_zero') %>%
+  ggplot(aes(x = year)) +
+  geom_bar(aes(y = build_up_count/1000000, fill = built_class), stat = 'identity', position = position_dodge(width = 2.5)) +
+  xlab('') + ylab('Threatened homes (in millions)') +
+  scale_x_continuous(limits = c(1990,2015)) +
+  theme_pub() +
+  theme(legend.position = 'none')
+
+as.data.frame(bu_complete_cleaned) %>%
+  filter(built_class != 'Non-Residential') %>%
+  group_by(discovery_year, built_class) %>%
+  summarise(build_up_count = sum(build_up_count_0),
+            build_up_count_no_zero = sum(build_up_count_no_zero_0)) %>%
+  ungroup() %>%
+  filter(discovery_year == 2015) %>%
+  mutate(pct_omission = build_up_count_no_zero/build_up_count)
+
 #
 p1 <- bu_wui_cleaned %>%
   filter(year != 0) %>%
   filter(built_class != 'Non-Residential') %>%
-  # mutate(built_class = ifelse(built_class == 'Residential', 'Ztrax', built_class)) %>%
-  # filter(built_class == 'SILVIS') %>%
   group_by(year, built_class) %>%
   summarise(build_up_count_no_zero = sum(build_up_count_no_zero),
             build_up_count = sum(build_up_count)) %>%
@@ -227,7 +255,7 @@ p3 <- bu_complete_long_no_zero %>%
   geom_smooth(
     method = 'glm'
     # method.args = list(family = "poisson")
-    ) +
+  ) +
   scale_fill_manual(values = c("Fire perimeter" = "#D62728", 
                                "Buffer zone - 250m" = "#FF7F0E", 
                                "Buffer zone - 500m" =  "#2CA02C", 
@@ -236,7 +264,7 @@ p3 <- bu_complete_long_no_zero %>%
   theme_pub() +
   theme(legend.position = 'none')
 
-  
+
 ggplot_build(p3)$data[[2]] %>%
   group_by(group) %>%
   summarise(ymin = min(y),
