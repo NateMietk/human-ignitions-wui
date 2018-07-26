@@ -15,6 +15,8 @@ fpa_wui_df <- read_rds('fpa_wui_df.rds')
 fpa_bae_wui_df <- read_rds('fpa_bae_wui_df.rds')
 wui_209_df <- read_rds('wui_209_df.rds')
 bu_ics_cleaned <- read_rds('bu_ics_cleaned.rds')
+bu_complete_cleaned <- read_rds('bu_complete_cleaned.rds')
+
 classify_fire_size_sml <-  function(x) {
   # break out fires into small, med, large
   # input:
@@ -68,6 +70,13 @@ as.data.frame(wui_209_df) %>%
 ```
 #### The total number of residential and structures threatened by human started wildfires in the WUI
 ```{r eval=TRUE}
+as_tibble(bu_complete_cleaned) %>%
+  filter(class %in% c('Intermix WUI', 'Interface WUI')) %>%
+  group_by(ignition) %>%
+  summarise(build_up_count = sum(build_up_count_no_zero_0, na.rm = TRUE)) %>%
+  mutate(percent = build_up_count/sum(build_up_count)*100) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
 ```
 
 #### Total suppression costs regardless of class
@@ -239,34 +248,81 @@ as_tibble(as.data.frame(wui_209_df)) %>%
   spread(rowname, value) %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as.data.frame(bu_complete_cleaned) %>%
+  filter(built_class == 'Residential') %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  group_by(class) %>%
+  summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+            build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+            build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+            build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+  mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+         pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+         pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+         pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
+as.data.frame(bu_complete_cleaned) %>%
+  filter(built_class == 'Non-Residential') %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  group_by(class) %>%
+  summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+            build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+            build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+            build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+  mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+         pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+         pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+         pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  rownames_to_column()  %>%
+  gather(var, value, -rowname) %>% 
+  spread(rowname, value) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
+
 ```
 #### Table 2
 ````{r eval = TRUE}
 bu_ics_cleaned %>%
   filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
   transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
-  filter(built_class != 'Non-Residential') %>%
+  filter(built_class == 'Residential') %>%
   droplevels() %>%
   filter(cause != 'Unk') %>%
-  group_by(class, cause, built_class) %>%
+  mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
+  group_by(class, cause, at_risk) %>%
   summarise(freq = n(),
             wildfire_area = sum(area_km2),
             costs = sum(costs),
-            risky_built_up = sum(build_up_count)) %>%
+            risky_built_up = sum(build_up_count_no_zero)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  ungroup() %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
 
 bu_ics_cleaned %>%
   filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
   transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
-  filter(built_class != 'Residential') %>%
+  filter(built_class == 'Non-Residential') %>%
   droplevels() %>%
   filter(cause != 'Unk') %>%
-  group_by(class, cause, built_class) %>%
+  mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
+  group_by(class, cause, at_risk) %>%
   summarise(freq = n(),
             wildfire_area = sum(area_km2),
             costs = sum(costs),
-            risky_built_up = sum(build_up_count)) %>%
+            risky_built_up = sum(build_up_count_no_zero)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) %>%
+  ungroup() %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
 ```

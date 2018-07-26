@@ -131,14 +131,14 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))) {
   
   bu_ics_cleaned <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.rds')) %>%
     mutate(start_year = year) %>%
-    group_by(blk10, built_class) %>%
-    arrange(desc(blk10, built_class, year)) %>%
+    group_by(incident_unique_id, built_class) %>%
+    arrange(desc(incident_unique_id, built_class, year)) %>%
     mutate(build_up_count_no_zero = build_up_count - first(build_up_count),
            build_up_intensity_sqm_no_zero = build_up_intensity_sqm - first(build_up_intensity_sqm)) %>%
     ungroup() %>%
     left_join(wui_209, ., by = c('start_year', 'incident_unique_id')) %>%
     mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
-    mutate(built_class = ifelse(is.na(built_class), 'No Structures', built_class)) %>%
+    mutate(built_class = ifelse(is.na(built_class), 'No Structures', as.character(built_class))) %>%
     dplyr::select(-year)
   
   write_rds(bu_ics_cleaned, file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))
