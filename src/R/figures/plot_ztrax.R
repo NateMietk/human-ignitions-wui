@@ -29,6 +29,93 @@ as.data.frame(bu_complete_cleaned) %>%
   filter(discovery_year == 2015) %>%
   mutate(pct_omission = build_up_count_no_zero/build_up_count)
 
+df1 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class == 'Residential') %>%
+  mutate(fire_size_ha = fire_size_km2*100,
+         fire_size = case_when(
+           fire_size_ha >  0 & fire_size_ha < 100 ~ '0-100',
+           fire_size_ha >= 100 & fire_size_ha < 200 ~ '100-200',
+           fire_size_ha >= 200 & fire_size_ha < 400 ~ '200-400',
+           fire_size_ha >= 400 & fire_size_ha < 1000 ~ '400-1000',
+           fire_size_ha >= 1000 & fire_size_ha < 10000 ~ '1000-10000',
+           fire_size_ha >= 10000 & fire_size_ha < 50000 ~ '1000-50000',
+           fire_size_ha >= 50000 ~ '> 50000', TRUE ~ NA_character_ )) %>%
+  group_by(fire_size) %>%
+  do(data.frame(rbind(smean.cl.boot(.$build_up_count_no_zero_0, B = 10000)))) %>%
+  mutate(avg_bu_threat_per_size = round(Mean, 4),
+         lower_95_ci = round(Lower, 4),
+         upper_95_ci = round(Upper, 4)) %>%
+  dplyr::select(-Mean, -Lower, -Upper)
+
+df1 %>%
+  transform(fire_size = factor(fire_size, levels=c('0-100', '100-200', '200-400', '400-1000', '1000-10000', '1000-50000', '> 50000'))) %>%
+  ggplot(aes(x = fire_size, y = (avg_bu_threat_per_size))) +
+  geom_bar(stat='identity') +
+  geom_errorbar(aes(ymin = (lower_95_ci), ymax = (upper_95_ci), width = 0.25)) +
+  xlab('Fire Size (ha)') + ylab('Average home threatened per fire event') +
+  theme_pub()
+
+df1 %>%
+  transform(fire_size = factor(fire_size, levels=c('0-100', '100-200', '200-400', '400-1000', '1000-10000', '1000-50000', '> 50000'))) %>%
+  ggplot(aes(x = fire_size, y = log(avg_bu_threat_per_size))) +
+  geom_bar(stat='identity') +
+  geom_errorbar(aes(ymin = log(lower_95_ci), ymax = log(upper_95_ci), width = 0.25)) +
+  xlab('Fire Size (ha)') + ylab('log Average home threatened per fire event') +
+  theme_pub()
+
+
+df2 <- as.data.frame(bu_complete_cleaned) %>%   
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class == 'Residential') %>%
+  mutate(fire_size_ha = fire_size_km2*100,
+    fire_size = case_when(
+      fire_size_ha >  0 & fire_size_ha < 100 ~ '0-100',
+      fire_size_ha >= 100 & fire_size_ha < 200 ~ '100-200',
+      fire_size_ha >= 200 & fire_size_ha < 400 ~ '200-400',
+      fire_size_ha >= 400 & fire_size_ha < 1000 ~ '400-1000',
+      fire_size_ha >= 1000 & fire_size_ha < 10000 ~ '1000-10000',
+      fire_size_ha >= 10000 & fire_size_ha < 50000 ~ '1000-50000',
+      fire_size_ha >= 50000 ~ '> 50000', TRUE ~ NA_character_ )) %>%
+  group_by(fire_size) %>%
+  summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+            build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+            build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+            build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+         pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+         pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+         pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100,
+         built_up_0_250 = build_up_count_0 + build_up_count_250,
+         fire_size = as.factor(fire_size)) %>%
+  mutate_if(is.numeric, funs(round(., 2))) 
+
+df2 %>%
+  transform(fire_size = factor(fire_size, levels=c('0-100', '100-200', '200-400', '400-1000', '1000-10000', '1000-50000', '> 50000'))) %>%
+  ggplot(aes(x = fire_size, y = log(build_up_count_0))) +
+  geom_bar(stat='identity') +
+  xlab('Fire Size (ha)') + ylab('log Threatened homes') +
+  geom_vline(xintercept = 3, linetype="dashed") + 
+  geom_vline(xintercept = 4, linetype="dashed") + 
+  geom_text(aes(x = 2.45, y = 13, label = 'Eastern MTBS\n threshold')) +
+  geom_text(aes(x = 4.75, y = 13, label = 'Western MTBS\n threshold')) +
+  theme_pub()
+
+df2 %>%
+  transform(fire_size = factor(fire_size, levels=c('0-100', '100-200', '200-400', '400-1000', '1000-10000', '1000-50000', '> 50000'))) %>%
+  ggplot(aes(x = fire_size, y = (build_up_count_0)/1000000)) +
+  geom_bar(stat='identity') +
+  xlab('Fire Size (ha)') + ylab('Threatened homes (in millions)') +
+  geom_vline(xintercept = 3, linetype="dashed") + 
+  geom_vline(xintercept = 4, linetype="dashed") + 
+  geom_text(aes(x = 2.45, y = 1.5, label = 'Eastern MTBS\n threshold')) +
+  geom_text(aes(x = 4.75, y = 1.5, label = 'Western MTBS\n threshold')) +
+  theme_pub()
+
+
 #
 p1 <- bu_wui_cleaned %>%
   filter(year != 0) %>%
