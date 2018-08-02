@@ -1,4 +1,14 @@
 
+anom_fun <- function(x, y) {
+  x - y
+}
+mean_fun <- function(x, y) {
+  (x + y)/2
+}
+celsius <- function(x) {
+  x - 272.15
+}
+
 st_erase = function(x, y) st_difference(x, st_union(st_combine(y)))
 
 subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
@@ -16,13 +26,19 @@ subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
                          FUN = function(j) {
                            state_ztrax <- sf::st_read(i, layer = j) %>%
                              dplyr::filter(geom_wkt != 'POINT(0 0)') %>%
+                             dplyr::filter(!(LU_stdcode %in% c('VL', 'AG', 'TR', 'MS'))) %>%
+                             dplyr::filter(!(LU_desc %in% c('EI100', 'EI109', 'EI110', 'EI111', 'EI113',
+                                                            'EI14', 'GV111', 'GV118', 'IH103', 'IH122', 
+                                                            'IN104', 'RC102', 'RC103', 'PP102', 'RC106', 
+                                                            'RC113', 'RC124', 'RC129', 'RC130', 'IH113', 'IH115',
+                                                            'IN113'))) %>%
                              dplyr::mutate(built_class = ifelse(str_detect(LU_stdcode, 'RI|RR'), 'Residential', 'Non-Residential')) %>%
                              dplyr::select(-geom_wkt, -ImptPrclID, -LU_stdcode, -LU_desc, -LU_code)
                          })
     
     do.call(rbind, state_ztrax) %>%
       sf::st_transform(sf::st_crs(usa_shp)) %>%
-      sf::st_write(., file.path(out_dir, outname))
+      sf::st_write(., file.path(out_dir, outname), delete_layer = TRUE)
   }
 }
 
