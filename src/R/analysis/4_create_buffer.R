@@ -161,6 +161,22 @@ if (!file.exists(file.path(fire_poly, "ics209_bae.gpkg"))) {
   ics209_bae <- st_read(file.path(fire_poly, "ics209_bae.gpkg"))
 }
 
+# Buffer ICS 209 250m perimeters
+if (!file.exists(file.path(fire_poly, "ics209_bae_250m.gpkg"))) {
+  # Create the distance variable to create the simple buffers
+  
+  ics209_bae_250m <- ics209_bae %>%
+    st_buffer(., dist = 250) 
+  
+  st_write(ics209_bae_250m, file.path(fire_poly, "ics209_bae_250m.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  
+  system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
+  
+} else {
+  ics209_bae_250m <- st_read(file.path(fire_poly, "ics209_bae_250m.gpkg"))
+}
+
 # output dataframe for rmarkdown
 if(!file.exists(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))) {
   fpa_bae_wui_df <- as_tibble(as.data.frame(fpa_bae_wui)) %>%
