@@ -1,6 +1,6 @@
 # Libraries ---------------------------------------------------------------
 x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom', 'nabor', 'velox', 'Hmisc', 'pbapply',
-       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel')
+       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 'raster')
 lapply(x, library, character.only = TRUE, verbose = FALSE)
 
 source("src/functions/helper_functions.R")
@@ -40,6 +40,8 @@ dir_wui_ztrax_rds <- file.path(zpoints_out, 'wui_built_up_rds')
 dir_cleaned_wui_ztrax_rds <- file.path(zpoints_out, 'cleaned_wui_built_up_rds')
 dir_ics_ztrax_rds <- file.path(zpoints_out, 'ics_built_up_rds')
 dir_cleaned_ics_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_built_up_rds')
+dir_ics_250m_ztrax_rds <- file.path(zpoints_out, 'ics_250m_built_up_rds')
+dir_cleaned_ics_250m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_250m_built_up_rds')
 dir_fpa_ztrax_rds <- file.path(zpoints_out, 'fpa_built_up_rds')
 dir_cleaned_fpa_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_built_up_rds')
 dir_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'fpa_250m_built_up_rds')
@@ -60,6 +62,19 @@ fpa_out <- file.path(fire_crt, "fpa-fod")
 mtbs_out <- file.path(fire_crt, "mtbs_fod_perimeter_data")
 fire_pnt <- file.path(fpa_out, 'points')
 fire_poly <- file.path(fpa_out, 'perimeters')
+
+climate_dir <- file.path(prefix, 'climate')
+pdsi_dir <- file.path(climate_dir, 'pdsi')
+pdsi_mean_dir <- file.path(pdsi_dir, 'monthly_mean')
+pdsi_anomalies_dir <- file.path(pdsi_dir, 'monthly_anomalies')
+
+tmean_dir <- file.path(climate_dir, 'tmean')
+temp_mean_dir <- file.path(tmean_dir, 'monthly_mean')
+temp_anomalies_dir <- file.path(tmean_dir, 'monthly_anomalies')
+
+ppt_dir <- file.path(climate_dir, 'ppt')
+ppt_mean_dir <- file.path(ppt_dir, 'monthly_mean')
+ppt_anomalies_dir <- file.path(ppt_dir, 'monthly_anomalies')
 
 ics_out <- file.path(fire_crt, "ics_209")
 ics_outtbls <- file.path(ics_out, "output_tbls")
@@ -85,5 +100,7 @@ var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa
                 swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly, 
                 zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds, 
                 dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds,
-                dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds)
+                dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds,
+                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds,
+                climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
