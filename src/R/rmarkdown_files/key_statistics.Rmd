@@ -159,9 +159,9 @@ as_tibble(as.data.frame(fpa_wui_df)) %>%
   transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
   group_by(class) %>%
   do(data.frame(rbind(smean.cl.boot(.$fire_size_km2, B = 10000)))) %>%
-  mutate(avg_fire_size_km2 = round(Mean, 4)*100,
-         lower_95_ci = round(Lower, 4)*100,
-         upper_95_ci = round(Upper, 4)*100) %>%
+  mutate(avg_fire_size_km2 = round(Mean, 4),
+         lower_95_ci = round(Lower, 4),
+         upper_95_ci = round(Upper, 4)) %>%
   dplyr::select(-Mean, -Lower, -Upper)  %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
@@ -173,9 +173,9 @@ as_tibble(as.data.frame(fpa_wui_df)) %>%
   transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
   group_by(class_coarse) %>%
   do(data.frame(rbind(smean.cl.boot(.$fire_size_km2, B = 10000)))) %>%
-  mutate(avg_fire_size_km2 = round(Mean, 4)*100,
-         lower_95_ci = round(Lower, 4)*100,
-         upper_95_ci = round(Upper, 4)*100) %>%
+  mutate(avg_fire_size_km2 = round(Mean, 4),
+         lower_95_ci = round(Lower, 4),
+         upper_95_ci = round(Upper, 4)) %>%
   dplyr::select(-Mean, -Lower, -Upper)  %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = 'left', font_size = 10)
@@ -284,11 +284,11 @@ as.data.frame(bu_complete_cleaned) %>%
 bu_ics_cleaned %>%
   filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
   transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
-  filter(built_class == 'Residential') %>%
+  filter(built_class != 'Non-Residential') %>%
   droplevels() %>%
-  filter(cause != 'Unk') %>%
-  mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
-  group_by(class, cause, at_risk) %>%
+  # filter(cause != 'Unk') %>%
+  # mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
+  group_by(class, cause, built_class) %>%
   summarise(freq = n(),
             wildfire_area = sum(area_km2),
             costs = sum(costs),
