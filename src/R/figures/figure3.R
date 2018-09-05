@@ -1,10 +1,11 @@
 shrt_doy <- as.data.frame(fpa_wui) %>%
-  filter(!(class %in% c("Urban", "VLD"))) %>%
-  group_by(discovery_doy, ignition, class, region) %>%
+  filter((class_coarse %in% c("WUI", 'Wildlands'))) %>%
+  filter(!(region %in% c("Central"))) %>%
+  group_by(discovery_doy, ignition, class_coarse, region) %>%
   summarise(count = n())
 
 doy.east.west <- shrt_doy %>%
-  transform(class = factor(class, levels=c("WUI", "Wildlands"))) %>%
+  transform(class_coarse = factor(class_coarse, levels=c('WUI', 'Wildlands'))) %>%
   ggplot() +
   geom_bar(aes(x =  discovery_doy, y = count,
                color = ignition, fill = ignition), stat = "identity") +
@@ -18,12 +19,10 @@ doy.east.west <- shrt_doy %>%
         legend.background = element_rect(fill = "transparent"),
         legend.title = element_blank(),
         legend.position = "none") +
-  facet_wrap(region ~ class, ncol = 2)
+  facet_wrap(region ~ class_coarse, ncol = 2)
 
-grid.arrange(doy.east, doy.west, ncol =2)
-
-ggsave("results/figure3.eps", doy.east.west, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
-ggsave("results/figure3.tiff", doy.east.west, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave("figs/figure3.eps", doy.east.west, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave("figs/figure3.tiff", doy.east.west, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
 
 
 shrt_doy <- as.data.frame(fpa_wui) %>%
@@ -50,5 +49,5 @@ doy.east.west <- shrt_doy %>%
   facet_wrap(region ~ class, ncol = 1)
 
 
-ggsave("results/figureS3.eps", doy.east.west, width = 3.5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
-ggsave("results/figureS3.tiff", doy.east.west, width = 3.5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave("figs/figureS3.eps", doy.east.west, width = 3.5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave("figs/figureS3.tiff", doy.east.west, width = 3.5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g

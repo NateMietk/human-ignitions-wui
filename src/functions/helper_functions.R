@@ -493,15 +493,53 @@ classify_suppresscosts <-  function(x) {
   # output:
   #   - y: vector (same length) of classified fire sizes ----- Km2
   ifelse(is.na(x), 0,
-         ifelse(x >= 0.01 & x < 10000, "0.01 - 10,000",
-                ifelse(x >= 10000 & x < 50000, "10,000 - 50,000",
-                       ifelse(x >= 50000 & x < 1000000, "50,000 - 1,000,000",
-                              ifelse(x >= 1000000 & x < 10000000, "1,000,000 - 10,000,000",
-                                     ifelse(x >= 10000000 & x < 20000000, "10,000,000 - 20,000,000",
-                                            ifelse(x >= 20000000 & x < 30000000, "20,000,000 - 30,000,000",
-                                                   ifelse(x >= 30000000 & x < 40000000, "30,000,000 - 40,000,000",
-                                                          "> 40,000,001"))))))))
+      ifelse(x == 0, "0",
+         ifelse(x >= 0.01 & x < 10000, "0.01 - 10k",
+                ifelse(x >= 10000 & x < 50000, "10k - 50k",
+                       ifelse(x >= 50000 & x < 1000000, "50k - 1M",
+                              ifelse(x >= 1000000 & x < 10000000, "1M - 10M",
+                                     ifelse(x >= 10000000 & x < 20000000, "10M - 20M",
+                                            ifelse(x >= 20000000 & x < 30000000, "20M - 30M",
+                                                   ifelse(x >= 30000000 & x < 40000000, "30M - 40M",
+                                                          "> 40M")))))))))
   
+}
+
+theme_nothing <- function(base_size = 12, legend = FALSE){
+  if(legend){
+    theme(
+      axis.text =          element_blank(),
+      axis.title =         element_blank(),
+      panel.background =   element_blank(),
+      panel.grid.major =   element_blank(),
+      panel.grid.minor =   element_blank(),
+      axis.ticks.length =  unit(0, "cm"),
+      panel.spacing =      unit(0, "lines"),
+      plot.margin =        unit(c(0, 0, 0, 0), "lines")
+    )
+  } else {
+    theme(
+      line =               element_blank(),
+      rect =               element_blank(),
+      text =               element_blank(),
+      axis.ticks.length =  unit(0, "cm"),
+      legend.position =    "none",
+      panel.spacing =      unit(0, "lines"),
+      plot.margin =        unit(c(0, 0, 0, 0), "lines")
+    )
+  }
+}
+
+classify_raw_fire_size <- function(x) {
+  # break out fires into small, med, large
+  # input:
+  #   - x: vector of fire sizes
+  # output:
+  #   - y: vector (same length) of classified fire sizes ----- Km2
+  ifelse(x < 4, "0-4",
+         ifelse(x >= 4 & x < 100, "4-100",
+                ifelse(x >= 100 & x < 400, "100-400",
+                       ifelse(x >= 400 & x < 1000, "400-1000", '>1000'))))
 }
 
 classify_pctbae <-  function(x) {
@@ -510,14 +548,13 @@ classify_pctbae <-  function(x) {
   #   - x: vector of fire sizes
   # output:
   #   - y: vector (same length) of classified fire sizes ----- Km2
-  ifelse(is.na(x), 0,
-         ifelse(x < 1, "< 1",
+  ifelse(x < 1, "< 1",
                 ifelse(x >= 0.01 & x < 10, "1 - 10",
                        ifelse(x >= 10 & x < 20, "10 - 20",
                               ifelse(x >= 20 & x < 30, "20 - 30",
                                      ifelse(x >= 30 & x < 40, "30 - 40",
                                             ifelse(x >= 40 & x < 50, "40 - 50",
-                                                   "> 50")))))))
+                                                   "> 50"))))))
   
 }
 
