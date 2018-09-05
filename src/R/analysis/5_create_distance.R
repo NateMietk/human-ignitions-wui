@@ -131,13 +131,8 @@ if (!file.exists(file.path(distance_out, paste0('distance_fpa.rds')))) {
     setNames(tolower(names(.))) %>% 
     left_join(fpa_wui, ., by = 'fpa_id')
 
-    write_rds(distance_rds,
-            file.path(
-              distance_out,
-              paste0('distance_fpa.rds')
-            ))
-  system(
-    paste0('aws s3 sync ', distance_out, ' ', s3_distance))
+  write_rds(distance_rds, file.path(distance_out, paste0('distance_fpa.rds')))
+  system( paste0('aws s3 sync ', distance_out, ' ', s3_distance))
   
 } else {
   distance_rds <- read_rds(file.path(

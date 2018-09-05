@@ -61,7 +61,9 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_500m.gpkg'))) {
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
 } else {
-  fpa_500m <- st_read(file.path(fire_poly, "fpa_buffer_500m.gpkg"))
+  fpa_500m <- st_read(file.path(fire_poly, "fpa_buffer_500m.gpkg"))  %>%
+    left_join(., as.data.frame(fpa_fire) %>% dplyr::select(-geom), by = c('FPA_ID', 'DISCOVERY_YEAR', 'FIRE_SIZE_km2')) %>%
+    filter(STAT_CAUSE_DESCR != 'Missing/Undefined')
 }
 
 # Buffered FPA 1000m perimeters
@@ -76,7 +78,9 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_1000m.gpkg'))) {
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
 } else {
-  fpa_1000m <- st_read(file.path(fire_poly, "fpa_buffer_1000m.gpkg"))
+  fpa_1000m <- st_read(file.path(fire_poly, "fpa_buffer_1000m.gpkg"))  %>%
+    left_join(., as.data.frame(fpa_fire) %>% dplyr::select(-geom), by = c('FPA_ID', 'DISCOVERY_YEAR', 'FIRE_SIZE_km2')) %>%
+    filter(STAT_CAUSE_DESCR != 'Missing/Undefined')
 }
 
 # Buffered FPA perimeters intersected with the WUI data
@@ -136,7 +140,7 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
   
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
 } else {
-  fpa_bae_wui <- st_read(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))
+  fpa_bae_wui <- st_read(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg")) 
 }
 
 # Buffer ICS 209 perimeters
