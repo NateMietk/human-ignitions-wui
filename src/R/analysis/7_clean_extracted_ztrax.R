@@ -17,7 +17,6 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))) {
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
     
   } else {
-    
     bu_ics_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))
   }
 
@@ -94,7 +93,6 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_fpa_cleaned.rds'))) {
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
   
 } else {
-  
   bu_fpa_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_fpa_cleaned.rds'))
 }
 
@@ -196,12 +194,10 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))) {
     ungroup() %>%
     left_join(fpa_wui, ., by = 'fpa_id')
   
-  
   write_rds(bu_complete_cleaned, file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
   
 } else {
-  
   bu_complete_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
-}
+    }
 

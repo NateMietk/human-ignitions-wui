@@ -1,97 +1,85 @@
-# Overall totals by SIZE AND CLASS AND CAUSE
-totals_by_cause_class_sizes <- wui_209 %>% 
-  mutate(cause = if_else(cause == "Unk", "Human", cause)) %>%
-  group_by(syear, class, cause, class) %>%
-  summarise(size = sum(area_km2)) %>%
-  as.data.frame(.) 
+bu_complete_long_no_zero <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+  dplyr::select(fpa_id, class, ignition, discovery_year, built_class, build_up_count_no_zero_0) %>%
+  gather(key = 'buffer_class', value = 'built_count', -fpa_id, -class, -ignition, -discovery_year, -built_class) %>%
+  mutate(buffer_class = case_when(
+    buffer_class == 'build_up_count_no_zero_0' ~ 'Fire perimeter',
+    TRUE ~ NA_character_)) %>% filter(buffer_class == 'Fire perimeter') %>% 
+  mutate(fpa_id = as.factor(fpa_id))
 
-ics_sums <-   wui_209 %>%
-  mutate(cause = if_else(cause == "Unk", "Human", cause)) %>%
-  group_by(syear, cause, class) %>%
+sen <- function(..., weights = NULL) {
+  mblm::mblm(...)
+}
+
+# Time series of burned area per ignition
+p1 <- bu_complete_long_no_zero %>%
+  left_join(., fpa_wui, by = c('fpa_id', 'discovery_year', 'ignition', 'class')) %>%
+  # filter(region != 'Central') %>%
+  filter((class_coarse %in% c('WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class == 'Residential') %>%
+  transform(class_coarse = factor(class_coarse, levels=c('WUI', 'Wildlands'))) %>%
+  group_by(discovery_year, ignition) %>%
+  summarise(burn_area = sum(fire_size_km2)) %>%
+  ggplot(aes(x = discovery_year, y = burn_area/1000, group = ignition, color = ignition)) +
+  geom_point() +
+  geom_line() +
+  # geom_bar(aes(fill = ignition), stat= 'identity', position = 'dodge', alpha = 0.3) +
+  geom_smooth(method = sen) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0,14)) +
+  scale_color_manual(values = c("#D62728","#1F77B4")) +
+  scale_fill_manual(values = c("#D62728","#1F77B4")) +
+  xlab('Discovery year') + ylab('Burned area (km2; in thousands)') +
+  theme_pub() +
+  theme(legend.position = "none") 
+
+# Time series of threatened homes per ignition
+p2 <- bu_complete_long_no_zero %>%
+  left_join(., fpa_wui, by = c('fpa_id', 'discovery_year', 'ignition', 'class')) %>%
+  # filter(region != 'Central') %>%
+  filter((class_coarse %in% c('WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class == 'Residential') %>%
+  transform(class_coarse = factor(class_coarse, levels=c('WUI', 'Wildlands'))) %>%
+  group_by(discovery_year, ignition) %>%
+  summarise(built_count = sum(built_count)) %>%
+  ggplot(aes(x = discovery_year, y = built_count/10000, group = ignition, color = ignition)) +
+  geom_point() +
+  geom_line() +
+  # geom_bar(aes(fill = ignition), stat= 'identity', position = 'dodge', alpha = 0.3) +
+  geom_smooth(method = sen) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0,14)) +
+  scale_color_manual(values = c("#D62728","#1F77B4")) +
+  scale_fill_manual(values = c("#D62728","#1F77B4")) +
+  xlab('Discovery year') + ylab('Threatened homes (in tens of thousands)') +
+  theme_pub() +
+  theme(legend.position = "none") 
+
+# Time series of costs per ignition
+nifc <- read_csv(file.path(ics_outtbls, 'nifc_v_209s.csv')) %>%
+  mutate(start_year = Year)
+
+p3 <- wui_209_df %>%
+  mutate(costs = ifelse(incident_unique_id %in% c('ID-SCF-P46024|2000|1', 'ID-PAF-008|2000|1', 'MT-BDF-129|2000|1'), costs/10, costs)) %>%
+  # filter(region != 'Central') %>%
+  filter(cause != 'Unk') %>%
+  filter((class_coarse %in% c('WUI', 'VLD', 'Wildlands'))) %>%
+  group_by(start_year, cause) %>%
   summarise(costs = sum(costs)) %>%
-  left_join(.,  totals_by_cause_class_sizes, by = c("syear", "cause", "class"))  %>%
-  group_by(syear, cause, class) %>%
-  summarise(costs = sum(costs),
-            size = sum(size))
+  ggplot(aes(x = start_year)) +
+  geom_point(aes(y = costs/1000000000, group = cause, color = cause)) +
+  geom_line(aes(y = costs/1000000000, group = cause, color = cause)) +
+  # geom_bar(aes(fill = cause), stat= 'identity', position = 'dodge', alpha = 0.3) +
+  geom_smooth(aes(x = start_year, y = costs/1000000000, group = cause, color = cause), method = sen) +
+  geom_point(data = nifc, aes(y = NIFC_Costs/1000000000), color = 'darkgreen') +
+  geom_line(data = nifc, aes(y = NIFC_Costs/1000000000), color = 'darkgreen') +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
+  scale_color_manual(values = c("#D62728","#1F77B4")) +
+  scale_fill_manual(values = c("#D62728","#1F77B4")) +
+  xlab('Discovery year') + ylab('Costs ($; in billions)') +
+  theme_pub() +
+  theme(legend.position = "none") 
 
+grid.arrange(p1, p2, p3, nrow = 1)
+g <- arrangeGrob(p1, p2, p3, nrow = 1) #generates g
 
-library(mblm)
-# https://stackoverflow.com/questions/15211384/any-simple-way-to-get-regression-prediction-intervals-in-r
-# Theil-sen of MTBS data from 1984-2015
-mblm_with_class <- ics_sums %>%
-  filter(class != 'VLD') %>%
-  as.data.frame() %>%
-  dplyr::select(-geom.x) %>%
-  gather(variable, value, -syear, -cause, -class) %>%
-  unite(variable, cause, class, variable, sep = "_") %>% 
-  group_by(variable) %>%
-  nest() %>%
-  mutate(
-    model1 = map(data, ~ mblm(value ~ syear, data = .x, repeated = FALSE))) %>% 
-  mutate(tidy_mblm = map(model1, broom::tidy)) %>% 
-  mutate(p_val = map_dbl(tidy_mblm, ~.$p.value[2])) %>% # captures the yearly p-value
-  mutate(intercept_estimate = map_dbl(tidy_mblm, ~.$estimate[1])) %>% # captures the intercept estimate used for creating the abline (1st term)
-  mutate(syear_estimate = map_dbl(tidy_mblm, ~.$estimate[2])) %>% # captures the syear estimate used for creating the abline (second term)
-  dplyr::select(variable, p_val, intercept_estimate, syear_estimate) %>%
-  arrange(desc(variable))
-
-mblm_wout_class <- ics_sums %>%
-  dplyr::select(-class) %>%
-  as.data.frame() %>%
-  dplyr::select(-geom.x) %>%
-  group_by(syear, cause) %>%
-  summarise(costs = sum(costs),
-            size = sum(size)) %>%
-  gather(variable, value, -syear, -cause) %>%
-  unite(variable, cause, variable, sep = "_") %>% 
-  group_by(variable) %>%
-  nest() %>%
-  mutate(
-    model1 = map(data, ~ mblm(value ~ syear, data = .x, repeated = FALSE))) %>% 
-  mutate(tidy_mblm = map(model1, broom::tidy)) %>% 
-  mutate(p_val = map_dbl(tidy_mblm, ~.$p.value[2])) %>% # captures the yearly p-value
-  mutate(intercept_estimate = map_dbl(tidy_mblm, ~.$estimate[1])) %>% # captures the intercept estimate used for creating the abline (1st term)
-  mutate(syear_estimate = map_dbl(tidy_mblm, ~.$estimate[2])) %>% # captures the syear estimate used for creating the abline (second term)
-  dplyr::select(variable, p_val, intercept_estimate, syear_estimate) 
-
-
-
-ics_sums_p <- ics_sums %>%
-  #transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
-  ggplot(aes(x = syear)) +
-  geom_point(aes(y = costs, color = cause), size = 2) +
-  geom_line(aes(y = costs, color = cause),  size = 0.5, alpha = 0.25) +
-  # geom_smooth(aes(y = costs/100000000, color = cause), method="glm", method.args = list(family = "poisson"),
-  #             se= FALSE, size = 0.75) +  
-  scale_color_manual(values = c("#D62728", "#1F77B4")) +
-  scale_y_continuous(breaks = pretty(ics_sums$costs, n = 5)) +
-  xlab("Year") + ylab("Estimated fire Suppression Cost \n(in hundreds of millions of dollars; $)") +
-  theme_pub()  + 
-  scale_x_continuous(breaks = pretty(ics_sums$syear, n = 10)) +
-  theme(axis.title = element_text(face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.position = "none") +
-  facet_wrap(~ class, ncol = 1)
-
-
-ics_sums_s <- ics_sums %>%
-  #transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
-  ggplot(aes(x = syear)) +
-  geom_point(aes(y = size, color = cause), size = 2) +
-  geom_line(aes(y = size, color = cause),  size = 0.5, alpha = 0.25) +
-  # geom_smooth(aes(y = size/1000, color = cause), method="gam", method.args = list(family = "poisson"),
-  #             se = FALSE, size = 0.75) +
-  scale_color_manual(values = c("#D62728", "#1F77B4")) +
-  xlab("Year") + ylab("Burned Area \n(in thousands; km2)") +
-  theme_pub()  + 
-  scale_x_continuous(breaks = pretty(ics_sums$syear, n = 10)) +
-  #scale_y_continuous(breaks = pretty(ics_sums$size, n = 5)) +
-  theme(axis.title = element_text(face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.position = "none") +
-  facet_wrap(~ class, ncol = 1, scales = 'free')
-
-grid.arrange(ics_sums_p, ics_sums_s, ncol =2)
-g <- arrangeGrob(ics_sums_p, ics_sums_s, ncol =2)
-ggsave(file = "figs/draft/main_text/figure1_wui_impact.pdf", g, width = 8, height = 4, dpi=1200, scale = 3, units = "cm")
+ggsave("figs/figure1.eps", g, width = 10, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave("figs/figure1.tiff", g, width = 10, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
 
