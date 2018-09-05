@@ -65,6 +65,7 @@ regmean <- fishdis_reg %>%
   group_by(regions, ten_year, ignition) %>%
   summarise(fcnt_mean = mean(fseason_lngth)) %>%
   spread(ignition, fcnt_mean)
+write_csv(regmean, file.path(supplements_text_figs, 'figureS5_distance_fseason_means.csv'))
 
 # check to see where the min. diffs fall in plot
 firefreq_cent <- fishdis_reg %>%

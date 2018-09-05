@@ -12,12 +12,11 @@ doy_east_west <- shrt_doy %>%
   scale_color_manual(values = c("#D62728","#1F77B4")) +
   theme_pub()  +
   xlab("Discovery day of year") + ylab("Fire frequency") +
-  theme(axis.title = element_text(face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.box.background = element_rect(fill = "transparent"),
-        legend.key = element_rect(colour = "transparent", fill = "white"),
-        legend.background = element_rect(fill = "transparent"),
-        legend.title = element_blank(),
+  theme(plot.title = element_text(hjust = 0, size = 12),
+        strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+        legend.key = element_rect(fill = "white"),
         legend.position = "none") +
   facet_wrap(region ~ class_coarse, ncol = 2)
 
@@ -37,13 +36,14 @@ doy_east_west <- shrt_doy %>%
   scale_color_manual(values = c("#D62728","#1F77B4")) +
   theme_pub()  +
   xlab("Discovery day of year") + ylab("Fire frequency") +
-  theme(axis.title = element_text(face = "bold"),
-        strip.text = element_text(size = 10, face = "bold"),
-        legend.box.background = element_rect(fill = "transparent"),
-        legend.key = element_rect(colour = "transparent", fill = "white"),
-        legend.background = element_rect(fill = "transparent"),
-        legend.title = element_blank(),
-        legend.position = "none") +
-  facet_wrap(region ~ class, ncol = 1)
+  theme(plot.title = element_text(hjust = 0, size = 12),
+        strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+        legend.key = element_rect(fill = "white"),
+        legend.position = "none") 
 
 ggsave(file.path(supplements_text_figs, "figureS3.tiff"), doy_east_west, width = 3.5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+
+system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
+

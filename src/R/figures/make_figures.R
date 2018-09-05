@@ -1,0 +1,12 @@
+
+source("src/R/figures/figure_prep.R")
+source("src/R/figures/figure1.R")
+source("src/R/figures/figure2.R")
+source("src/R/figures/figure3.R")
+source("src/R/figures/figure4.R")
+source("src/R/figures/figure5.R")
+source("src/R/figures/figureS1.R")
+source("src/R/figures/figureS2.R")
+source("src/R/figures/figureS3.R")
+source("src/R/figures/figureS4.R")
+source("src/R/figures/figureS5.R")
