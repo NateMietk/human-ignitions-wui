@@ -64,4 +64,4 @@ legend <- g_legend(p1)
 ggsave(file =  file.path(supplements_text_figs, "figureS3_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
 
-system(paste0("aws s3 cp figs s3://earthlab-natem/human-ignitions-wui/figs --recursive"))
+system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
