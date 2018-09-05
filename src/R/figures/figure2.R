@@ -177,99 +177,14 @@ p3l <- p3 + theme(legend.position="none")
 grid.arrange(p1l, p2l, p3l, ncol = 1)
 g <- arrangeGrob(p1l, p2l, p3l, ncol = 1) #generates g
 
-ggsave(file = file.path(main_text_figs, "figure2_wui_50k.tiff"), g, width = 5, height = 9, dpi=1200) #saves g
+ggsave(file = file.path(main_text_figs, "figure2.tiff"), g, width = 5, height = 9, dpi=1200) #saves g
 
 legend <- g_legend(p1) 
-ggsave(file = file.path(main_text_figs, "figure2a_wui_50k_legend.tiff"), 
+ggsave(file = file.path(main_text_figs, "figure2a_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
 legend <- g_legend(p2) 
-ggsave(file = file.path(main_text_figs, "figure2b_wui_50k_legend.tiff"), 
+ggsave(file = file.path(main_text_figs, "figure2b_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
 legend <- g_legend(p3) 
-ggsave(file = file.path(main_text_figs, "figure2c_wui_50k_legend.tiff"), 
-       legend, width = 2, height = 4.5, dpi=1200) #saves g
-
-
-######
-p1 <- conus_ff %>%
-  filter(class_coarse %in% c("VLD", 'Wildlands')) %>%
-  filter(n_den >= 1) %>%
-  mutate(buckets = bucket(n_den, 10)) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray99", size = .50)+
-  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
-  coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
-  scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
-  theme_nothing(legend = TRUE) +
-  ggtitle('(A) Fire frequency') +
-  theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background = element_blank(),
-        strip.text.x = element_blank(),
-        strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white")) +
-  facet_grid(~ class_coarse)
-
-p2 <- conus_burn_area %>%
-  na.omit() %>%
-  filter(class_coarse %in% c("VLD", 'Wildlands')) %>%
-  transform(pct_class = factor(pct_class, levels=c("< 1", "1 - 10", "10 - 20", 
-                                                   "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
-  transform(frsz_cl = factor(frsz_cl, levels=c("0-4", "4-100", "100-400", "400-1000", ">1000"))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
-               color='black', fill = "gray99", size = .50) +
-  geom_point(aes(x = long, y = lat, colour = factor(pct_class), size = frsz_cl), stroke = 0) +
-  coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
-  scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
-  theme_nothing(legend = TRUE) +
-  ggtitle('(B) Percent class burned')+
-  theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background = element_blank(),
-        strip.text.x = element_blank(),
-        strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white")) +
-  facet_grid(~ class_coarse)
-
-p3 <- conus_bu %>%
-  na.omit() %>%
-  filter(class_coarse %in% c("VLD", 'Wildlands')) %>%
-  filter(n_den >= 1) %>%
-  mutate(buckets = bucket(n_den, 10)) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("0 - 25", "25 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
-               color='black', fill = "gray99", size = .50) +
-  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
-  coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
-  scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
-  theme_nothing(legend = TRUE) +
-  ggtitle('(C) Homes threatened') +
-  theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background = element_blank(),
-        strip.text.x = element_blank(),
-        strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white")) +
-  facet_grid(~ class_coarse)
-
-p1l <- p1 + theme(legend.position="none")
-p2l <- p2 + theme(legend.position="none")
-p3l <- p3 + theme(legend.position="none")
-
-grid.arrange(p1l, p2l, p3l, ncol = 1)
-g <- arrangeGrob(p1l, p2l, p3l, ncol = 1) #generates g
-
-ggsave(file = file.path(supplements_text_figs, "figureS2_vldwild_50k.tiff"), g, width = 12, height = 9, dpi=1200) #saves g
-
-legend <- g_legend(p1) 
-ggsave(file = file.path(supplements_text_figs, "figureS2a_vldwild_50k_legend.tiff"), 
-       legend, width = 2, height = 4.5, dpi=1200) #saves g
-legend <- g_legend(p2) 
-ggsave(file = file.path(supplements_text_figs, "figureS2b_vldwild_50k_legend.tiff"), 
-       legend, width = 2, height = 4.5, dpi=1200) #saves g
-legend <- g_legend(p3) 
-ggsave(file = file.path(supplements_text_figs, "figureS2c_vldwild_50k_legend.tiff"), 
+ggsave(file = file.path(main_text_figs, "figure2c_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g

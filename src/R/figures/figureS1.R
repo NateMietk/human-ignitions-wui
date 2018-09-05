@@ -182,14 +182,14 @@ p3l <- p3 + theme(legend.position="none")
 grid.arrange(p1l, p2l, p3l, ncol = 1)
 g <- arrangeGrob(p1l, p2l, p3l, ncol = 1) #generates g
 
-ggsave(file = file.path(supplements_text_figs, "figureS2_25k.tiff"), g, width = 12, height = 9, dpi=1200) #saves g
+ggsave(file = file.path(supplements_text_figs, "figureS1.tiff"), g, width = 12, height = 9, dpi=1200) #saves g
 
 legend <- g_legend(p1) 
-ggsave(file = file.path(supplements_text_figs, "figureS2a_25k_legend.tiff"), 
+ggsave(file = file.path(supplements_text_figs, "figureS1a_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
 legend <- g_legend(p2) 
-ggsave(file = file.path(supplements_text_figs, "figureS2b_25k_legend.tiff"), 
+ggsave(file = file.path(supplements_text_figs, "figureS1b_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
 legend <- g_legend(p3) 
-ggsave(file = file.path(supplements_text_figs, "figureS2c_25k_legend.tiff"), 
+ggsave(file = file.path(supplements_text_figs, "figureS1c_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
