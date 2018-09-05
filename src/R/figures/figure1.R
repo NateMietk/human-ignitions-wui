@@ -6,10 +6,6 @@ bu_complete_long_no_zero <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
     TRUE ~ NA_character_)) %>% filter(buffer_class == 'Fire perimeter') %>% 
   mutate(fpa_id = as.factor(fpa_id))
 
-sen <- function(..., weights = NULL) {
-  mblm::mblm(...)
-}
-
 # Time series of burned area per ignition
 p1 <- bu_complete_long_no_zero %>%
   left_join(., fpa_wui, by = c('fpa_id', 'discovery_year', 'ignition', 'class')) %>%
@@ -80,6 +76,5 @@ p3 <- wui_209_df %>%
 grid.arrange(p1, p2, p3, nrow = 1)
 g <- arrangeGrob(p1, p2, p3, nrow = 1) #generates g
 
-ggsave("figs/figure1.eps", g, width = 10, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
-ggsave("figs/figure1.tiff", g, width = 10, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave(file.path(main_text_figs, "figure1.tiff"), g, width = 14, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
 

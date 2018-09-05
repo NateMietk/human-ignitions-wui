@@ -530,6 +530,11 @@ theme_nothing <- function(base_size = 12, legend = FALSE){
   }
 }
 
+
+sen <- function(..., weights = NULL) {
+  mblm::mblm(...)
+}
+
 classify_raw_fire_size <- function(x) {
   # break out fires into small, med, large
   # input:

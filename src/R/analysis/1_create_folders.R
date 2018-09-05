@@ -1,6 +1,6 @@
 # Libraries ---------------------------------------------------------------
 x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom', 'nabor', 'velox', 'Hmisc', 'pbapply',
-       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 'raster')
+       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 'raster', 'scales')
 lapply(x, library, character.only = TRUE, verbose = FALSE)
 
 source("src/functions/helper_functions.R")
@@ -85,6 +85,10 @@ ics_spatial <- file.path(ics_out, "spatial")
 rmarkdown_files <-'src/R/rmarkdown_files'
 fishnet_path <- file.path(bounds_crt, "fishnet")
 
+figs_dir <- 'figs'
+main_text_figs <- file.path(figs_dir, 'main_text')
+supplements_text_figs <- file.path(figs_dir, 'supplements')
+
 # for pushing and pulling to s3 using the system function
 s3_base <- 's3://earthlab-natem/human-ignitions-wui'
 s3_rmarkdown <- 's3://earthlab-natem/human-ignitions-wui/src/R/rmarkdown_files'
@@ -101,6 +105,6 @@ var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa
                 zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds, 
                 dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds,
                 dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds,
-                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds,
+                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds,figs_dir, main_text_figs, supplements_text_figs,
                 climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))

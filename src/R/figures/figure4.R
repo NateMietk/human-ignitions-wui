@@ -153,8 +153,7 @@ firefreq_ne <- fishdis_reg %>%
 
 grid.arrange(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 g <- arrangeGrob(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
-ggsave("figs/distance_firecount_region_ignition_wmean.tiff", g, width = 6, height = 8, dpi=1200)
-ggsave("figs/distance_firecount_region_ignition_wmean.pdf", g, width = 6, height = 8, dpi=1200)
+ggsave(file.path(main_text_figs, "FigureS4_distance_firecount_wmean.tiff"), g, width = 6, height = 8, dpi=1200)
 
 # Distance versus fire frequency WITHOUT MEAN LINES -------------------------------
 firefreq_p <- fishdis_reg %>%
@@ -259,8 +258,7 @@ firefreq_ne <- fishdis_reg %>%
 
 grid.arrange(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 g <- arrangeGrob(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
-ggsave("figs/distance_firecount_region_ignition.tiff", g, width = 6, height = 8, dpi=1200)
-ggsave("figs/distance_firecount_region_ignition.pdf", g, width = 6, height = 8, dpi=1200)
+ggsave(file.path(main_text_figs, "FigureS4_distance_firecount.tiff"), g, width = 6, height = 8, dpi=1200)
 
 # Distance versus fire season length WITH MEAN LINES -------------------------------
 firefreq_p <- fishdis_reg %>%
@@ -400,9 +398,7 @@ firefreq_ne <- fishdis_reg %>%
 
 grid.arrange(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 g <- arrangeGrob(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
-ggsave("figs/distance_fseason_lngth_region_ignition_wmean.tiff", g, width = 6, height = 8, dpi=1200)
-ggsave("figs/distance_fseason_lngth_region_ignition_wmean.pdf", g, width = 6, height = 8, dpi=1200)
-
+ggsave(file.path(supplements_text_figs, "FigureS4_distance_fseason_wmean.tiff"), g, width = 6, height = 8, dpi=1200)
 
 # Distance versus fire season length WITHOUT MEAN LINES ---------------------------------------
 
@@ -511,8 +507,7 @@ fslength_ne <- fishdis_reg %>%
 
 grid.arrange(fslength_west, fslength_cent, fslength_se, fslength_ne, ncol =2)
 g <- arrangeGrob(fslength_west, fslength_cent, fslength_se, fslength_ne, ncol =2)
-ggsave("figs/distance_fseason_ignition_decade_region.pdf", g, width = 6, height = 8, dpi=1200)
-ggsave("figs/distance_fseason_ignition_decade_region.tiff", g, width = 6, height = 8, dpi=1200)
+ggsave(file.path(supplements_text_figs, "FigureS4_distance_fseason.tiff"), g, width = 6, height = 8, dpi=1200)
 
 # Median home density versus fire Frequency -------------------------------
 firefreq_p <- fishdis_reg %>%
@@ -584,9 +579,7 @@ firefreq_ne <- fishdis_reg %>%
 
 grid.arrange(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 g <- arrangeGrob(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
-ggsave("figs/homedensity_firecount_region_ignition.tiff", g, width = 6, height = 8, dpi=1200)
-ggsave("figs/homedensity_firecount_region_ignition.pdf", g, width = 6, height = 8, dpi=1200)
-
+ggsave(file.path(supplements_text_figs, "FigureS4_homedensity_firecount.tiff"), g, width = 6, height = 8, dpi=1200)
 
 # Median home density versus fire season length -------------------------------
 firefreq_p <- fishdis_reg %>%
@@ -658,8 +651,7 @@ firefreq_ne <- fishdis_reg %>%
 
 grid.arrange(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 g <- arrangeGrob(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
-ggsave("figs/homedensity_fseason_lngth_region_ignition.tiff", g, width = 6, height = 8, dpi=1200)
-ggsave("figs/homedensity_fseason_lngth_region_ignition.pdf", g, width = 6, height = 8, dpi=1200)
+ggsave(file.path(supplements_text_figs, "FigureS4_homedensity_fseason.tiff"), g, width = 6, height = 8, dpi=1200)
 
 
-
+system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))

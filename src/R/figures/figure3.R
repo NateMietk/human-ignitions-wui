@@ -4,7 +4,7 @@ shrt_doy <- as.data.frame(fpa_wui) %>%
   group_by(discovery_doy, ignition, class_coarse, region) %>%
   summarise(count = n())
 
-doy.east.west <- shrt_doy %>%
+doy_east_west <- shrt_doy %>%
   transform(class_coarse = factor(class_coarse, levels=c('WUI', 'Wildlands'))) %>%
   ggplot() +
   geom_bar(aes(x =  discovery_doy, y = count,
@@ -21,9 +21,7 @@ doy.east.west <- shrt_doy %>%
         legend.position = "none") +
   facet_wrap(region ~ class_coarse, ncol = 2)
 
-ggsave("figs/figure3.eps", doy.east.west, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
-ggsave("figs/figure3.tiff", doy.east.west, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
-
+ggsave(file.path(main_text_figs, "figure3.tiff"), doy_east_west, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
 
 shrt_doy <- as.data.frame(fpa_wui) %>%
   filter((class %in% c("VLD"))) %>%
@@ -31,7 +29,7 @@ shrt_doy <- as.data.frame(fpa_wui) %>%
   group_by(discovery_doy, ignition, class, region) %>%
   summarise(count = n())
 
-doy.east.west <- shrt_doy %>%
+doy_east_west <- shrt_doy %>%
   transform(class = factor(class, levels=c("VLD"))) %>%
   ggplot() +
   geom_bar(aes(x =  discovery_doy, y = count,
@@ -48,6 +46,4 @@ doy.east.west <- shrt_doy %>%
         legend.position = "none") +
   facet_wrap(region ~ class, ncol = 1)
 
-
-ggsave("figs/figureS3.eps", doy.east.west, width = 3.5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
-ggsave("figs/figureS3.tiff", doy.east.west, width = 3.5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave(file.path(supplements_text_figs, "figureS3.tiff"), doy_east_west, width = 3.5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g

@@ -1,148 +1,133 @@
-# Aggregate by FishID ***Short fire frequency and burned area*****------------------------------
-library(ggthemes)
-library(ggmap)
 
-class_totals <- as.data.frame(fpa_wui) %>%
-  filter(class != "Urban") %>%
-  group_by(fishid25k, class) %>%
-  summarize(tot_fire = n()) %>%
+maxseasons <- as.data.frame(fpa_wui) %>%
+  group_by(fishid25k, ignition, class, seasons) %>%
+  summarise(fire_freq = n()) %>%
   ungroup() %>%
-  mutate(ptsz_n = classify_ptsize_breaks(tot_fire))
+  spread(seasons, fire_freq) %>%
+  group_by(fishid25k, class, ignition) %>%
+  mutate(Fall = ifelse(is.na(as.numeric(Fall)), 0, as.numeric(Fall)),
+         Spring = ifelse(is.na(as.numeric(Spring)), 0, as.numeric(Spring)),
+         Summer = ifelse(is.na(as.numeric(Summer)), 0, as.numeric(Summer)),
+         Winter = ifelse(is.na(as.numeric(Winter)), 0, as.numeric(Winter)),
+         fire_freq = Fall + Spring + Summer + Winter) %>%
+  do(get_month_max(.)) 
 
-bae_totals <- as.data.frame(fpa_bae) %>%
-  filter(class != "Urban") %>%
-  group_by(fishid25k, class) %>%
-  summarise(fire_freq = n(),
-            tot_burn_area = sum(fire_size_km2)) %>%
-  mutate(ptsz_n = classify_ptsize_breaks(fire_freq))
-
-fire_density <- as.data.frame(fpa_wui) %>%
-  filter(class != "Urban") %>%
-  group_by(fishid25k, ignition, class) %>%
-  summarize(n_fire = n()) %>%
+maxseasons_full <- as.data.frame(fpa_wui) %>%
+  group_by(fishid25k, ignition, class, seasons) %>%
+  summarise(fire_freq = n()) %>%
   ungroup() %>%
-  spread(ignition, n_fire) %>%
-  left_join(., class_totals, by = c("class", "fishid25k")) %>%
-  mutate(n_Human = ifelse(is.na(Human), 0, Human),
-         n_Lightning = ifelse(is.na(Lightning), 0, Lightning),
-         n_human_den = (tot_fire-n_Human),
-         n_light_den = (tot_fire-n_Lightning),
-         n_den = (1-(n_human_den/(n_human_den+n_light_den)))*100)
+  spread(seasons, fire_freq) %>%
+  group_by(fishid25k, class, ignition) %>%
+  mutate(Fall = ifelse(is.na(as.numeric(Fall)), 0, as.numeric(Fall)),
+         Spring = ifelse(is.na(as.numeric(Spring)), 0, as.numeric(Spring)),
+         Summer = ifelse(is.na(as.numeric(Summer)), 0, as.numeric(Summer)),
+         Winter = ifelse(is.na(as.numeric(Winter)), 0, as.numeric(Winter)),
+         fire_freq = Fall + Spring + Summer + Winter) %>%
+  left_join(., maxseasons, by = c("fishid25k", "class", "ignition")) %>%
+  mutate(ptsz_n = classify_ptsize_breaks(fire_freq),
+         max_season = as.factor(max_season))
 
-wui_burned_area <- as.data.frame(fpa_bae) %>%
-  filter(class != "Urban") %>%
-  group_by(fishid25k, ignition, class) %>%
-  summarize(wui_area = sum(wui_area_km2)) %>%
-  left_join(., wvw_area_fish25k, by = "fishid25k") %>%
-  left_join(., fpa_wui_class_cause_fishnet25k, by = c("fishid25k", "ignition", "class")) %>%
-  mutate(pct_burn = ifelse(class == "WUI", (wui_area/WUI)*100,
-                           ifelse(class == "VLD", (wui_area/VLD)*100,
-                                  ifelse(class == "Wildlands", (wui_area/Wildlands)*100, 0))),
-         pct_burn = ifelse(pct_burn >100, 100, pct_burn),
-         pct_class = classify_pctbae(pct_burn),
-         ptsz_n = classify_ptsize_breaks(fire_freq)) %>%
-  dplyr::select(fishid25k, ignition, class, wui_area, pct_burn, ptsz_n, pct_class, fire_freq)
-
-burn_area_density <- as.data.frame(fpa_bae) %>%
-  group_by(fishid25k, ignition, class) %>%
-  summarize(burn_area = sum(fire_size_km2)) %>%
-  left_join(., bae_totals, by = c("fishid25k", "class")) %>%
-  spread(ignition, burn_area) %>%
-  mutate(s_Human = ifelse(is.na(Human), 0, Human),
-         s_Lightning = ifelse(is.na(Lightning), 0, Lightning),
-         tot_fire = (s_Human + s_Lightning),
-         s_den = ifelse(is.na((1-(s_Lightning/tot_fire))*100), 0, (1-(s_Lightning/tot_fire))*100)) 
-
-conus_ff <- left_join(fs25_df, fire_density, by = "fishid25k") %>%
-  na.omit()
-
-conus_wui_burned <- left_join(fs25_df, wui_burned_area, by = "fishid25k") %>%
+conus_maxseason <- left_join(fs25_df, maxseasons_full, by = "fishid25k") %>%
   mutate(long = coords.x1,
          lat = coords.x2) %>%
-  dplyr::select(-coords.x1, -coords.x2) %>%
-  na.omit()
+  dplyr::select(-coords.x1, -coords.x2)
 
-conus_burn_area <- left_join(fs25_df, burn_area_density, by = "fishid25k")  %>%
-  mutate(long = coords.x1,
-         lat = coords.x2) %>%
-  dplyr::select(-coords.x1, -coords.x2) %>%
-  na.omit()
-
-
-p1 <- conus_ff %>%
-  filter(class != "WUI") %>%
-  filter(n_den >= 1) %>%
-  mutate(buckets = bucket(n_den, 10)) %>%
+p1 <- conus_maxseason %>%
+  filter(!(is.na(ptsz_n))) %>%
+  filter(class %in% c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands")) %>%
+  transform(max_season = factor(max_season, levels=c("Winter", "Spring", "Summer", "Fall"))) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray99", size = .25)+
-  geom_point(aes(x = coords.x1, y = coords.x2,
-                 colour = factor(buckets), size = ptsz_n), stroke = 0) +
-  coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
-  #scale_colour_manual(values = getPalette_ff(colourCount_ff), name="Percent") +
-  scale_size_discrete(range = c(.2, 0.9), name="Fire size (km2)") +
-  theme_nothing(legend = FALSE) +
-  #ggtitle('(A) Fire frequency') +
+  transform(class = factor(class, levels=c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = long, y = lat)) +
+  geom_polygon(data = st_df, aes(group = group), color='black', fill = "gray99", size = .25)+
+  geom_point(aes(colour = factor(max_season), size = ptsz_n), stroke = 0) +
+  scale_color_manual(values = c("Winter" = "#1F77B4", 
+                                "Spring" = "#2CA02C", 
+                                "Summer" =  "#D62728", 
+                                "Fall" = "#FF7F0E"), 
+                     name="Max Season") + 
+  scale_size_discrete(range = c(0.2, 1)) +
+  coord_equal() + 
+  theme_nothing(legend = TRUE) +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
         strip.text.x = element_blank(),
         strip.text.y = element_blank(),
         legend.key = element_rect(fill = "white")) +
-  facet_wrap(~ class, ncol = 1)
+  facet_grid(class ~ ignition, switch ="y")
 
-p2 <- conus_wui_burned %>%
-  filter(ignition == "Human") %>%
-  filter(class != "WUI") %>%
-  transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
-  transform(pct_class = factor(pct_class, levels=c("< 1", "1 - 10", "10 - 20", 
-                                                   "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
+p1l <- p1 + theme(legend.position="none")
+
+ggsave(file =  file.path(supplements_text_figs, "figureS3a.tiff"), p1l, width = 7, height = 8, dpi=1200) #saves g
+
+legend <- g_legend(p1) 
+ggsave(file =  file.path(supplements_text_figs, "figureS3a_legend.tiff"), 
+       legend, width = 2, height = 4.5, dpi=1200) #saves g
+
+# 50k
+maxseasons <- as.data.frame(fpa_wui) %>%
+  group_by(fishid50k, ignition, class, seasons) %>%
+  summarise(fire_freq = n()) %>%
+  ungroup() %>%
+  spread(seasons, fire_freq) %>%
+  group_by(fishid50k, class, ignition) %>%
+  mutate(Fall = ifelse(is.na(as.numeric(Fall)), 0, as.numeric(Fall)),
+         Spring = ifelse(is.na(as.numeric(Spring)), 0, as.numeric(Spring)),
+         Summer = ifelse(is.na(as.numeric(Summer)), 0, as.numeric(Summer)),
+         Winter = ifelse(is.na(as.numeric(Winter)), 0, as.numeric(Winter)),
+         fire_freq = Fall + Spring + Summer + Winter) %>%
+  do(get_month_max(.)) 
+
+maxseasons_full <- as.data.frame(fpa_wui) %>%
+  group_by(fishid50k, ignition, class, seasons) %>%
+  summarise(fire_freq = n()) %>%
+  ungroup() %>%
+  spread(seasons, fire_freq) %>%
+  group_by(fishid50k, class, ignition) %>%
+  mutate(Fall = ifelse(is.na(as.numeric(Fall)), 0, as.numeric(Fall)),
+         Spring = ifelse(is.na(as.numeric(Spring)), 0, as.numeric(Spring)),
+         Summer = ifelse(is.na(as.numeric(Summer)), 0, as.numeric(Summer)),
+         Winter = ifelse(is.na(as.numeric(Winter)), 0, as.numeric(Winter)),
+         fire_freq = Fall + Spring + Summer + Winter) %>%
+  left_join(., maxseasons, by = c("fishid50k", "class", "ignition")) %>%
+  mutate(ptsz_n = classify_ptsize_breaks(fire_freq),
+         max_season = as.factor(max_season))
+
+conus_maxseason <- left_join(fs25_df, maxseasons_full, by = "fishid50k") %>%
+  mutate(long = coords.x1,
+         lat = coords.x2) %>%
+  dplyr::select(-coords.x1, -coords.x2)
+
+p1 <- conus_maxseason %>%
+  filter(!(is.na(ptsz_n))) %>%
+  filter(class %in% c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands")) %>%
+  transform(max_season = factor(max_season, levels=c("Winter", "Spring", "Summer", "Fall"))) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
-               color='black', fill = "gray99", size = .25) +
-  geom_point(aes(x = long, y = lat, colour = factor(pct_class), size = ptsz_n), stroke = 0) +
-  coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
-  #scale_colour_manual(values = ManReds, name = "Percent") +  
-  scale_size_discrete(range = c(0.2, 0.9), name = "# Fires") +
-  theme_nothing(legend = FALSE) +
-  #ggtitle('(A) Burned arTRUE+
+  transform(class = factor(class, levels=c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands"))) %>%
+  ggplot(aes(x = long, y = lat)) +
+  geom_polygon(data = st_df, aes(group = group), color='black', fill = "gray99", size = .25)+
+  geom_point(aes(colour = factor(max_season), size = ptsz_n), stroke = 0) +
+  scale_color_manual(values = c("Winter" = "#1F77B4", 
+                                "Spring" = "#2CA02C", 
+                                "Summer" =  "#D62728", 
+                                "Fall" = "#FF7F0E"), 
+                     name="Max Season") + 
+  scale_size_discrete(range = c(0.2, 0.8)) +
+  coord_equal() + 
+  theme_nothing(legend = TRUE) +
   theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background = element_blank(),
-        # strip.text.x = element_blank(),
-        # strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white"))  +
-  facet_wrap(~ class, ncol = 1)
+        strip.background=element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+        legend.key = element_rect(fill = "white")) +
+  facet_grid(class ~ ignition, switch ="y")
 
-p3 <- conus_wui_burned %>%
-  filter(ignition == "Lightning") %>%
-  filter(class != "WUI") %>%
-  transform(class = factor(class, levels=c("WUI", "VLD", "Wildlands"))) %>%
-  transform(pct_class = factor(pct_class, levels=c("< 1", "1 - 10", "10 - 20", 
-                                                   "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
-               color='black', fill = "gray99", size = .25) +
-  geom_point(aes(x = long, y = lat, colour = factor(pct_class), size = ptsz_n), stroke = 0) +
-  coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
-  #scale_colour_manual(values = ManReds, name = "Percent") +  
-  scale_size_discrete(range = c(0.2, 0.9), name = "# Fires") +
-  theme_nothing(legend = FALSE) +
-  #ggtitle('(A) Burned arTRUE+
-  theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background = element_blank(),
-        # strip.text.x = element_blank(),
-        # strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white"))  +
-  facet_wrap(~ class, ncol = 1)
+p1l <- p1 + theme(legend.position="none")
 
-grid.arrange(p1, p2,p3, nrow = 1)
-g <- arrangeGrob(p1, p2, p3, nrow = 1) #generates g
+ggsave(file =  file.path(supplements_text_figs, "figureS2b.tiff"), p1l, width = 7, height = 8, dpi=1200) #saves g
 
-ggsave(file = "figs/figs_main/drafts/figureS2.eps", g, width = 12, height = 6, dpi=1200) #saves g
-ggsave(file = "figs/figs_main/drafts/figureS2.tiff", g, width = 12, height = 6, dpi=1200) #saves g
+legend <- g_legend(p1) 
+ggsave(file =  file.path(supplements_text_figs, "figureS2b_legend.tiff"), 
+       legend, width = 2, height = 4.5, dpi=1200) #saves g
 
+system(paste0("aws s3 cp figs s3://earthlab-natem/human-ignitions-wui/figs --recursive"))

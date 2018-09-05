@@ -30,7 +30,6 @@ p1 <- df1 %>%
   theme_pub() +
   facet_wrap(~class)
 
-ggsave("figs/figure5.eps", p1, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
-ggsave("figs/figure5.tiff", p1, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave(file.path(main_text_figs, "figure5.tiff"), p1, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
 
 system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
