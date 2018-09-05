@@ -31,6 +31,12 @@ class_totals <- as.data.frame(fpa_wui) %>%
   mutate(ptsz_n = classify_ptsize_breaks(tot_fire),
          ptsz_n = ifelse(is.na(ptsz_n) | is.nan(ptsz_n), 0, ptsz_n)) 
 
+wui_fish50k_sum <- ungroup(read_rds(file.path(wui_out, "wui_fish50k_sum.rds"))) %>%
+  filter(year == 2010) %>%
+  mutate(             class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
+                                                        ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))))) %>%
+  dplyr::select(-year, -class)
+
 fire_density <- as.data.frame(fpa_wui) %>%
   group_by(fishid50k, ignition, class_coarse) %>%
   summarise(n_fire = n()) %>%
@@ -83,7 +89,7 @@ burn_area_density <- as.data.frame(fpa_bae_wui) %>%
          s_Lightning = ifelse(is.na(Lightning), 0, Lightning),
          tot_fire = (s_Human + s_Lightning),
          s_den = ifelse(is.na((1-(s_Lightning/tot_fire))*100), 0, (1-(s_Lightning/tot_fire))*100),
-         pct_class_ba = tot_fire/total_fishid50k_area*100,
+         pct_class_ba = s_Human/total_fishid50k_area*100,
          pct_class = classify_pctbae(pct_class_ba)) %>%
   na.omit(frsz_cl)
 
@@ -120,7 +126,7 @@ p1 <- conus_ff %>%
   scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
   scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
   theme_nothing(legend = TRUE) +
-  ggtitle('(A) Fire frequency') +
+  # ggtitle('(A) Fire frequency') +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
         strip.text.x = element_text(size = 12, face = "bold"),
@@ -142,7 +148,7 @@ p2 <- conus_burn_area %>%
   scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
   scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
   theme_nothing(legend = TRUE) +
-  ggtitle('(B) Percent class burned')+
+  # ggtitle('(B) Percent class burned')+
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
         strip.text.x = element_blank(),
@@ -163,7 +169,7 @@ p3 <- conus_bu %>%
   scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
   scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
   theme_nothing(legend = TRUE) +
-  ggtitle('(C) Homes threatened') +
+  # ggtitle('(C) Homes threatened') +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
         strip.text.x = element_text(size = 12, face = "bold"),
@@ -188,3 +194,5 @@ ggsave(file = file.path(main_text_figs, "figure2b_legend.tiff"),
 legend <- g_legend(p3) 
 ggsave(file = file.path(main_text_figs, "figure2c_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
+
+system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))

@@ -18,7 +18,7 @@ fishdis_reg <- as.data.frame(distance_rds) %>%
 firefreq_p <- fishdis_reg %>%
   ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), fullrange = TRUE, size = 1.5) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
+  scale_color_manual(values = c("#D62728","#fc9272", '#1F77B4','#a6bddb')) +
   xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
   expand_limits(x = 0, y = 0) +
   theme_pub()  +
@@ -29,8 +29,8 @@ pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
   tbl_df %>%
   dplyr::select(colour, y, x, PANEL) %>%
   spread(colour, y) %>%
-  mutate(line_diff_1 = abs(`#fcae91` - `#bdd7e7`),
-         line_diff_2 = abs(`#fb6a4a` - `#6baed6`))
+  mutate(line_diff_1 = abs(`#D62728` - `#1F77B4`),
+         line_diff_2 = abs(`#fc9272` - `#a6bddb`))
 
 min_diffs <- pred_diffs %>%
   group_by(PANEL) %>%
@@ -65,25 +65,25 @@ regmean <- fishdis_reg %>%
   group_by(regions, ten_year, ignition) %>%
   summarise(fcnt_mean = mean(f_cnt, na.rm = TRUE)) %>%
   spread(ignition, fcnt_mean)
-write_csv(regmean, file.path(supplements_text_figs, 'figure5_distance_fseason_means.csv'))
+write_csv(regmean, file.path(main_text_figs, 'figure5_distance_fseason_means.csv'))
 
 # check to see where the min. diffs fall in plot
 firefreq_cent <- fishdis_reg %>%
   filter(regions ==  "Central") %>%
   ggplot(aes(x = (median_distance), y = (f_cnt), group = inter, color = inter )) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
+  scale_color_manual(values = c("#D62728","#fc9272", '#1F77B4','#a6bddb')) +
   xlab("") + ylab("") +
   # ggtitle("Central") +
   theme_pub() +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "Central" & ten_year == '1994-2004'),
-             linetype = "dashed", color  = "#fcae91", size = 0.75) +
+             linetype = "dashed", color  = "#D62728", size = 0.75) +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "Central" & ten_year == '2005-2015'),
-             linetype = "dashed", color  = "#fb6a4a", size = 0.75) +
+             linetype = "dashed", color  = "#fc9272", size = 0.75) +
   geom_hline(aes(yintercept = Lightning), data = subset(regmean, regions == "Central" & ten_year == '1994-2004'),
-             linetype = "dashed", color  = "#bdd7e7", size = 0.75) +
+             linetype = "dashed", color  = "#1F77B4", size = 0.75) +
   geom_hline(aes(yintercept = Lightning), data = subset(regmean, regions == "Central" & ten_year == '2005-2015'),
-             linetype = "dashed", color  = "#6baed6", size = 0.75) +
+             linetype = "dashed", color  = "#a6bddb", size = 0.75) +
   scale_y_continuous(expand = c(0, 0), limits = c(0,15), oob = rescale_none) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 8, face = "bold"),
@@ -93,18 +93,18 @@ firefreq_west <- fishdis_reg %>%
   filter(regions ==  "West") %>%
   ggplot(aes(x = (median_distance), y = (f_cnt), group = inter, color = inter )) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
+  scale_color_manual(values = c("#D62728","#fc9272", '#1F77B4','#a6bddb')) +
   xlab("") + ylab("") +
   # ggtitle("West") +
   theme_pub()  +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "West" & ten_year == '1994-2004'),
-             linetype = "dashed", color  = "#fcae91", size = 0.75) +
+             linetype = "dashed", color  = "#D62728", size = 0.75) +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "West" & ten_year == '2005-2015'),
-             linetype = "dashed", color  = "#fb6a4a", size = 0.75) +
+             linetype = "dashed", color  = "#fc9272", size = 0.75) +
   geom_hline(aes(yintercept = Lightning), data = subset(regmean, regions == "West" & ten_year == '1994-2004'),
-             linetype = "dashed", color  = "#bdd7e7", size = 0.75) +
+             linetype = "dashed", color  = "#1F77B4", size = 0.75) +
   geom_hline(aes(yintercept = Lightning), data = subset(regmean, regions == "West" & ten_year == '2005-2015'),
-             linetype = "dashed", color  = "#6baed6", size = 0.75) +
+             linetype = "dashed", color  = "#a6bddb", size = 0.75) +
   scale_y_continuous(expand = c(0, 0), limits = c(0,15), oob = rescale_none) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 8, face = "bold"),
@@ -114,18 +114,18 @@ firefreq_se <- fishdis_reg %>%
   filter(regions ==  "South East") %>%
   ggplot(aes(x = (median_distance), y = (f_cnt), group = inter, color = inter )) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
+  scale_color_manual(values = c("#D62728","#fc9272", '#1F77B4','#a6bddb')) +
   xlab("") + ylab("") +
   # ggtitle("South East") +
   theme_pub()  +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "South East" & ten_year == '1994-2004'),
-             linetype = "dashed", color  = "#fcae91", size = 0.75) +
+             linetype = "dashed", color  = "#D62728", size = 0.75) +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "South East" & ten_year == '2005-2015'),
-             linetype = "dashed", color  = "#fb6a4a", size = 0.75) +
+             linetype = "dashed", color  = "#fc9272", size = 0.75) +
   geom_hline(aes(yintercept = Lightning), data = subset(regmean, regions == "South East" & ten_year == '1994-2004'),
-             linetype = "dashed", color  = "#bdd7e7", size = 0.75) +
+             linetype = "dashed", color  = "#1F77B4", size = 0.75) +
   geom_hline(aes(yintercept = Lightning), data = subset(regmean, regions == "South East" & ten_year == '2005-2015'),
-             linetype = "dashed", color  = "#6baed6", size = 0.75) +
+             linetype = "dashed", color  = "#a6bddb", size = 0.75) +
   scale_y_continuous(expand = c(0, 0), limits = c(0,30), oob = rescale_none) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 8, face = "bold"),
@@ -135,18 +135,18 @@ firefreq_ne <- fishdis_reg %>%
   filter(regions ==  "North East") %>%
   ggplot(aes(x = (median_distance), y = (f_cnt), group = inter, color = inter )) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
+  scale_color_manual(values = c("#D62728","#fc9272", '#1F77B4','#a6bddb')) +
   xlab("") + ylab("") +
   # ggtitle("North East") +
   theme_pub()  +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "North East" & ten_year == '1994-2004'),
-             linetype = "dashed", color  = "#fcae91", size = 0.75) +
+             linetype = "dashed", color  = "#D62728", size = 0.75) +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "North East" & ten_year == '2005-2015'),
-             linetype = "dashed", color  = "#fb6a4a", size = 0.75) +
+             linetype = "dashed", color  = "#fc9272", size = 0.75) +
   geom_hline(aes(yintercept = Lightning), data = subset(regmean, regions == "North East" & ten_year == '1994-2004'),
-             linetype = "dashed", color  = "#bdd7e7", size = 0.75) +
+             linetype = "dashed", color  = "#1F77B4", size = 0.75) +
   geom_hline(aes(yintercept = Lightning), data = subset(regmean, regions == "North East" & ten_year == '2005-2015'),
-             linetype = "dashed", color  = "#6baed6", size = 0.75) +
+             linetype = "dashed", color  = "#a6bddb", size = 0.75) +
   scale_y_continuous(expand = c(0, 0), limits = c(0,15), oob = rescale_none) +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 8, face = "bold"),
@@ -162,7 +162,7 @@ firefreq_cent <- fishdis_reg %>%
   filter(regions ==  "Central") %>%
   ggplot(aes(x = (median_distance), y = (f_cnt), group = inter, color = inter )) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
+  scale_color_manual(values = c("#D62728","#fc9272", '#1F77B4','#a6bddb')) +
   xlab("") + ylab("") +
   # ggtitle("Central") +
   theme_pub()  +
@@ -174,7 +174,7 @@ firefreq_west <- fishdis_reg %>%
   filter(regions ==  "West") %>%
   ggplot(aes(x = (median_distance), y = (f_cnt), group = inter, color = inter )) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
+  scale_color_manual(values = c("#D62728","#fc9272", '#1F77B4','#a6bddb')) +
   xlab("") + ylab("") +
   # ggtitle("West") +
   theme_pub()  +
@@ -186,7 +186,7 @@ firefreq_se <- fishdis_reg %>%
   filter(regions ==  "South East") %>%
   ggplot(aes(x = (median_distance), y = (f_cnt), group = inter, color = inter )) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
+  scale_color_manual(values = c("#D62728","#fc9272", '#1F77B4','#a6bddb')) +
   xlab("") + ylab("") +
   # ggtitle("South East") +
   theme_pub()  +
@@ -198,7 +198,7 @@ firefreq_ne <- fishdis_reg %>%
   filter(regions ==  "North East") %>%
   ggplot(aes(x = (median_distance), y = (f_cnt), group = inter, color = inter )) +
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
+  scale_color_manual(values = c("#D62728","#fc9272", '#1F77B4','#a6bddb')) + 
   xlab("") + ylab("") +
   # ggtitle("North East") +
   theme_pub()  +
@@ -209,4 +209,6 @@ firefreq_ne <- fishdis_reg %>%
 grid.arrange(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 g <- arrangeGrob(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 ggsave(file.path(main_text_figs, "figure5.tiff"), g, width = 6, height = 8, dpi=1200)
+
+system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
 

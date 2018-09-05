@@ -38,16 +38,16 @@ p1 <- conus_maxseason %>%
   transform(max_season = factor(max_season, levels=c("Winter", "Spring", "Summer", "Fall"))) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
   transform(class = factor(class, levels=c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands"))) %>%
-  ggplot(aes(x = long, y = lat)) +
-  geom_polygon(data = st_df, aes(group = group), color='black', fill = "gray99", size = .25)+
-  geom_point(aes(colour = factor(max_season), size = ptsz_n), stroke = 0) +
+  ggplot() +
+  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), color='black', fill = "gray99", size = .25) +
+  geom_point(aes(x = long, y = lat, colour = factor(max_season), size = ptsz_n), stroke = 0) +
+  coord_equal() + 
   scale_color_manual(values = c("Winter" = "#1F77B4", 
                                 "Spring" = "#2CA02C", 
                                 "Summer" =  "#D62728", 
                                 "Fall" = "#FF7F0E"), 
                      name="Max Season") + 
-  scale_size_discrete(range = c(0.2, 1)) +
-  coord_equal() + 
+  scale_size_discrete(range = c(0.2, 1.2)) +
   theme_nothing(legend = TRUE) +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),

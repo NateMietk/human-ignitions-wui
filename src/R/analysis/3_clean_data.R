@@ -270,12 +270,6 @@ if (!exists('wui_fish50k_sum')) {
     system(paste0("aws s3 sync ", prefix, " ", s3_base))
   }
   wui_fish50k_sum <- read_rds(file.path(wui_out, "wui_fish50k_sum.rds"))
-  
-  wui_fish50k_sum <- ungroup(wui_fish50k_sum) %>%
-    filter(year == 2010) %>%
-    mutate(class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
-                                             ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))))) %>%
-    dplyr::select(-year, -class)
 }
 
 if (!exists('wui_ecol3name_sum')) {
