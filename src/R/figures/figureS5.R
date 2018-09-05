@@ -74,7 +74,7 @@ firefreq_cent <- fishdis_reg %>%
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("Central") +
+  # ggtitle("Central") +
   theme_pub()  +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "Central" & ten_year == '1994-2004'),
              linetype = "dashed", color  = "#fcae91", size = 1) +
@@ -95,7 +95,7 @@ firefreq_west <- fishdis_reg %>%
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("West") +
+  # ggtitle("West") +
   theme_pub()  +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "West" & ten_year == '1994-2004'),
              linetype = "dashed", color  = "#fcae91", size = 1) +
@@ -116,7 +116,7 @@ firefreq_se <- fishdis_reg %>%
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("South East") +
+  # ggtitle("South East") +
   theme_pub()  +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "South East" & ten_year == '1994-2004'),
              linetype = "dashed", color  = "#fcae91", size = 1) +
@@ -136,7 +136,7 @@ firefreq_ne <- fishdis_reg %>%
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("North East") +
+  # ggtitle("North East") +
   theme_pub()  +
   geom_hline(aes(yintercept = Human), data = subset(regmean, regions == "North East" & ten_year == '1994-2004'),
              linetype = "dashed", color  = "#fcae91", size = 1) +
@@ -156,58 +156,6 @@ g <- arrangeGrob(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2
 ggsave(file.path(supplements_text_figs, "figureS5_distance_fseason_wmean.tiff"), g, width = 6, height = 8, dpi=1200)
 
 # Distance versus fire season length WITHOUT MEAN LINES ---------------------------------------
-
-firefreq_p <- fishdis_reg %>%
-  ggplot(aes(x = (median_distance), y = (fseason_lngth), group = inter, color = inter)) +
-  geom_smooth(method = 'glm', method.args = list(family = "poisson"), fullrange = TRUE, size = 1.5) +
-  scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
-  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
-  expand_limits(x = 0, y = 0) +
-  theme_pub()  +
-  facet_wrap( ~ regions, nrow = 1, scales = 'free_x') +
-  theme(legend.position = 'none')
-
-pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
-  tbl_df %>%
-  dplyr::select(colour, y, x, PANEL) %>%
-  spread(colour, y) %>%
-  mutate(line_diff_1 = abs(`#fcae91` - `#bdd7e7`),
-         line_diff_2 = abs(`#fb6a4a` - `#6baed6`))
-
-min_diffs <- pred_diffs %>%
-  group_by(PANEL) %>%
-  summarise(line_diff_1 = min(line_diff_1),
-            line_diff_2 = min(line_diff_2))
-
-xpoints_cnt_1 <- left_join(min_diffs, pred_diffs, by = 'line_diff_1') %>%
-  mutate(regions = sort(unique(fishdis_reg$regions)),
-         xpt_cnt = x) %>%
-  dplyr::select(regions, xpt_cnt) %>%
-  left_join(., fishdis_reg, by = c("regions")) %>%
-  group_by(regions) %>%
-  summarise(n = n(),
-            xpt_cnt_1 = round(first(xpt_cnt),0),
-            xpt_lab_1 = as.factor(xpt_cnt_1)) %>%
-  ungroup()
-
-xpoints_cnt_2 <- left_join(min_diffs, pred_diffs, by = 'line_diff_2') %>%
-  mutate(regions = sort(unique(fishdis_reg$regions)),
-         xpt_cnt = x) %>%
-  dplyr::select(regions, xpt_cnt) %>%
-  left_join(., fishdis_reg, by = c("regions")) %>%
-  group_by(regions) %>%
-  summarise(n = n(),
-            xpt_cnt_2 = round(first(xpt_cnt),0),
-            xpt_lab_2 = as.factor(xpt_cnt_2)) %>%
-  ungroup()
-
-xpoints_cnt <- left_join(xpoints_cnt_2, xpoints_cnt_1, by = c('regions', 'n')) 
-
-regmean <- fishdis_reg %>%
-  group_by(regions, ignition) %>%
-  summarise(fcnt_mean = mean(f_cnt)) %>%
-  spread(ignition, fcnt_mean)
-
 # check to see where the min. diffs fall in plot
 fslength_cent <- fishdis_reg %>%
   filter(regions ==  "Central") %>%
@@ -215,7 +163,7 @@ fslength_cent <- fishdis_reg %>%
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), fullrange = TRUE, size = 1.5) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("Central") +
+  # ggtitle("Central") +
   theme_pub()  +
   theme(axis.title = element_text(face = "bold"),
         strip.text = element_text(size = 8, face = "bold"),
@@ -227,7 +175,7 @@ fslength_west <- fishdis_reg %>%
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), fullrange = TRUE, size = 1.5) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("West") +
+  # ggtitle("West") +
   theme_pub()  +
   expand_limits(x = 0, y = 0) +
   theme(axis.title = element_text(face = "bold"),
@@ -240,7 +188,7 @@ fslength_se <- fishdis_reg %>%
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), fullrange = TRUE, size = 1.5) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("South East") +
+  # ggtitle("South East") +
   theme_pub()  +
   expand_limits(x = 0, y = 0) +
   theme(axis.title = element_text(face = "bold"),
@@ -253,7 +201,7 @@ fslength_ne <- fishdis_reg %>%
   geom_smooth(method = 'glm', method.args = list(family = "poisson"), fullrange = TRUE, size = 1.5) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("North East") +
+  # ggtitle("North East") +
   theme_pub()  +
   expand_limits(x = 0, y = 0) +
   theme(axis.title = element_text(face = "bold"),
@@ -282,7 +230,7 @@ firefreq_cent <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("Central") +
+  # ggtitle("Central") +
   theme_pub()  +
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
@@ -296,7 +244,7 @@ firefreq_west <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("West") +
+  # ggtitle("West") +
   theme_pub()  +
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
@@ -310,7 +258,7 @@ firefreq_se <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("South East") +
+  # ggtitle("South East") +
   theme_pub()  +
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
@@ -324,7 +272,7 @@ firefreq_ne <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values = c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("North East") +
+  # ggtitle("North East") +
   theme_pub()  + 
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
@@ -354,7 +302,7 @@ firefreq_cent <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("Central") +
+  # ggtitle("Central") +
   theme_pub()  +
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
@@ -368,7 +316,7 @@ firefreq_west <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("West") +
+  # ggtitle("West") +
   theme_pub()  +
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
@@ -382,7 +330,7 @@ firefreq_se <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values =  c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("South East") +
+  # ggtitle("South East") +
   theme_pub()  +
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
@@ -396,7 +344,7 @@ firefreq_ne <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values = c('#fcae91','#fb6a4a', '#bdd7e7','#6baed6')) +
   xlab("") + ylab("") +
-  ggtitle("North East") +
+  # ggtitle("North East") +
   theme_pub()  + 
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
@@ -407,6 +355,5 @@ firefreq_ne <- fishdis_reg %>%
 grid.arrange(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 g <- arrangeGrob(firefreq_west, firefreq_cent, firefreq_se, firefreq_ne, ncol =2)
 ggsave(file.path(supplements_text_figs, "figureS5_homedensity_fseason.tiff"), g, width = 6, height = 8, dpi=1200)
-
 
 system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
