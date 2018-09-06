@@ -21,7 +21,6 @@ firefreq_p <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values = c("#fc9272","#D62728", '#a6bddb','#1F77B4')) + 
   xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
-  expand_limits(x = 0, y = 0) +
   theme_pub()  +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
@@ -29,7 +28,8 @@ firefreq_p <- fishdis_reg %>%
         strip.text.y = element_blank(),
         legend.key = element_rect(fill = "white"),
         legend.position = "none") +
-  facet_wrap( ~ regions, nrow = 2) 
+  facet_wrap( ~ regions, nrow = 2) +
+  scale_y_continuous(limits = c(0,NA))
 
 regmean <- fishdis_reg %>%
   group_by(regions, ten_year, ignition) %>%
@@ -47,7 +47,6 @@ firefreq_p <- fishdis_reg %>%
   geom_smooth(size = 1) +
   scale_color_manual(values = c("#fc9272","#D62728", '#a6bddb','#1F77B4')) + 
   xlab("Distance from urban center (km)") + ylab("Fire season length") +
-  expand_limits(x = 0, y = 0) +
   theme_pub()  +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
@@ -55,7 +54,8 @@ firefreq_p <- fishdis_reg %>%
         strip.text.y = element_blank(),
         legend.key = element_rect(fill = "white"),
         legend.position = "none") +
-  facet_wrap( ~ regions, nrow = 2) 
+  facet_wrap( ~ regions, nrow = 2)  +
+  scale_y_continuous(limits = c(0,NA))
 
 regmean <- fishdis_reg %>%
   group_by(regions, ten_year, ignition) %>%
