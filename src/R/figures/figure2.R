@@ -183,7 +183,7 @@ p3l <- p3 + theme(legend.position="none")
 grid.arrange(p1l, p2l, p3l, ncol = 1)
 g <- arrangeGrob(p1l, p2l, p3l, ncol = 1) #generates g
 
-ggsave(file = file.path(main_text_figs, "figure2.tiff"), g, width = 5, height = 9, dpi=1200) #saves g
+ggsave(file = file.path(main_text_figs, "figure2.tiff"), g, width = 5, height = 9, dpi = 600, scale = 3, units = "cm") #saves g
 
 legend <- g_legend(p1) 
 ggsave(file = file.path(main_text_figs, "figure2a_legend.tiff"), 

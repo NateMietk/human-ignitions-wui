@@ -26,7 +26,7 @@ p1 <- df1 %>%
   geom_bar(stat='identity') +
   geom_errorbar(aes(ymin = log(lower_95_ci), ymax = log(upper_95_ci), width = 0.25)) +
   xlab('Fire Size (ha)') + ylab('log Average home threatened per fire event') +
-  geom_vline(aes(xintercept = 4.5), linetype = "dashed", color  = "black") +
+  # geom_vline(aes(xintercept = 4.5), linetype = "dashed", color  = "black") +
   theme_pub() +
   facet_wrap(~class)
 
