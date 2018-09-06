@@ -86,8 +86,9 @@ rmarkdown_files <-'src/R/rmarkdown_files'
 fishnet_path <- file.path(bounds_crt, "fishnet")
 
 figs_dir <- 'figs'
-main_text_figs <- file.path(figs_dir, 'main_text')
-supplements_text_figs <- file.path(figs_dir, 'supplements')
+draft_dir <- file.path(figs_dir, 'draft')
+main_text_figs <- file.path(draft_dir, 'main_text')
+supplements_text_figs <- file.path(draft_dir, 'supplements')
 
 # for pushing and pulling to s3 using the system function
 s3_base <- 's3://earthlab-natem/human-ignitions-wui'
