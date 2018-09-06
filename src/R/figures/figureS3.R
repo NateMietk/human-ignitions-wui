@@ -47,7 +47,7 @@ p1 <- conus_maxseason %>%
                                 "Summer" =  "#D62728", 
                                 "Fall" = "#FF7F0E"), 
                      name="Max Season") + 
-  scale_size_discrete(range = c(0.2, 1.2)) +
+  scale_size_discrete(range = c(0.2, 0.9)) +
   theme_nothing(legend = TRUE) +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),

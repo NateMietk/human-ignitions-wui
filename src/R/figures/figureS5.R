@@ -22,4 +22,4 @@ doy_east_west <- shrt_doy %>%
         legend.position = "none") +
   facet_wrap(region ~ class, ncol = 4)
 
-ggsave(file.path(main_text_figs, "figureS5.tiff"), doy_east_west, width = 8, height = 8, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave(file.path(supplements_text_figs, "figureS5.tiff"), doy_east_west, width = 8, height = 8, dpi = 600, scale = 3, units = "cm") #saves g

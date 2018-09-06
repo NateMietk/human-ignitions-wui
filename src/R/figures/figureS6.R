@@ -32,6 +32,6 @@ p1 <- df1 %>%
   facet_wrap(~class) +
   theme(legend.position = 'none')
 
-ggsave(file.path(supplements_text_figs, "figureS6.tiff"), p1, width = 7, height = 7, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave(file.path(supplements_text_figs, "figureS6.tiff"), p1, width = 7, height = 7, dpi = 1200, scale = 3, units = "cm") #saves g
 
 system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))

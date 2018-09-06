@@ -13,7 +13,7 @@ maxseasons <- as.data.frame(fpa_wui) %>%
   do(get_month_max(.)) 
 
 maxseasons_full <- as.data.frame(fpa_wui) %>%
-  group_by(fishid25k, ignition, class, seasons) %>%
+  group_by(fishid50k, ignition, class, seasons) %>%
   summarise(fire_freq = n()) %>%
   ungroup() %>%
   spread(seasons, fire_freq) %>%
@@ -47,7 +47,7 @@ p1 <- conus_maxseason %>%
                                 "Summer" =  "#D62728", 
                                 "Fall" = "#FF7F0E"), 
                      name="Max Season") + 
-  scale_size_discrete(range = c(0.2, 0.9)) +
+  scale_size_discrete(range = c(0.2, 1.2)) +
   theme_nothing(legend = TRUE) +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
