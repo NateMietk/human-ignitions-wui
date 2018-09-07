@@ -1894,8 +1894,44 @@ if(!exists('s8e_final')) {
              sheetName = "s8e", append = TRUE)
 }
 
-##### Table 9 - States Total across classes ---------------------------------------------------------
-if(!exists('s9_final')) {
+##### Table 9 - Mean values to accompany Fig S7 ---------------------------------------------------------
+if(!exists('s9a_final')) {
+  
+  fishdis_reg <- as.data.frame(distance_rds) %>%
+    filter(class != 'Other' & class != 'High Urban') %>%
+    mutate(distance_to_urban = distance_to_urban * 0.001) %>%
+    group_by(fishid10k, ten_year, regions, ignition) %>%
+    summarise(
+      median_popdensity = median(pop_den),
+      median_homedensity = median(house_den),
+      median_distance = median(distance_to_urban),
+      fseason_lngth = IQR(discovery_doy),
+      median_doy = median(discovery_doy),
+      f_cnt = n()
+    ) %>%
+    ungroup() %>%
+    mutate(inter = paste0(ignition, "_", ten_year)) %>%
+    filter(!is.na(ten_year))
+  
+  s9a_final <- fishdis_reg %>%
+    group_by(regions, inter) %>%
+    summarise(fcnt_mean = mean(f_cnt)) %>%
+    spread(inter, fcnt_mean)
+  
+  s9b_final <- fishdis_reg %>%
+    group_by(regions, inter) %>%
+    summarise(fseason_mean = mean(fseason_lngth)) %>%
+    spread(inter, fseason_mean)
+  
+  write.xlsx(as.data.frame(s9a_final), file = "supplemental_tables_raw_9_12.xlsx", 
+             sheetName = "S9a", append = TRUE)
+  write.xlsx(as.data.frame(s9b_final), file = "supplemental_tables_raw_9_12.xlsx", 
+             sheetName = "S9b", append = TRUE)
+}
+
+
+##### Table 10 - States Total across classes ---------------------------------------------------------
+if(!exists('s10_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
     transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
@@ -1949,12 +1985,12 @@ if(!exists('s9_final')) {
     slice(match(row_order_for_class, var)) %>%
     mutate_if(~ any(is.na(.x)),~ if_else(is.na(.x),0,.x))
   
-  write.xlsx(as.data.frame(s9_final), file = "supplemental_tables_raw_9_12.xlsx", 
-             sheetName = "S9", append = TRUE)
+  write.xlsx(as.data.frame(s10_final), file = "supplemental_tables_raw_9_12.xlsx", 
+             sheetName = "S10", append = TRUE)
 }
 
-##### Table 10 - States Total across classes and ignition---------------------------------------------------------
-if(!exists('s10_final')) {
+##### Table 11 - States Total across classes and ignition---------------------------------------------------------
+if(!exists('s11_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
     transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
@@ -2020,11 +2056,11 @@ if(!exists('s10_final')) {
     slice(match(row_order_for_class, var)) %>%
     mutate_if(~ any(is.na(.x)),~ if_else(is.na(.x),0,.x))
   
-  write.xlsx(as.data.frame(s10_final), file = "supplemental_tables_raw_9_12.xlsx", 
-             sheetName = "S10", append = TRUE)
+  write.xlsx(as.data.frame(s11_final), file = "supplemental_tables_raw_9_12.xlsx", 
+             sheetName = "S11", append = TRUE)
 }
 
-##### Table 11 - Total Class totals per state ---------------------------------------------------------
+##### Table 12 - Total Class totals per state ---------------------------------------------------------
 if(!exists('wui_class_area_tbl')) {
 
   s11_final <- as.data.frame(wui_class_area) %>%
@@ -2038,11 +2074,11 @@ if(!exists('wui_class_area_tbl')) {
     arrange(State, factor(Class, levels = c("High Urban", "Med Urban", "Low Urban", 'Intermix WUI', 
                                      'Interface WUI', 'VLD', 'Wildlands', 'Other'))) 
   
-  write.xlsx(as.data.frame(s11_final), file = "supplemental_tables_raw_9_12.xlsx", 
-             sheetName = "S11", append = TRUE)
+  write.xlsx(as.data.frame(s12_final), file = "supplemental_tables_raw_9_12.xlsx", 
+             sheetName = "S12", append = TRUE)
 }
 
-##### Table 12 - Total Class totals per level 3 ecoregion ---------------------------------------------------------
+##### Table 13 - Total Class totals per level 3 ecoregion ---------------------------------------------------------
 if(!exists('wui_class_area_tbl')) {
   ecored_prep <- as.data.frame(ecoreg_plain) %>%
     dplyr::select(us_l3name, na_l1name)
@@ -2060,8 +2096,8 @@ if(!exists('wui_class_area_tbl')) {
     arrange(Lvl3_Ecoregion, factor(Class, levels = c("High Urban", "Med Urban", "Low Urban", 'Intermix WUI', 
                                             'Interface WUI', 'VLD', 'Wildlands', 'Other'))) 
   
-  write.xlsx(as.data.frame(s12_final), file = "supplemental_tables_raw_9_12.xlsx", 
-             sheetName = "S12", append = TRUE)
+  write.xlsx(as.data.frame(s13_final), file = "supplemental_tables_raw_9_12.xlsx", 
+             sheetName = "S13", append = TRUE)
 }
 
 

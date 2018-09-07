@@ -38,3 +38,70 @@ ggsave(file.path(main_text_figs, "figure5.tiff"), firefreq_p,
        width = 7, height = 8, dpi = 600, scale = 3, units = "cm")
 system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
 
+
+
+# Line intesections
+# fc9272 -> Human 1994-2004
+# D62728 -> Human 2005-2015
+# a6bddb -> Lightning 1994-2004
+# 1F77B4 -> Lightning 2005-2015
+firefreq_p <- fishdis_reg %>%
+  filter(ten_year != '1994-2004') %>%
+  ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"),
+              fullrange = TRUE, size = 0.75) +
+  scale_color_manual(values = c("red","black")) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 2) 
+
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(colour, y, x, PANEL) %>%
+  spread(colour, y) %>%
+  mutate(line_diff = abs(black - red))
+
+min_diffs <- pred_diffs %>%
+  group_by(PANEL) %>%
+  summarise(line_diff = min(line_diff))
+
+xpoints_cnt_1 <- left_join(min_diffs, pred_diffs) %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(x_0515 = round(first(xpt_cnt),0)) %>%
+  ungroup()
+
+firefreq_p <- fishdis_reg %>%
+  filter(ten_year == '1994-2004') %>%
+  ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"),
+              fullrange = TRUE, size = 0.75) +
+  scale_color_manual(values = c("red","black")) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 2) 
+
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(colour, y, x, PANEL) %>%
+  spread(colour, y) %>%
+  mutate(line_diff = abs(black - red))
+
+min_diffs <- pred_diffs %>%
+  group_by(PANEL) %>%
+  summarise(line_diff = min(line_diff))
+
+xpoints_cnt_2 <- left_join(min_diffs, pred_diffs) %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(x_9404 = round(first(xpt_cnt),0)) %>%
+  ungroup()
+
+xpoints_cnt <- left_join(xpoints_cnt_2, xpoints_cnt_1)
+

@@ -15,6 +15,16 @@ fishdis_reg <- as.data.frame(distance_rds) %>%
   filter(!is.na(ten_year))
 
 # Distance versus fire frequency
+# fc9272 -> Human 1994-2004
+# D62728 -> Human 2005-2015
+# a6bddb -> Lightning 1994-2004
+# 1F77B4 -> Lightning 2005-2015
+regmean <- fishdis_reg %>%
+  group_by(regions, inter) %>%
+  summarise(fcnt_mean = mean(f_cnt))
+supp_table <- regmean %>%
+  spread(inter, fcnt_mean)
+
 firefreq_p <- fishdis_reg %>%
   transform(regions = factor(regions, levels=c('West', 'Central', 'South East', 'North East'))) %>%
   ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
@@ -28,19 +38,22 @@ firefreq_p <- fishdis_reg %>%
         strip.text.y = element_blank(),
         legend.key = element_rect(fill = "white"),
         legend.position = "none") +
+  geom_hline(data = regmean, aes(yintercept = fcnt_mean, group = inter, color = inter), linetype = 'dashed') +
   facet_wrap( ~ regions, nrow = 2) +
   scale_y_continuous(limits = c(0,NA))
 
-regmean <- fishdis_reg %>%
-  group_by(regions, ten_year, ignition) %>%
-  summarise(fcnt_mean = mean(f_cnt)) %>%
-  spread(ignition, fcnt_mean)
 write_csv(regmean, file.path(supplements_text_figs, 'figureS7_distance_fcnt_means.csv'))
 
 ggsave(file.path(supplements_text_figs, "figureS7_distance_ffreq.tiff"), firefreq_p, 
        width = 7, height = 8, dpi = 600, scale = 3, units = "cm")
 
 # Distance versus fire season length
+regmean <- fishdis_reg %>%
+  group_by(regions, inter) %>%
+  summarise(fseason_mean = mean(fseason_lngth))
+supp_table <- regmean %>%
+  spread(inter, fseason_mean)
+
 firefreq_p <- fishdis_reg %>%
   transform(regions = factor(regions, levels=c('West', 'Central', 'South East', 'North East'))) %>%
   ggplot(aes(x = median_distance, y = fseason_lngth, group = inter, color = inter)) +
@@ -54,13 +67,10 @@ firefreq_p <- fishdis_reg %>%
         strip.text.y = element_blank(),
         legend.key = element_rect(fill = "white"),
         legend.position = "none") +
+  geom_hline(data = regmean, aes(yintercept = fseason_mean, group = inter, color = inter), linetype = 'dashed') +
   facet_wrap( ~ regions, nrow = 2)  +
   scale_y_continuous(limits = c(0,NA))
 
-regmean <- fishdis_reg %>%
-  group_by(regions, ten_year, ignition) %>%
-  summarise(fcnt_mean = mean(fseason_lngth)) %>%
-  spread(ignition, fcnt_mean)
 write_csv(regmean, file.path(supplements_text_figs, 'figureS8_distance_fseason_means.csv'))
 
 ggsave(file.path(supplements_text_figs, "figureS8_distance_fseason.tiff"), firefreq_p, 
