@@ -31,7 +31,7 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
 } else {
-  bae <- st_read(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))
+  bae <- st_read(file.path(fire_poly, "fpa_mtbs_bae.gpkg")) 
 }
 
 # Buffered FPA 250m perimeters
@@ -61,7 +61,7 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_500m.gpkg'))) {
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
 } else {
-  fpa_500m <- st_read(file.path(fire_poly, "fpa_buffer_500m.gpkg"))  %>%
+  fpa_500m <- st_read(file.path(fire_poly, "fpa_buffer_500m.gpkg")) %>%
     left_join(., as.data.frame(fpa_fire) %>% dplyr::select(-geom), by = c('FPA_ID', 'DISCOVERY_YEAR', 'FIRE_SIZE_km2')) %>%
     filter(STAT_CAUSE_DESCR != 'Missing/Undefined')
 }
@@ -90,11 +90,9 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
   
   fpa_bae_wui1 <- bae %>%
     st_intersection(., wui) %>%
-    st_intersection(., bounds) %>%
-    st_make_valid() %>%
-    left_join(., fpa_df, by = 'FPA_ID')
+    st_make_valid() 
   
-  fpa_bae_wui  <- fpa_bae_wui1 %>%
+  fpa_bae_wui <- fpa_bae_wui1 %>%
     mutate(wui_area_km2 = (as.numeric(st_area(geom))/1000000),
            class = as.factor(ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
                                     ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
@@ -112,7 +110,6 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
                                       ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2010, 2000,
                                              ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2010,
                                                     DISCOVERY_YEAR )))),
-           FIRE_SIZE_km2 = FIRE_SIZE_km2.x,
            number_of_persons = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POP1990,
                                        ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POP2000,
                                                ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POP2010, NA))),
@@ -130,10 +127,9 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
            seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
            size = as.factor(classify_fire_size_cl(FIRE_SIZE_km2)),
            regions = as.factor(ifelse(regions == 'East', 'North East', as.character(regions)))) %>%
-    dplyr::select(-FIRE_SIZE_km2.x, -FIRE_SIZE_km2.y, -stusps.1) %>%
+    dplyr::select(-stusps.1) %>%
     dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)')) %>%
-    setNames(tolower(names(.)))  %>%
-    left_join(., wuw, by = c('class', 'class_coarse', 'decadal'))
+    rename_all(tolower)
   
   st_write(fpa_bae_wui, file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"),
            driver = "GPKG", delete_layer = TRUE)

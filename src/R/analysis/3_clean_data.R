@@ -206,7 +206,7 @@ if (!exists('wui')) {
              Class10 = classify_wui(WUICLASS10))  %>%
       st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
       st_make_valid() %>%
-      st_intersection(usa_shp)
+      st_intersection(bounds)
     
     st_write(wui, file.path(wui_out, "wui_bounds.gpkg"),
              driver = "GPKG",
@@ -221,9 +221,9 @@ if (!exists('wui')) {
 if (!exists('wui_class_area')) {
   if (!file.exists(file.path(wui_out, "wui_class_area.rds"))) {
     wui_class_area <- wui %>%
-      setNames(tolower(names(.))) %>%
-      dplyr::select(fishid50k, fishid25k, us_l3name, stusps, class90, class00, class10) %>%
-      mutate(total_class_area = as.numeric(st_area(geom))/1000000)
+      mutate(total_class_area = as.numeric(st_area(Shape))/1000000) %>%
+      rename_all(tolower) %>%
+      dplyr::select(fishid50k, fishid25k, us_l3name, stusps, class90, class00, class10, total_class_area, shape)
     
     write_rds(wui_class_area, file.path(wui_out, "wui_class_area.rds"))
   }
@@ -385,21 +385,6 @@ if (!exists('wui_df')) {
   }
 }
 
-coarse_wuw_area <- read_csv(file.path(wui_out, 'wui_areas.csv')) %>%
-  dplyr::select(-X1) %>%
-  gather(year, total_coarse_class_area, -Class) %>%
-  mutate(decadal = as.factor((gsub('area_', '', year))),
-         class = as.factor(Class),
-         class_coarse =  as.factor(ifelse(class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
-                                          ifelse(class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))))) %>%
-  dplyr::select(-year, -Class, -class) %>%
-  group_by(decadal, class_coarse) %>%
-  summarise(total_coarse_class_area = sum(total_coarse_class_area))
-
-wuw <- wuw_area %>%
-  left_join(., coarse_wuw_area, by = 'decadal')
-
-
 # Prep FPA-FOD ---------------------------------------------------------
 # Clean the FPA database class
 if (!exists('fpa_fire')) {
@@ -413,7 +398,7 @@ if (!exists('fpa_fire')) {
       mutate(IGNITION = ifelse(STAT_CAUSE_DESCR == "Lightning", "Lightning", "Human"),
              FIRE_SIZE_m2 = FIRE_SIZE*4046.86,
              FIRE_SIZE_km2 = FIRE_SIZE_m2/1000000,
-             FIRE_SIZE_ha = FIRE_SIZE_m2*10000,
+             FIRE_SIZE_ha = FIRE_SIZE_m2/10000,
              DISCOVERY_DAY = day(DISCOVERY_DATE),
              DISCOVERY_MONTH = month(DISCOVERY_DATE),
              DISCOVERY_YEAR = FIRE_YEAR)  %>%
@@ -434,7 +419,6 @@ if (!exists('fpa_wui')) {
   if(!file.exists(file.path(fire_pnt, "fpa_wui_conus.gpkg"))) {
     fpa_wui_step1 <- fpa_fire %>%
       st_intersection(., wui) %>%
-      st_intersection(., bounds) %>%
       st_make_valid()
     fpa_wui <- fpa_wui_step1 %>%
       mutate(class = as.factor(ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
@@ -470,10 +454,9 @@ if (!exists('fpa_wui')) {
              seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
              size = as.factor(classify_fire_size_cl(FIRE_SIZE_km2)),
              regions = as.factor(ifelse(regions == 'East', 'North East', as.character(regions)))) %>%
-      setNames(tolower(names(.))) %>%
+      rename_all(tolower) %>%
       dplyr::select(-stusps.1) %>%
-      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|water|shape)')) %>%
-      left_join(., wuw, by = c('class', 'class_coarse', 'decadal'))
+      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|water|shape)'))
     
     st_write(fpa_wui, file.path(fire_pnt, "fpa_wui_conus.gpkg"),
              driver = "GPKG", delete_layer = TRUE)
@@ -745,7 +728,7 @@ if(!file.exists(file.path(ics_spatial, "ics209_wui_conus.gpkg"))) {
            class_coarse =  ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
                                    ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))),
            regions = ifelse(regions == 'East', 'North East', as.character(regions))) %>%
-    setNames(tolower(names(.))) %>%
+    rename_all(tolower) %>%
     dplyr::select(-stusps.1) %>%
     dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)'))
   

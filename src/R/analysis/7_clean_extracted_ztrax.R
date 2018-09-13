@@ -140,7 +140,6 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_wui_cleaned_validation.rds'))) {
   bu_wui_cleaned_validation <- read_rds(file.path(rmarkdown_files, 'bu_wui_cleaned_validation.rds'))
 }
 
-
 # FPA fire perimeters
 if (!file.exists(file.path(rmarkdown_files, 'bu_fpa_cleaned.rds'))) {
   
@@ -265,5 +264,5 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))) {
   
 } else {
   
-  bu_complete_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
+  bu_complete_cleaned <- readRDS(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
 }
