@@ -1,6 +1,6 @@
 df <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
   filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
-  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
   filter(built_class == 'Residential') %>%
   mutate(fire_size_ha = fire_size_km2*100,
          fire_size = case_when(
@@ -33,5 +33,4 @@ p1 <- df1 %>%
   theme(legend.position = 'none')
 
 ggsave(file.path(supplements_text_figs, "figureS6.tiff"), p1, width = 7, height = 7, dpi = 1200, scale = 3, units = "cm") #saves g
-
-system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
+system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

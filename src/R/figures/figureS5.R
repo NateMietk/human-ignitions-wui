@@ -6,8 +6,7 @@ shrt_doy <- as.data.frame(fpa_wui) %>%
 doy_east_west <- shrt_doy %>%
   filter(class %in% c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands")) %>%
   transform(region = factor(region, levels=c("East", "Central", "West"))) %>%
-  transform(class = factor(class, levels=c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands"))) %>%
-  
+  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
   ggplot() +
   geom_bar(aes(x =  discovery_doy, y = count,
                color = ignition, fill = ignition), stat = "identity") +
@@ -23,3 +22,4 @@ doy_east_west <- shrt_doy %>%
   facet_wrap(region ~ class, ncol = 4)
 
 ggsave(file.path(supplements_text_figs, "figureS5.tiff"), doy_east_west, width = 8, height = 8, dpi = 600, scale = 3, units = "cm") #saves g
+system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

@@ -98,4 +98,4 @@ firefreq_p <- fishdis_reg %>%
 ggsave(file.path(supplements_text_figs, "figureS9_homedensity_fseason.tiff"), firefreq_p, 
        width = 7, height = 8, dpi = 600, scale = 3, units = "cm")
 
-system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
+system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

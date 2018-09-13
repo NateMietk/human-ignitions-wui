@@ -323,14 +323,17 @@ if (!exists('wui_area')) {
              value = class, -total_class_area) %>%
       mutate(class = as.factor(class),
              tmp = as.factor(tmp),
-             year = case_when(tmp == 'class90' ~ as.integer(1990),
+             decadal = case_when(tmp == 'class90' ~ as.integer(1990),
                               tmp == 'class00' ~ as.integer(2000),
-                              tmp == 'class10' ~ as.integer(2010), TRUE ~ NA_integer_)) %>%
-      dplyr::select(class, year, total_class_area) %>%
-      group_by(class, year) %>%
+                              tmp == 'class10' ~ as.integer(2010), TRUE ~ NA_integer_),
+             decadal = as.factor(decadal)) %>%
+      dplyr::select(class, decadal, total_class_area) %>%
+      group_by(class, decadal) %>%
       summarise(total_class_area = sum(total_class_area))
     
     write_rds(wuw_area, file.path(wui_out, 'wui_areas.rds'))
+    system(paste0("aws s3 sync ", prefix, " ", s3_base))
+    
   } else {
     wuw_area <- read_rds(file.path(wui_out, 'wui_areas.rds'))
   }

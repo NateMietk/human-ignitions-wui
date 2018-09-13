@@ -108,7 +108,7 @@ conus_ics <- left_join(fs50_df, ics_density, by = "fishid50k") %>%
 
 p1 <- conus_ff %>%
   filter(class %in% c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands')) %>%
-  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
   filter(n_den >= 1) %>%
   mutate(buckets = bucket(n_den, 10)) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
@@ -131,7 +131,7 @@ p1 <- conus_ff %>%
 p2 <- conus_burn_area %>%
   na.omit() %>%
   filter(class %in% c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands')) %>%
-  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
   transform(pct_class_human = factor(pct_class_human, levels=c("< 1", "1 - 10", "10 - 20", 
                                                                "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
   transform(frsz_cl = factor(frsz_cl, levels=c("0-4", "4-100", "100-400", "400-1000", ">1000"))) %>%
@@ -154,7 +154,7 @@ p2 <- conus_burn_area %>%
 p3 <- conus_burn_area %>%
   na.omit() %>%
   filter(class %in% c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands')) %>%
-  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
   transform(pct_class_lightning = factor(pct_class_lightning, levels=c("< 1", "1 - 10", "10 - 20", 
                                                                        "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
   transform(frsz_cl = factor(frsz_cl, levels=c("0-4", "4-100", "100-400", "400-1000", ">1000"))) %>%
@@ -177,7 +177,7 @@ p3 <- conus_burn_area %>%
 p4 <- conus_bu %>%
   na.omit() %>%
   filter(class %in% c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands')) %>%
-  transform(class = factor(class, levels=c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands'))) %>%
+  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
   filter(n_den >= 1) %>%
   mutate(buckets = bucket(n_den, 10)) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("0 - 25", "25 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
@@ -219,4 +219,4 @@ ggsave(file = file.path(supplements_text_figs, "figureS2c_legend.tiff"),
 legend <- g_legend(p4) 
 ggsave(file = file.path(supplements_text_figs, "figureS2d_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
-system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
+system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

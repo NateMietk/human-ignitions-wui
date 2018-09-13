@@ -31,5 +31,4 @@ p1 <- df1 %>%
   facet_wrap(~class)
 
 ggsave(file.path(main_text_figs, "figure4.tiff"), p1, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
-
-system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
+system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

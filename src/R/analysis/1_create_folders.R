@@ -98,6 +98,7 @@ s3_bounds_prefix <- 's3://earthlab-natem/human-ignitions-wui/bounds'
 s3_anthro_prefix <- 's3://earthlab-natem/human-ignitions-wui/anthro'
 s3_fire_prefix <- 's3://earthlab-natem/human-ignitions-wui/fire'
 s3_raw_prefix <- 's3://earthlab-natem/human-ignitions-wui/raw'
+s3_figs_dir <- 's3://earthlab-natem/human-ignitions-wui/figs'
 
 # Check if directory exists for all variable aggregate outputs, if not then create
 var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt, ztrax_out, ztrax_prefix,
@@ -106,6 +107,6 @@ var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa
                 zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds, 
                 dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds,
                 dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds,
-                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds,figs_dir, main_text_figs, supplements_text_figs,
+                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds,figs_dir, draft_dir, main_text_figs, supplements_text_figs,
                 climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
