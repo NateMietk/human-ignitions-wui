@@ -232,14 +232,23 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))) {
     left_join(., bu_fpa_cleaned, by = c('fpa_id', 'built_class', 'discovery_year')) %>%
     as_tibble()  %>%
     mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
+    mutate_if(is.character, as.factor) %>%
     mutate(build_up_count_250 = build_up_count_250 - build_up_count_0,
            build_up_intensity_sqm_250 = build_up_intensity_sqm_250 - build_up_intensity_sqm_0,
            build_up_count_500 = build_up_count_500 - (build_up_count_0 + build_up_count_250),
            build_up_intensity_sqm_500 = build_up_intensity_sqm_500 - (build_up_intensity_sqm_0 + build_up_intensity_sqm_250),
            build_up_count_1000 = build_up_count_1000 - (build_up_count_0 + build_up_count_250 + build_up_count_500),
-           build_up_intensity_sqm_1000 = build_up_intensity_sqm_1000 - (build_up_count_0 + build_up_count_250 + build_up_count_500)) %>%
+           build_up_intensity_sqm_1000 = build_up_intensity_sqm_1000 - (build_up_count_0 + build_up_count_250 + build_up_count_500))
+  zero_df <- bu_complete_cleaned  %>%
+    filter(discovery_year == 0)
+  bu_complete_cleaned <- bu_complete_cleaned  %>%
+    left_join(fpa_wui_slim, ., by = c('fpa_id', 'discovery_year')) %>%
+    filter(!is.na(built_class)) %>%
+    bind_rows(zero_df) %>%
+    mutate_if(is.character, as.factor) %>%
+    mutate_if(is.numeric, funs(ifelse(. < 0, 0, .))) %>%
     group_by(fpa_id, built_class) %>%
-    arrange(desc(fpa_id, built_class, discovery_year)) %>%
+    arrange(fpa_id, built_class, discovery_year) %>%
     mutate(build_up_count_no_zero_0 = build_up_count_0 - first(build_up_count_0),
            build_up_count_no_zero_250 = build_up_count_250 - first(build_up_count_250),
            build_up_count_no_zero_500 = build_up_count_500 - first(build_up_count_500),
@@ -248,15 +257,14 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))) {
            build_up_intensity_sqm_no_zero_250 = build_up_intensity_sqm_250 - first(build_up_intensity_sqm_250),
            build_up_intensity_sqm_no_zero_500 = build_up_intensity_sqm_500 - first(build_up_intensity_sqm_500),
            build_up_intensity_sqm_no_zero_1000 = build_up_intensity_sqm_1000 - first(build_up_intensity_sqm_1000)) %>%
-    left_join(fpa_wui_slim, ., by = c('discovery_year', 'fpa_id')) %>%
-    group_by(fpa_id, built_class) %>%
+    group_by(fpa_id, built_class, discovery_year) %>%
     summarise_at(vars(build_up_count_0, build_up_count_250, build_up_count_500, build_up_count_1000, 
                       build_up_intensity_sqm_0, build_up_intensity_sqm_250, build_up_intensity_sqm_500, 
                       build_up_intensity_sqm_1000, build_up_count_no_zero_0, build_up_count_no_zero_250, 
                       build_up_count_no_zero_500, build_up_count_no_zero_1000, build_up_intensity_sqm_no_zero_0,
                       build_up_intensity_sqm_no_zero_250, build_up_intensity_sqm_no_zero_500, build_up_intensity_sqm_no_zero_1000), first) %>%
     ungroup() %>%
-    left_join(fpa_wui, ., by = 'fpa_id')
+    left_join(fpa_wui, ., by = c('fpa_id', 'discovery_year'))
   
   
   write_rds(bu_complete_cleaned, file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
@@ -264,5 +272,5 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))) {
   
 } else {
   
-  bu_complete_cleaned <- readRDS(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
+  bu_complete_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
 }
