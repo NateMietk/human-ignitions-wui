@@ -37,7 +37,7 @@ p1 <- conus_maxseason %>%
   filter(class %in% c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands")) %>%
   transform(max_season = factor(max_season, levels=c("Winter", "Spring", "Summer", "Fall"))) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  transform(class = factor(class, levels=c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands"))) %>%
+  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long, y = lat, group = group), color='black', fill = "gray99", size = .25) +
   geom_point(aes(x = long, y = lat, colour = factor(max_season), size = ptsz_n), stroke = 0) +
@@ -64,4 +64,4 @@ legend <- g_legend(p1)
 ggsave(file =  file.path(supplements_text_figs, "figureS3_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
 
-system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
+system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

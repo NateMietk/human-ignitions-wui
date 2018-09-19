@@ -269,70 +269,9 @@ if(!exists('s3_final')) {
   
 }
 
-##### Table 4 - Risk Tables ---------------------------------------------------------
-# Table 4a - CONUS Asses the risk of homes by ignition type regardless of class type
+##### Table 4 - Fire Size per class Tables ---------------------------------------------------------
+# Table 4a - CONUS
 if(!exists('s4a_final')) {
-  
-  s4a_final <- as.data.frame(bu_ics_cleaned) %>%
-    filter(built_class != 'Non-Residential') %>%
-    droplevels() %>%
-    filter(cause != 'Unk') %>%
-    mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
-    group_by(cause, at_risk) %>%
-    summarise(fire_frequency = n(),
-              wildfire_area = sum(area_km2),
-              costs = sum(costs),
-              risky_built_up = sum(build_up_count_no_zero)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    tidyr::unite(cause_risk, cause, at_risk) %>%
-    tidyr::gather(var, value, -cause_risk) %>% 
-    tidyr::spread(cause_risk, value) %>%
-    mutate(pct_human_risky = round(`Human_At risk`/(`Human_At risk` + `Human_Not at risk`)*100,0)) %>%
-    dplyr::select(var, `Human_At risk`, `Human_Not at risk`, `Lightning_At risk`, `Lightning_Not at risk`, pct_human_risky) %>%
-    slice(match(raw_order_risky, var))
-  
-  write.xlsx(s4a_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
-             sheetName = "S4a", append = TRUE)
-}
-
-#### Table 4b
-# Asses the risk of homes by ignition type AND WUI, VLD, and Wildlands only
-if(!exists('s4b_final')) {
-  
-  s4b_final <- bu_ics_cleaned %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
-    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    filter(built_class != 'Non-Residential') %>%
-    droplevels() %>%
-    filter(cause != 'Unk') %>%
-    mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
-    group_by(class, cause, at_risk) %>%
-    summarise(fire_frequency = n(),
-              wildfire_area = sum(area_km2),
-              costs = sum(costs),
-              risky_built_up = sum(build_up_count_no_zero)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    tidyr::unite(ignition_class, class, cause, at_risk) %>%
-    tidyr::gather(var, value, -ignition_class) %>% 
-    tidyr::spread(ignition_class, value) %>%
-    mutate(pct_human_interface_risky = round(`Interface WUI_Human_At risk`/(`Interface WUI_Human_At risk` + `Interface WUI_Human_Not at risk`)*100,0),
-           pct_human_intermix_risky = round(`Intermix WUI_Human_At risk`/(`Intermix WUI_Human_At risk` + `Intermix WUI_Human_Not at risk`)*100,0),
-           pct_human_vld_risky = round(`VLD_Human_At risk`/(`VLD_Human_At risk` + `VLD_Human_Not at risk`)*100,0),
-           pct_human_wildlands_risky = round(`Wildlands_Human_At risk`/(`Wildlands_Human_At risk` + `Wildlands_Human_Not at risk`)*100,0)) %>%
-    dplyr::select(var, `Interface WUI_Human_At risk`, `Interface WUI_Human_Not at risk`, `Interface WUI_Lightning_At risk`, `Interface WUI_Lightning_Not at risk`, pct_human_interface_risky,  
-                  `Intermix WUI_Human_At risk`, `Intermix WUI_Human_Not at risk`, `Intermix WUI_Lightning_At risk`, `Intermix WUI_Lightning_Not at risk`, pct_human_intermix_risky, 
-                  `VLD_Human_At risk`, `VLD_Human_Not at risk`, `VLD_Lightning_At risk`, `VLD_Lightning_Not at risk`, pct_human_vld_risky,
-                  `Wildlands_Human_At risk`, `Wildlands_Human_Not at risk`, `Wildlands_Lightning_At risk`, `Wildlands_Lightning_Not at risk`, pct_human_wildlands_risky) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(raw_order_risky, var))
-  
-  write.xlsx(s4b_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
-             sheetName = "S4b", append = TRUE)
-}
-
-##### Table 5 - Fire Size Tables ---------------------------------------------------------
-# Table 5a - CONUS
-if(!exists('s5a_final')) {
   
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     mutate(fire_size = case_when(
@@ -383,7 +322,7 @@ if(!exists('s5a_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s5a_final <- t1 %>%
+  s4a_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'ignition')) %>%
     left_join(., t3, by = c('fire_size', 'ignition')) %>%
     tidyr::unite(size_class, fire_size, ignition) %>%
@@ -396,12 +335,12 @@ if(!exists('s5a_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5a_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
-             sheetName = "S5a", append = TRUE)
+  write.xlsx(s4a_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
+             sheetName = "s4a", append = TRUE)
 }
 
-#### Table 5b - Fire Size Interface WUI
-if(!exists('s5b_final')) {
+#### Table 4b - Fire Size Interface WUI
+if(!exists('s4b_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
     mutate(fire_size = case_when(
@@ -469,7 +408,7 @@ if(!exists('s5b_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s5b_final <- t1 %>%
+  s4b_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'ignition')) %>%
     left_join(., t3, by = c('fire_size', 'ignition')) %>%
     left_join(., t4, by = c('fire_size', 'ignition')) %>%
@@ -482,12 +421,12 @@ if(!exists('s5b_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5b_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
-             sheetName = "S5b", append = TRUE)
+  write.xlsx(s4b_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
+             sheetName = "s4b", append = TRUE)
 }
 
-#### Table 5c - Fire Size Intermix WUI
-if(!exists('s5c_final')) {
+#### Table 4c - Fire Size Intermix WUI
+if(!exists('s4c_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
     mutate(fire_size = case_when(
@@ -555,7 +494,7 @@ if(!exists('s5c_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s5c_final <- t1 %>%
+  s4c_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'ignition')) %>%
     left_join(., t3, by = c('fire_size', 'ignition')) %>%
     left_join(., t4, by = c('fire_size', 'ignition')) %>%
@@ -568,12 +507,12 @@ if(!exists('s5c_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5c_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
-             sheetName = "S5c", append = TRUE)
+  write.xlsx(s4c_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
+             sheetName = "s4c", append = TRUE)
 }
 
-#### Table 5d - Fire Size VLD WUI
-if(!exists('s5d_final')) {
+#### Table 4d - Fire Size VLD WUI
+if(!exists('s4d_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
     mutate(fire_size = case_when(
@@ -641,7 +580,7 @@ if(!exists('s5d_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s5d_final <- t1 %>%
+  s4d_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'ignition')) %>%
     left_join(., t3, by = c('fire_size', 'ignition')) %>%
     left_join(., t4, by = c('fire_size', 'ignition')) %>%
@@ -655,12 +594,12 @@ if(!exists('s5d_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5d_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
-             sheetName = "S5d", append = TRUE)
+  write.xlsx(s4d_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
+             sheetName = "s4d", append = TRUE)
 }
 
-#### Table 5e - Fire Size Wildlands WUI
-if(!exists('s5e_final')) {
+#### Table 4e - Fire Size Wildlands WUI
+if(!exists('s4e_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
     mutate(fire_size = case_when(
@@ -729,7 +668,7 @@ if(!exists('s5e_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s5e_final <- t1 %>%
+  s4e_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'ignition')) %>%
     left_join(., t3, by = c('fire_size', 'ignition')) %>%
     left_join(., t4, by = c('fire_size', 'ignition')) %>%
@@ -743,661 +682,14 @@ if(!exists('s5e_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5e_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
-             sheetName = "S5e", append = TRUE)
+  write.xlsx(s4e_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
+             sheetName = "s4e", append = TRUE)
   system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
 }
 
-##### Table 6 - Regional Tables ---------------------------------------------------------
-# Table 6a Regional CONUS
-if(!exists('s6a_final')) {
-  
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    group_by(region, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    ungroup() %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100) %>%
-    mutate_if(is.numeric, funs(round(., 3))) 
-  
-  t2 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    group_by(region, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(region, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s6a_final <- t1 %>%
-    left_join(., t2, by = c('ignition', 'region')) %>%
-    left_join(., t3, by = c('ignition', 'region')) %>%
-    tidyr::unite(size_class, region, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
-           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
-           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
-    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s6a_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
-             sheetName = "S6a", append = TRUE)
-}
-
-#### Table 6b - Regional Interface WUI
-if(!exists('s6b_final')) {
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(region, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    mutate_if(is.numeric, funs(round(., 3))) %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
-  
-  tmp <- wuw_area %>% filter(class == 'Intermix WUI' & decadal == '2010')
-  
-  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(region, ignition) %>%
-    summarise(class_burned_area = sum(wui_area_km2)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
-  
-  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(region, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(region, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s6b_final <- t1 %>%
-    left_join(., t2, by = c('region', 'ignition')) %>%
-    left_join(., t3, by = c('region', 'ignition')) %>%
-    left_join(., t4, by = c('region', 'ignition')) %>%
-    tidyr::unite(size_class, region, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
-           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
-           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
-    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s6b_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
-             sheetName = "S6b", append = TRUE)
-}
-
-#### Table 6c - Regional Interface WUI
-if(!exists('s6c_final')) {
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(region, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    mutate_if(is.numeric, funs(round(., 3))) %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
-  
-  tmp <- wuw_area %>% filter(class == 'Interface WUI' & decadal == '2010')
-  
-  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(region, ignition) %>%
-    summarise(class_burned_area = sum(wui_area_km2)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
-  
-  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(region, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(region, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s6c_final <- t1 %>%
-    left_join(., t2, by = c('region', 'ignition')) %>%
-    left_join(., t3, by = c('region', 'ignition')) %>%
-    left_join(., t4, by = c('region', 'ignition')) %>%
-    tidyr::unite(size_class, region, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
-           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
-           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
-    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s6c_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
-             sheetName = "S6c", append = TRUE)
-}
-
-#### Table 6d - Regional VLD WUI
-if(!exists('s6d_final')) {
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
-    group_by(region, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    mutate_if(is.numeric, funs(round(., 3))) %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
-  
-  tmp <- wuw_area %>% filter(class == 'VLD' & decadal == '2010')
-  
-  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
-    group_by(region, ignition) %>%
-    summarise(class_burned_area = sum(wui_area_km2)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
-  
-  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
-    group_by(region, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(region, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s6d_final <- t1 %>%
-    left_join(., t2, by = c('region', 'ignition')) %>%
-    left_join(., t3, by = c('region', 'ignition')) %>%
-    left_join(., t4, by = c('region', 'ignition')) %>%
-    tidyr::unite(size_class, region, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
-           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
-           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
-    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s6d_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
-             sheetName = "S6d", append = TRUE)
-}
-
-#### Table 6e - Regional Wildlands WUI
-if(!exists('s6e_final')) {
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
-    group_by(region, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    mutate_if(is.numeric, funs(round(., 3))) %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
-  
-  tmp <- wuw_area %>% filter(class == 'Wildlands' & decadal == '2010')
-  
-  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
-    group_by(region, ignition) %>%
-    summarise(class_burned_area = sum(wui_area_km2)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
-  
-  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
-    group_by(region, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(region, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s6e_final <- t1 %>%
-    left_join(., t2, by = c('region', 'ignition')) %>%
-    left_join(., t3, by = c('region', 'ignition')) %>%
-    left_join(., t4, by = c('region', 'ignition')) %>%
-    tidyr::unite(size_class, region, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
-           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
-           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
-    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s6e_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "S6e", append = TRUE)
-}
-
-
-##### Table 7 - Seasonal Tables ---------------------------------------------------------
-#### Table 7a Seasonal CONUS
-if(!exists('s7a_final')) {
-  
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    group_by(seasons, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    ungroup() %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100) %>%
-    mutate_if(is.numeric, funs(round(., 3))) 
-  
-  t2 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    group_by(seasons, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(seasons, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s7a_final <- t1 %>%
-    left_join(., t2, by = c('ignition', 'seasons')) %>%
-    left_join(., t3, by = c('ignition', 'seasons')) %>%
-    tidyr::unite(size_class, seasons, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
-           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
-           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
-           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
-    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
-                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s7a_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "S7a", append = TRUE)
-}
-
-#### Table 7b - Seasonal Interface WUI
-if(!exists('s7b_final')) {
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    mutate_if(is.numeric, funs(round(., 3))) %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
-  
-  tmp <- wuw_area %>% filter(class == 'Interface WUI' & decadal == '2010')
-  
-  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(class_burned_area = sum(wui_area_km2)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
-  
-  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(seasons, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s7b_final <- t1 %>%
-    left_join(., t2, by = c('seasons', 'ignition')) %>%
-    left_join(., t3, by = c('seasons', 'ignition')) %>%
-    left_join(., t4, by = c('seasons', 'ignition')) %>%
-    tidyr::unite(size_class, seasons, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
-           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
-           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
-           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
-    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
-                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s7b_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "S7b", append = TRUE)
-}
-
-#### Table 7c - Seasonal Intermix WUI
-if(!exists('s7c_final')) {
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    mutate_if(is.numeric, funs(round(., 3))) %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
-  
-  tmp <- wuw_area %>% filter(class == 'Intermix WUI' & decadal == '2010')
-  
-  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(class_burned_area = sum(wui_area_km2)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
-  
-  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(seasons, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s7c_final <- t1 %>%
-    left_join(., t2, by = c('seasons', 'ignition')) %>%
-    left_join(., t3, by = c('seasons', 'ignition')) %>%
-    left_join(., t4, by = c('seasons', 'ignition')) %>%
-    tidyr::unite(size_class, seasons, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
-           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
-           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
-           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
-    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
-                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s7c_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "S7c", append = TRUE)
-}
-
-#### Table 7d - Seasonal VLD WUI
-if(!exists('s7d_final')) {
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    mutate_if(is.numeric, funs(round(., 3))) %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
-  
-  tmp <- wuw_area %>% filter(class == 'VLD' & decadal == '2010')
-  
-  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(class_burned_area = sum(wui_area_km2)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
-  
-  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(seasons, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s7d_final <- t1 %>%
-    left_join(., t2, by = c('seasons', 'ignition')) %>%
-    left_join(., t3, by = c('seasons', 'ignition')) %>%
-    left_join(., t4, by = c('seasons', 'ignition')) %>%
-    tidyr::unite(size_class, seasons, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
-           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
-           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
-           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
-    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
-                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s7d_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "S7d", append = TRUE)
-}
-
-#### Table 7e - Seasonal Wildlands WUI
-if(!exists('s7e_final')) {
-  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(fire_frequency = n(),
-              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
-              fire_season_length = IQR(discovery_doy),
-              median_discovery_day = median(discovery_doy)) %>%
-    mutate_if(is.numeric, funs(round(., 3))) %>%
-    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
-           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
-  
-  tmp <- wuw_area %>% filter(class == 'Wildlands' & decadal == '2010')
-  
-  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(class_burned_area = sum(wui_area_km2)) %>%
-    mutate_if(is.numeric, funs(round(., 2))) %>%
-    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
-  
-  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-    filter(built_class == 'Residential') %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
-    group_by(seasons, ignition) %>%
-    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
-              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
-              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
-              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
-    ungroup() %>%
-    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
-           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
-           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
-           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
-    mutate_if(is.numeric, funs(round(., 2)))
-  
-  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
-    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
-    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
-    filter(cause != 'Unk') %>%
-    mutate(ignition = cause) %>%
-    group_by(seasons, ignition) %>%
-    summarise(costs = sum(costs)) %>%
-    ungroup() %>%
-    mutate(pct_costs = (costs/sum(costs))*100) %>%
-    mutate_if(is.numeric, funs(round(., 2))) 
-  
-  s7e_final <- t1 %>%
-    left_join(., t2, by = c('seasons', 'ignition')) %>%
-    left_join(., t3, by = c('seasons', 'ignition')) %>%
-    left_join(., t4, by = c('seasons', 'ignition')) %>%
-    tidyr::unite(size_class, seasons, ignition) %>%
-    tidyr::gather(var, value, -size_class) %>% 
-    tidyr::spread(size_class, value) %>%
-    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
-           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
-           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
-           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
-    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
-                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
-    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
-    slice(match(row_order_wclass, var))
-  
-  write.xlsx(s7e_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "S7e", append = TRUE)
-  
-}
-
-##### Table 8 - Regional by Fire Size Tables ---------------------------------------------------------
-#### Table 8a
-if(!exists('s8a_final')) {
+##### Table 5 - Regional by Fire Size Tables ---------------------------------------------------------
+#### Table 5a
+if(!exists('s5a_final')) {
   
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     mutate(fire_size = case_when(
@@ -1448,7 +740,7 @@ if(!exists('s8a_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s8a_final <- t1 %>%
+  s5a_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'region', 'ignition')) %>%
     left_join(., t3, by = c('fire_size', 'region','ignition')) %>%
     tidyr::unite(size_class, fire_size, region, ignition) %>%
@@ -1475,12 +767,12 @@ if(!exists('s8a_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s8a_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "s8a", append = TRUE)
+  write.xlsx(s5a_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s5a", append = TRUE)
 }
 
-#### Table 8b - Fire Size Interface WUI
-if(!exists('s8b_final')) {
+#### Table 5b - Fire Size Interface WUI
+if(!exists('s5b_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
     transform(class = factor(class, levels='Intermix WUI')) %>%
@@ -1552,7 +844,7 @@ if(!exists('s8b_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s8b_final <- t1 %>%
+  s5b_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'region', 'ignition')) %>%
     left_join(., t3, by = c('fire_size', 'region','ignition')) %>%
     left_join(., t4, by = c('fire_size', 'region','ignition')) %>%
@@ -1574,12 +866,12 @@ if(!exists('s8b_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s8b_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "s8b", append = TRUE)
+  write.xlsx(s5b_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s5b", append = TRUE)
 }
 
-#### Table 8c - Fire Size Intermix WUI
-if(!exists('s8c_final')) {
+#### Table 5c - Fire Size Intermix WUI
+if(!exists('s5c_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
     mutate(fire_size = case_when(
@@ -1647,7 +939,7 @@ if(!exists('s8c_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s8c_final <- t1 %>%
+  s5c_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'region','ignition')) %>%
     left_join(., t3, by = c('fire_size', 'region','ignition')) %>%
     left_join(., t4, by = c('fire_size', 'region','ignition')) %>%
@@ -1669,12 +961,12 @@ if(!exists('s8c_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s8c_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "s8c", append = TRUE)
+  write.xlsx(s5c_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s5c", append = TRUE)
 }
 
-#### Table 8d - Fire Size VLD WUI
-if(!exists('s8d_final')) {
+#### Table 5d - Fire Size VLD WUI
+if(!exists('s5d_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
     transform(class = factor(class, levels='VLD')) %>%
@@ -1746,7 +1038,7 @@ if(!exists('s8d_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s8d_final <- t1 %>%
+  s5d_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'region','ignition')) %>%
     left_join(., t3, by = c('fire_size', 'region','ignition')) %>%
     left_join(., t4, by = c('fire_size', 'region','ignition')) %>%
@@ -1772,12 +1064,12 @@ if(!exists('s8d_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s8d_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "s8d", append = TRUE)
+  write.xlsx(s5d_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s5d", append = TRUE)
 }
 
-#### Table 8e - Fire Size Wildlands WUI
-if(!exists('s8e_final')) {
+#### Table 5e - Fire Size Wildlands WUI
+if(!exists('s5e_final')) {
   t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
     transform(class = factor(class, levels='Wildlands')) %>%
@@ -1849,7 +1141,7 @@ if(!exists('s8e_final')) {
     mutate(pct_costs = (costs/sum(costs))*100) %>%
     mutate_if(is.numeric, funs(round(., 2))) 
   
-  s8e_final <- t1 %>%
+  s5e_final <- t1 %>%
     left_join(., t2, by = c('fire_size', 'region', 'ignition')) %>%
     left_join(., t3, by = c('fire_size', 'region', 'ignition')) %>%
     left_join(., t4, by = c('fire_size', 'region', 'ignition')) %>%
@@ -1877,11 +1169,721 @@ if(!exists('s8e_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s8e_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
-             sheetName = "s8e", append = TRUE)
+  write.xlsx(s5e_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s5e", append = TRUE)
   system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
   
 }
+
+
+##### Table 6 - Regional Tables ---------------------------------------------------------
+# Table6a Regional CONUS
+if(!exists('s6a_final')) {
+  
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    group_by(region, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    ungroup() %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100) %>%
+    mutate_if(is.numeric, funs(round(., 3))) 
+  
+  t2 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    group_by(region, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(region, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s6a_final <- t1 %>%
+    left_join(., t2, by = c('ignition', 'region')) %>%
+    left_join(., t3, by = c('ignition', 'region')) %>%
+    tidyr::unite(size_class, region, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
+           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
+           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
+    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s6a_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
+             sheetName = "s6a", append = TRUE)
+}
+
+#### Table6b - Regional Interface WUI
+if(!exists('s6b_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(region, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate_if(is.numeric, funs(round(., 3))) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
+  
+  tmp <- wuw_area %>% filter(class == 'Intermix WUI' & decadal == '2010')
+  
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(region, ignition) %>%
+    summarise(class_burned_area = sum(wui_area_km2)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
+  
+  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(region, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(region, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s6b_final <- t1 %>%
+    left_join(., t2, by = c('region', 'ignition')) %>%
+    left_join(., t3, by = c('region', 'ignition')) %>%
+    left_join(., t4, by = c('region', 'ignition')) %>%
+    tidyr::unite(size_class, region, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
+           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
+           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
+    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s6b_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
+             sheetName = "s6b", append = TRUE)
+}
+
+#### Table6c - Regional Interface WUI
+if(!exists('s6c_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(region, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate_if(is.numeric, funs(round(., 3))) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
+  
+  tmp <- wuw_area %>% filter(class == 'Interface WUI' & decadal == '2010')
+  
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(region, ignition) %>%
+    summarise(class_burned_area = sum(wui_area_km2)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
+  
+  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(region, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(region, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s6c_final <- t1 %>%
+    left_join(., t2, by = c('region', 'ignition')) %>%
+    left_join(., t3, by = c('region', 'ignition')) %>%
+    left_join(., t4, by = c('region', 'ignition')) %>%
+    tidyr::unite(size_class, region, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
+           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
+           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
+    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s6c_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
+             sheetName = "s6c", append = TRUE)
+}
+
+#### Table6d - Regional VLD WUI
+if(!exists('s6d_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+    group_by(region, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate_if(is.numeric, funs(round(., 3))) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
+  
+  tmp <- wuw_area %>% filter(class == 'VLD' & decadal == '2010')
+  
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+    group_by(region, ignition) %>%
+    summarise(class_burned_area = sum(wui_area_km2)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
+  
+  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+    group_by(region, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(region, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s6d_final <- t1 %>%
+    left_join(., t2, by = c('region', 'ignition')) %>%
+    left_join(., t3, by = c('region', 'ignition')) %>%
+    left_join(., t4, by = c('region', 'ignition')) %>%
+    tidyr::unite(size_class, region, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
+           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
+           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
+    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s6d_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
+             sheetName = "s6d", append = TRUE)
+}
+
+#### Table6e - Regional Wildlands WUI
+if(!exists('s6e_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+    group_by(region, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate_if(is.numeric, funs(round(., 3))) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
+  
+  tmp <- wuw_area %>% filter(class == 'Wildlands' & decadal == '2010')
+  
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+    group_by(region, ignition) %>%
+    summarise(class_burned_area = sum(wui_area_km2)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
+  
+  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+    group_by(region, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(region, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s6e_final <- t1 %>%
+    left_join(., t2, by = c('region', 'ignition')) %>%
+    left_join(., t3, by = c('region', 'ignition')) %>%
+    left_join(., t4, by = c('region', 'ignition')) %>%
+    tidyr::unite(size_class, region, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_east_human = round(East_Human/(East_Human + East_Lightning)*100,0),
+           pct_central_human = round(Central_Human/(Central_Human + Central_Lightning)*100,0),
+           pct_west_human = round(West_Human/(West_Human + West_Lightning)*100,0)) %>%
+    dplyr::select(var, East_Human, East_Lightning, pct_east_human, Central_Human, Central_Lightning, pct_central_human, West_Human, West_Lightning, pct_west_human) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s6e_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s6e", append = TRUE)
+}
+
+
+##### Table 7 - Seasonal Tables ---------------------------------------------------------
+#### Table 7a Seasonal CONUS
+if(!exists('s7a_final')) {
+  
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    group_by(seasons, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    ungroup() %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100) %>%
+    mutate_if(is.numeric, funs(round(., 3))) 
+  
+  t2 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    group_by(seasons, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(seasons, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s7a_final <- t1 %>%
+    left_join(., t2, by = c('ignition', 'seasons')) %>%
+    left_join(., t3, by = c('ignition', 'seasons')) %>%
+    tidyr::unite(size_class, seasons, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
+           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
+           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
+           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
+    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
+                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s7a_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s7a", append = TRUE)
+}
+
+#### Table 7b - Seasonal Interface WUI
+if(!exists('s7b_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate_if(is.numeric, funs(round(., 3))) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
+  
+  tmp <- wuw_area %>% filter(class == 'Interface WUI' & decadal == '2010')
+  
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(class_burned_area = sum(wui_area_km2)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
+  
+  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(seasons, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s7b_final <- t1 %>%
+    left_join(., t2, by = c('seasons', 'ignition')) %>%
+    left_join(., t3, by = c('seasons', 'ignition')) %>%
+    left_join(., t4, by = c('seasons', 'ignition')) %>%
+    tidyr::unite(size_class, seasons, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
+           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
+           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
+           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
+    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
+                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s7b_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s7b", append = TRUE)
+}
+
+#### Table 7c - Seasonal Intermix WUI
+if(!exists('s7c_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate_if(is.numeric, funs(round(., 3))) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
+  
+  tmp <- wuw_area %>% filter(class == 'Intermix WUI' & decadal == '2010')
+  
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(class_burned_area = sum(wui_area_km2)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
+  
+  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Interface WUI', 'VLD', 'Wildlands'))) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(seasons, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s7c_final <- t1 %>%
+    left_join(., t2, by = c('seasons', 'ignition')) %>%
+    left_join(., t3, by = c('seasons', 'ignition')) %>%
+    left_join(., t4, by = c('seasons', 'ignition')) %>%
+    tidyr::unite(size_class, seasons, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
+           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
+           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
+           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
+    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
+                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s7c_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s7c", append = TRUE)
+}
+
+#### Table 7d - Seasonal VLD WUI
+if(!exists('s7d_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate_if(is.numeric, funs(round(., 3))) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
+  
+  tmp <- wuw_area %>% filter(class == 'VLD' & decadal == '2010')
+  
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(class_burned_area = sum(wui_area_km2)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
+  
+  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'Wildlands'))) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(seasons, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s7d_final <- t1 %>%
+    left_join(., t2, by = c('seasons', 'ignition')) %>%
+    left_join(., t3, by = c('seasons', 'ignition')) %>%
+    left_join(., t4, by = c('seasons', 'ignition')) %>%
+    tidyr::unite(size_class, seasons, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
+           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
+           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
+           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
+    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
+                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s7d_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s7d", append = TRUE)
+}
+
+#### Table 7e - Seasonal Wildlands WUI
+if(!exists('s7e_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2, na.rm = TRUE),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate_if(is.numeric, funs(round(., 3))) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100)
+  
+  tmp <- wuw_area %>% filter(class == 'Wildlands' & decadal == '2010')
+  
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(class_burned_area = sum(wui_area_km2)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    mutate(pct_class_burned_area = class_burned_area/(tmp$total_class_area)*100)
+  
+  t3 <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+    group_by(seasons, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%  
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t4 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    mutate(seasons = as.factor(classify_seasons(start_doy))) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other', 'Intermix WUI', 'Interface WUI', 'VLD'))) %>%
+    filter(cause != 'Unk') %>%
+    mutate(ignition = cause) %>%
+    group_by(seasons, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    ungroup() %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s7e_final <- t1 %>%
+    left_join(., t2, by = c('seasons', 'ignition')) %>%
+    left_join(., t3, by = c('seasons', 'ignition')) %>%
+    left_join(., t4, by = c('seasons', 'ignition')) %>%
+    tidyr::unite(size_class, seasons, ignition) %>%
+    tidyr::gather(var, value, -size_class) %>% 
+    tidyr::spread(size_class, value) %>%
+    mutate(pct_human_spring = round(Spring_Human/(Spring_Human+Spring_Lightning)*100,0),
+           pct_human_summer = round(Summer_Human/(Summer_Human+Summer_Lightning)*100,0),
+           pct_human_fall = round(Fall_Human/(Fall_Human+Fall_Lightning)*100,0),
+           pct_human_winter = round(Winter_Human/(Winter_Human+Winter_Lightning)*100,0)) %>%
+    dplyr::select(var, Spring_Human, Spring_Lightning, pct_human_spring, Summer_Human, Summer_Lightning, pct_human_summer,
+                  Fall_Human, Fall_Lightning, pct_human_fall, Winter_Human, Winter_Lightning, pct_human_winter) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(row_order_wclass, var))
+  
+  write.xlsx(s7e_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+             sheetName = "s7e", append = TRUE)
+  
+}
+
+##### Table 8 - Risk Tables ---------------------------------------------------------
+# Table 8a - CONUS Asses the risk of homes by ignition type regardless of class type
+if(!exists('s8a_final')) {
+  
+  s8a_final <- as.data.frame(bu_ics_cleaned) %>%
+    filter(built_class != 'Non-Residential') %>%
+    droplevels() %>%
+    filter(cause != 'Unk') %>%
+    mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
+    group_by(cause, at_risk) %>%
+    summarise(fire_frequency = n(),
+              wildfire_area = sum(area_km2),
+              costs = sum(costs),
+              risky_built_up = sum(build_up_count_no_zero)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    tidyr::unite(cause_risk, cause, at_risk) %>%
+    tidyr::gather(var, value, -cause_risk) %>% 
+    tidyr::spread(cause_risk, value) %>%
+    mutate(pct_human_risky = round(`Human_At risk`/(`Human_At risk` + `Human_Not at risk`)*100,0)) %>%
+    dplyr::select(var, `Human_At risk`, `Human_Not at risk`, `Lightning_At risk`, `Lightning_Not at risk`, pct_human_risky) %>%
+    slice(match(raw_order_risky, var))
+  
+  write.xlsx(s8a_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
+             sheetName = "s8a", append = TRUE)
+}
+
+#### Table 8b
+# Asses the risk of homes by ignition type AND WUI, VLD, and Wildlands only
+if(!exists('s8b_final')) {
+  
+  s8b_final <- bu_ics_cleaned %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    filter(built_class != 'Non-Residential') %>%
+    droplevels() %>%
+    filter(cause != 'Unk') %>%
+    mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
+    group_by(class, cause, at_risk) %>%
+    summarise(fire_frequency = n(),
+              wildfire_area = sum(area_km2),
+              costs = sum(costs),
+              risky_built_up = sum(build_up_count_no_zero)) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
+    tidyr::unite(ignition_class, class, cause, at_risk) %>%
+    tidyr::gather(var, value, -ignition_class) %>% 
+    tidyr::spread(ignition_class, value) %>%
+    mutate(pct_human_interface_risky = round(`Interface WUI_Human_At risk`/(`Interface WUI_Human_At risk` + `Interface WUI_Human_Not at risk`)*100,0),
+           pct_human_intermix_risky = round(`Intermix WUI_Human_At risk`/(`Intermix WUI_Human_At risk` + `Intermix WUI_Human_Not at risk`)*100,0),
+           pct_human_vld_risky = round(`VLD_Human_At risk`/(`VLD_Human_At risk` + `VLD_Human_Not at risk`)*100,0),
+           pct_human_wildlands_risky = round(`Wildlands_Human_At risk`/(`Wildlands_Human_At risk` + `Wildlands_Human_Not at risk`)*100,0)) %>%
+    dplyr::select(var, `Interface WUI_Human_At risk`, `Interface WUI_Human_Not at risk`, `Interface WUI_Lightning_At risk`, `Interface WUI_Lightning_Not at risk`, pct_human_interface_risky,  
+                  `Intermix WUI_Human_At risk`, `Intermix WUI_Human_Not at risk`, `Intermix WUI_Lightning_At risk`, `Intermix WUI_Lightning_Not at risk`, pct_human_intermix_risky, 
+                  `VLD_Human_At risk`, `VLD_Human_Not at risk`, `VLD_Lightning_At risk`, `VLD_Lightning_Not at risk`, pct_human_vld_risky,
+                  `Wildlands_Human_At risk`, `Wildlands_Human_Not at risk`, `Wildlands_Lightning_At risk`, `Wildlands_Lightning_Not at risk`, pct_human_wildlands_risky) %>%
+    mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
+    slice(match(raw_order_risky, var))
+  
+  write.xlsx(s8b_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
+             sheetName = "s8b", append = TRUE)
+}
+
 
 ##### Table 9 - Mean values to accompany Fig S7 ---------------------------------------------------------
 if(!exists('s9a_final')) {

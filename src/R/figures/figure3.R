@@ -21,3 +21,4 @@ doy_east_west <- shrt_doy %>%
   facet_wrap(region ~ class_coarse, ncol = 2)
 
 ggsave(file.path(main_text_figs, "figure3.tiff"), doy_east_west, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

@@ -23,5 +23,4 @@ p1 <- df %>%
   theme(legend.position = 'none')
 
 ggsave(file.path(supplements_text_figs, "figureS6.tiff"), p1, width = 7, height = 7, dpi = 1200, scale = 3, units = "cm") #saves g
-
-system(paste0("aws s3 sync figs s3://earthlab-natem/human-ignitions-wui/figs"))
+system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

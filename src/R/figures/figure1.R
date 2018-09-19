@@ -77,4 +77,5 @@ grid.arrange(p1, p2, p3, nrow = 1)
 g <- arrangeGrob(p1, p2, p3, nrow = 1) #generates g
 
 ggsave(file.path(main_text_figs, "figure1.tiff"), g, width = 14, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
+system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
 
