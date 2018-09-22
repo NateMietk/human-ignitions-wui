@@ -189,9 +189,18 @@ if(!file.exists(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))) {
 
 if(!file.exists(file.path(rmarkdown_files, 'ics209_bae_df.rds'))) {
   ics209_bae_df <- as_tibble(as.data.frame(ics209_bae)) %>%
-    dplyr::select(-c(geometry)) %>%
+    dplyr::select(-c(geom)) %>%
     write_rds(file.path(rmarkdown_files, 'ics209_bae_df.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
 } else {
   ics209_bae_df <- read_rds(file.path(rmarkdown_files, 'ics209_bae_df.rds'))
+}
+
+if(!file.exists(file.path(rmarkdown_files, 'ics209_bae_250m_df.rds'))) {
+  ics209_bae_250m_df <- as_tibble(as.data.frame(ics209_bae_250m)) %>%
+    dplyr::select(-c(geom)) %>%
+    write_rds(file.path(rmarkdown_files, 'ics209_bae_250m_df.rds'))
+  system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+} else {
+  ics209_bae_250m_df <- read_rds(file.path(rmarkdown_files, 'ics209_bae_250m_df.rds'))
 }

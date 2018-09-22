@@ -336,7 +336,7 @@ if(!exists('s4a_final')) {
     slice(match(row_order_wclass, var))
   
   write.xlsx(s4a_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
-             sheetName = "s4a", append = TRUE)
+             sheetName = "s4a")
 }
 
 #### Table 4b - Fire Size Interface WUI
@@ -684,7 +684,6 @@ if(!exists('s4e_final')) {
   
   write.xlsx(s4e_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
              sheetName = "s4e", append = TRUE)
-  system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
 }
 
 ##### Table 5 - Regional by Fire Size Tables ---------------------------------------------------------
@@ -767,7 +766,7 @@ if(!exists('s5a_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5a_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+  write.xlsx(s5a_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"),  
              sheetName = "s5a", append = TRUE)
 }
 
@@ -866,7 +865,7 @@ if(!exists('s5b_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5b_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+  write.xlsx(s5b_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"),  
              sheetName = "s5b", append = TRUE)
 }
 
@@ -961,7 +960,7 @@ if(!exists('s5c_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5c_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+  write.xlsx(s5c_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"),  
              sheetName = "s5c", append = TRUE)
 }
 
@@ -1064,7 +1063,7 @@ if(!exists('s5d_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5d_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+  write.xlsx(s5d_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"),  
              sheetName = "s5d", append = TRUE)
 }
 
@@ -1169,7 +1168,7 @@ if(!exists('s5e_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(row_order_wclass, var))
   
-  write.xlsx(s5e_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"),  
+  write.xlsx(s5e_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"),  
              sheetName = "s5e", append = TRUE)
   system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
   
@@ -1228,7 +1227,7 @@ if(!exists('s6a_final')) {
     slice(match(row_order_wclass, var))
   
   write.xlsx(s6a_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
-             sheetName = "s6a", append = TRUE)
+             sheetName = "s6a")
 }
 
 #### Table6b - Regional Interface WUI
@@ -1845,7 +1844,7 @@ if(!exists('s8a_final')) {
     dplyr::select(var, `Human_At risk`, `Human_Not at risk`, `Lightning_At risk`, `Lightning_Not at risk`, pct_human_risky) %>%
     slice(match(raw_order_risky, var))
   
-  write.xlsx(s8a_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
+  write.xlsx(s8a_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
              sheetName = "s8a", append = TRUE)
 }
 
@@ -1880,8 +1879,10 @@ if(!exists('s8b_final')) {
     mutate_if(is.numeric, funs(as.character(signif(., 9)))) %>%
     slice(match(raw_order_risky, var))
   
-  write.xlsx(s8b_final, file = file.path(figs_dir, "supplemental_tables_raw_4_5.xlsx"), 
+  write.xlsx(s8b_final, file = file.path(figs_dir, "supplemental_tables_raw_6_8.xlsx"), 
              sheetName = "s8b", append = TRUE)
+  system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
+  
 }
 
 
@@ -1915,7 +1916,7 @@ if(!exists('s9a_final')) {
     spread(inter, fseason_mean)
   
   write.xlsx(as.data.frame(s9a_final), file = file.path(figs_dir,"supplemental_tables_raw_9_13.xlsx"), 
-             sheetName = "S9a", append = TRUE)
+             sheetName = "S9a")
   write.xlsx(as.data.frame(s9b_final), file = file.path(figs_dir,"supplemental_tables_raw_9_13.xlsx"), 
              sheetName = "S9b", append = TRUE)
 }
@@ -2040,7 +2041,7 @@ if(!exists('s11_final')) {
            pct_human_intermix = round(`Intermix WUI_Human`/(`Intermix WUI_Human` + `Intermix WUI_Lightning`)*100,0),
            pct_human_vld = round(VLD_Human/(VLD_Human + VLD_Lightning)*100,0),
            pct_human_wildlands = round(Wildlands_Human/(Wildlands_Human + Wildlands_Lightning)*100,0)) %>%
-    dplyr::select(var, `Intermix WUI_Human`, `Intermix WUI_Lightning`, pct_human_intermix,
+    dplyr::select(var, stusps, `Intermix WUI_Human`, `Intermix WUI_Lightning`, pct_human_intermix,
                   `Interface WUI_Human`, `Interface WUI_Lightning`, pct_human_interface, 
                   VLD_Human, VLD_Lightning, pct_human_vld,
                   Wildlands_Human, Wildlands_Lightning, pct_human_wildlands) %>%
@@ -2051,49 +2052,160 @@ if(!exists('s11_final')) {
              sheetName = "S11", append = TRUE)
 }
 
-##### Table 12 - Total Class totals per state ---------------------------------------------------------
-if(!exists('wui_class_area_tbl')) {
+##### Table 12 - Ecoregion Total across classes ---------------------------------------------------------
+if(!exists('s12_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    mutate(us_l3name = tolower(us_l3name),
+           us_l3name = capitalize(us_l3name)) %>%
+    group_by(us_l3name, class) %>%    
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100) %>%
+    mutate_if(is.numeric, funs(round(., 2)))
   
-  s12_final <- as.data.frame(wui_class_area) %>%
-    group_by(stusps, class10) %>%
-    summarise(total_class_area = sum(total_class_area)) %>%
-    ungroup() %>%
-    mutate(State = stusps,
-           Class = class10,
-           Area_km2 = total_class_area) %>%
-    dplyr::select(State, Class, Area_km2) %>%
-    arrange(State, factor(Class, levels = c("High Urban", "Med Urban", "Low Urban", 'Intermix WUI', 
-                                            'Interface WUI', 'VLD', 'Wildlands', 'Other'))) 
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    mutate(us_l3name = tolower(us_l3name),
+           us_l3name = capitalize(us_l3name)) %>%
+    group_by(us_l3name, class) %>%    
+    summarise(class_burned_area = sum(wui_area_km2),
+              total_class_area = first(total_class_area)) %>%
+    mutate(pct_class_burned_area = (class_burned_area/total_class_area)*100) %>%
+    mutate_if(is.numeric, funs(round(., 2)))
+  
+  t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    mutate(us_l3name = tolower(us_l3name),
+           us_l3name = capitalize(us_l3name)) %>%
+    group_by(us_l3name, class) %>%    
+    summarise(costs = sum(costs)) %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  t4 <- as.data.frame(bu_complete_cleaned) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    mutate(us_l3name = tolower(us_l3name),
+           us_l3name = capitalize(us_l3name)) %>%
+    group_by(us_l3name, class) %>%    
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s12_final <- t1 %>%
+    left_join(., t2, by = c('class', 'us_l3name')) %>%
+    left_join(., t3, by = c('class', 'us_l3name')) %>%
+    left_join(., t4, by = c('class', 'us_l3name')) %>%
+    tidyr::gather(var, value, -us_l3name, -class) %>% 
+    tidyr::spread(class, value) %>%
+    slice(match(row_order_for_class, var)) %>%
+    mutate_if(~ any(is.na(.x)),~ if_else(is.na(.x),0,.x))
   
   write.xlsx(as.data.frame(s12_final), file = file.path(figs_dir,"supplemental_tables_raw_9_13.xlsx"), 
-             sheetName = "S12", append = TRUE)
+             sheetName = "s12", append = TRUE)
 }
 
-##### Table 13 - Total Class totals per level 3 ecoregion ---------------------------------------------------------
-if(!exists('wui_class_area_tbl')) {
-  ecored_prep <- as.data.frame(ecoreg_plain) %>%
-    dplyr::select(us_l3name, na_l1name)
+##### Table 13 - Ecoregions Total across classes and ignition---------------------------------------------------------
+if(!exists('s13_final')) {
+  t1 <- as_tibble(as.data.frame(fpa_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    mutate(us_l3name = tolower(us_l3name),
+           us_l3name = as.factor(capitalize(us_l3name))) %>%
+    group_by(us_l3name, class, ignition) %>%    
+    summarise(fire_frequency = n(),
+              wildfire_burned_area = sum(fire_size_km2),
+              fire_season_length = IQR(discovery_doy),
+              median_discovery_day = median(discovery_doy)) %>%
+    mutate(pct_frequency = fire_frequency/sum(fire_frequency)*100,
+           pct_burned_area = wildfire_burned_area/sum(wildfire_burned_area)*100) %>%
+    mutate_if(is.numeric, funs(round(., 2)))
   
-  s13_final <- as.data.frame(wui_class_area) %>%
-    left_join(., ecored_prep, by = 'us_l3name') %>%
-    group_by(na_l1name, us_l3name, class10) %>%
-    summarise(total_class_area = sum(total_class_area)) %>%
+   tmp <- ungroup(wui_ecol3name_sum) %>% 
+    mutate(us_l3name = tolower(us_l3name),
+           us_l3name = as.factor(capitalize(us_l3name)),
+           class = as.factor(class)) %>%
+    filter(year == '2010') %>% 
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    dplyr::select(-year) %>%
+    group_by(us_l3name, class) %>%
+    summarise(total_ecol3name_area = sum(total_ecol3name_area))
+    
+  t2 <- as_tibble(as.data.frame(fpa_bae_wui_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    mutate(us_l3name = tolower(us_l3name),
+           us_l3name = as.factor(capitalize(us_l3name))) %>%
+    group_by(us_l3name, class, ignition) %>%
+    summarise(class_burned_area = sum(wui_area_km2)) %>%
+    left_join(., tmp, by = c('us_l3name', 'class')) %>%
+    mutate(pct_class_burned_area = (class_burned_area/total_ecol3name_area)*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) %>%
     ungroup() %>%
-    mutate(Lvl1_Ecopregion = na_l1name,
-           Lvl3_Ecoregion = us_l3name,
-           Class = class10,
-           Area_km2 = total_class_area) %>%
-    dplyr::select(Lvl1_Ecopregion, Lvl3_Ecoregion, Class, Area_km2) %>%
-    arrange(Lvl3_Ecoregion, factor(Class, levels = c("High Urban", "Med Urban", "Low Urban", 'Intermix WUI', 
-                                                     'Interface WUI', 'VLD', 'Wildlands', 'Other'))) 
+    mutate(class = as.factor(class))
+  
+  t3 <- as_tibble(as.data.frame(wui_209_df)) %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    mutate(us_l3name = tolower(us_l3name),
+           us_l3name = as.factor(capitalize(us_l3name)),
+           ignition = as.factor(cause)) %>%
+    group_by(us_l3name, class, ignition) %>%
+    summarise(costs = sum(costs)) %>%
+    mutate(pct_costs = (costs/sum(costs))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  t4 <- as.data.frame(bu_complete_cleaned) %>%
+    filter(built_class == 'Residential') %>%
+    filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+    transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+    mutate(us_l3name = tolower(us_l3name),
+           us_l3name = as.factor(capitalize(us_l3name))) %>%
+    group_by(us_l3name, class, ignition) %>%
+    summarise(build_up_count_0 = sum(build_up_count_no_zero_0, na.rm = TRUE),
+              build_up_count_250 = sum(build_up_count_no_zero_250, na.rm = TRUE),
+              build_up_count_500 = sum(build_up_count_no_zero_500, na.rm = TRUE),
+              build_up_count_1000 = sum(build_up_count_no_zero_1000, na.rm = TRUE)) %>%
+    mutate(pt_build_up_count_0 = (build_up_count_0/sum(build_up_count_0))*100,
+           pt_build_up_count_250 = (build_up_count_250/sum(build_up_count_250))*100,
+           pt_build_up_count_500 = (build_up_count_500/sum(build_up_count_500))*100,
+           pt_build_up_count_1000 = (build_up_count_1000/sum(build_up_count_1000))*100) %>%
+    mutate_if(is.numeric, funs(round(., 2))) 
+  
+  s13_final <- t1 %>%
+    left_join(., t2, by = c('class', 'us_l3name', 'ignition')) %>%
+    left_join(., t3, by = c('class', 'us_l3name', 'ignition')) %>%
+    left_join(., t4, by = c('class', 'us_l3name', 'ignition')) %>%
+    tidyr::unite(ignition_class, class, ignition) %>%
+    tidyr::gather(var, value, -us_l3name, -ignition_class) %>% 
+    tidyr::spread(ignition_class, value) %>%
+    mutate(pct_human_interface = round(`Interface WUI_Human`/(`Interface WUI_Human` + `Interface WUI_Lightning`)*100,0),
+           pct_human_intermix = round(`Intermix WUI_Human`/(`Intermix WUI_Human` + `Intermix WUI_Lightning`)*100,0),
+           pct_human_vld = round(VLD_Human/(VLD_Human + VLD_Lightning)*100,0),
+           pct_human_wildlands = round(Wildlands_Human/(Wildlands_Human + Wildlands_Lightning)*100,0)) %>%
+    dplyr::select(us_l3name, var, `Intermix WUI_Human`, `Intermix WUI_Lightning`, pct_human_intermix,
+                  `Interface WUI_Human`, `Interface WUI_Lightning`, pct_human_interface, 
+                  VLD_Human, VLD_Lightning, pct_human_vld,
+                  Wildlands_Human, Wildlands_Lightning, pct_human_wildlands) %>%
+    slice(match(row_order_for_class, var)) %>%
+    mutate_if(~ any(is.na(.x)),~ if_else(is.na(.x),0,.x))
   
   write.xlsx(as.data.frame(s13_final), file = file.path(figs_dir,"supplemental_tables_raw_9_13.xlsx"), 
-             sheetName = "S13", append = TRUE)
+             sheetName = "s13", append = TRUE)
   system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
   
 }
-
-
-
-
-

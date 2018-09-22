@@ -21,63 +21,6 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))) {
   bu_ics_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))
 }
 
-# WUI just 1990, 2000, 2010
-if (!file.exists(file.path(rmarkdown_files, 'bu_wui_cleaned.rds'))) {
-  
-  bu_wui_cleaned <- ungroup(read_rds(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds'))) %>%
-    filter(year %in% c(0, 1990, 2000, 2010)) %>%
-    group_by(blk10, built_class) %>%
-    arrange(desc(blk10, built_class, year)) %>%
-    mutate(build_up_count_no_zero = build_up_count - first(build_up_count),
-           build_up_intensity_sqm_no_zero = build_up_intensity_sqm - first(build_up_intensity_sqm)) %>%
-    ungroup() %>%
-    mutate(blk10 = as.factor(blk10),
-           year = as.integer(year))
-  
-  bu_wui_cleaned <- wui_df  %>%
-    dplyr::select(blk10, class90, class00, class10, house_units_1990, house_units_2000, house_units_2010) %>%
-    left_join(., bu_wui_cleaned, by = "blk10") %>%
-    mutate(class = case_when(
-      year == 0 ~ as.character(class90),
-      year == 1990 ~ as.character(class90),
-      year == 2000 ~ as.character(class00),
-      year == 2010 ~ as.character(class10), TRUE ~ NA_character_),
-      house_units = case_when(
-        year == 0 ~ house_units_1990,
-        year == 1990 ~ house_units_1990,
-        year == 2000 ~ house_units_2000,
-        year == 2010 ~ house_units_2010, TRUE ~ NA_integer_)) %>%
-    dplyr::select(blk10, year, class, built_class, build_up_count, build_up_intensity_sqm, 
-                  build_up_count_no_zero, build_up_intensity_sqm_no_zero, house_units) %>%
-    mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
-    na.omit(built_class, class)
-  
-  bu_wui_cleaned_slim <- bu_wui_cleaned  %>%
-    mutate(built_class = ifelse(is.na(built_class), 'No Structures', as.character(built_class))) %>%
-    dplyr::select(blk10, year, class, house_units) %>%
-    mutate(SILVIS = 'SILVIS') %>%
-    gather(key = built_class, value = build_up_count, -blk10, -year, -class) %>%
-    filter(built_class != 'SILVIS') %>%
-    mutate(built_class = 'SILVIS',
-           build_up_count = as.numeric(build_up_count),
-           build_up_intensity_sqm = 0,
-           build_up_count_no_zero = 0,
-           build_up_intensity_sqm_no_zero = 0) 
-  
-  bu_wui_cleaned <- bu_wui_cleaned %>%
-    dplyr::select(-house_units) %>%
-    bind_rows(list(., bu_wui_cleaned_slim)) %>%
-    mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
-    arrange(desc(blk10, class, year, built_class))
-  
-  write_rds(bu_wui_cleaned, file.path(rmarkdown_files, 'bu_wui_cleaned.rds'))
-  system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
-  
-} else {
-  
-  bu_wui_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_wui_cleaned.rds'))
-}
-
 # WUI all years
 if (!file.exists(file.path(rmarkdown_files, 'bu_wui_cleaned_validation.rds'))) {
   # This cleaning needs a 240 GB RAM machine and takes ~24 hours
