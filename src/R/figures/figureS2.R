@@ -106,14 +106,37 @@ conus_ics <- left_join(fs50_df, ics_density, by = "fishid50k") %>%
          lat = coords.x2) %>%
   dplyr::select(-coords.x1, -coords.x2) 
 
-p1 <- conus_ff %>%
+p1 <- conus_bu %>%
+  na.omit() %>%
+  filter(class %in% c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands')) %>%
+  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
+  filter(n_den >= 1) %>%
+  mutate(buckets = bucket(n_den, 10)) %>%
+  transform(ptsz_n = factor(ptsz_n, levels=c("0 - 25", "25 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
+  ggplot() +
+  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
+               color='black', fill = "gray97", size = .25) +
+  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
+  coord_equal() +
+  scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
+  scale_size_discrete(range = c(.2, 1), name="Homes threatened") +
+  theme_nothing(legend = TRUE) +
+  # ggtitle('(C) Homes threatened') +
+  theme(plot.title = element_text(hjust = 0, size = 12),
+        strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+        legend.key = element_rect(fill = "white")) +
+  facet_grid(~class)
+
+p2 <- conus_ff %>%
   filter(class %in% c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands')) %>%
   transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
   filter(n_den >= 1) %>%
   mutate(buckets = bucket(n_den, 10)) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
   ggplot() +
-  geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray99", size = .25)+
+  geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray97", size = .25)+
   geom_point(aes(x = coords.x1, y = coords.x2,
                  colour = factor(buckets), size = ptsz_n), stroke = 0) +
   coord_equal() +
@@ -128,7 +151,7 @@ p1 <- conus_ff %>%
         legend.key = element_rect(fill = "white")) +
   facet_grid(~class)
 
-p2 <- conus_burn_area %>%
+p3 <- conus_burn_area %>%
   na.omit() %>%
   filter(class %in% c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands')) %>%
   transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
@@ -137,10 +160,10 @@ p2 <- conus_burn_area %>%
   transform(frsz_cl = factor(frsz_cl, levels=c("0-4", "4-100", "100-400", "400-1000", ">1000"))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
-               color='black', fill = "gray99", size = .25) +
+               color='black', fill = "gray97", size = .25) +
   geom_point(aes(x = long, y = lat, colour = factor(pct_class_human), size = frsz_cl), stroke = 0) +
   coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
+  scale_colour_manual(values = rev(brewer.pal(7,"RdYlBu"))) +
   scale_size_discrete(range = c(0.2, 1), name = "# Fires") +
   theme_nothing(legend = TRUE) +
   # ggtitle('(B) Percent class burned')+
@@ -151,7 +174,7 @@ p2 <- conus_burn_area %>%
         legend.key = element_rect(fill = "white")) +
   facet_grid(~class)
 
-p3 <- conus_burn_area %>%
+p4 <- conus_burn_area %>%
   na.omit() %>%
   filter(class %in% c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands')) %>%
   transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
@@ -160,36 +183,13 @@ p3 <- conus_burn_area %>%
   transform(frsz_cl = factor(frsz_cl, levels=c("0-4", "4-100", "100-400", "400-1000", ">1000"))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
-               color='black', fill = "gray99", size = .25) +
+               color='black', fill = "gray97", size = .25) +
   geom_point(aes(x = long, y = lat, colour = factor(pct_class_lightning), size = frsz_cl), stroke = 0) +
   coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
+  scale_colour_manual(values = rev(brewer.pal(7,"RdYlBu"))) +
   scale_size_discrete(range = c(0.2, 1), name = "# Fires") +
   theme_nothing(legend = TRUE) +
   # ggtitle('(B) Percent class burned')+
-  theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background = element_blank(),
-        strip.text.x = element_blank(),
-        strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white")) +
-  facet_grid(~class)
-
-p4 <- conus_bu %>%
-  na.omit() %>%
-  filter(class %in% c('Intermix WUI', 'Interface WUI', "VLD", 'Wildlands')) %>%
-  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
-  filter(n_den >= 1) %>%
-  mutate(buckets = bucket(n_den, 10)) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("0 - 25", "25 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
-               color='black', fill = "gray99", size = .25) +
-  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
-  coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
-  scale_size_discrete(range = c(.2, 1), name="Homes threatened") +
-  theme_nothing(legend = TRUE) +
-  # ggtitle('(C) Homes threatened') +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
         strip.text.x = element_blank(),

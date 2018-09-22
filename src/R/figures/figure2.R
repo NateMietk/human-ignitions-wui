@@ -113,14 +113,35 @@ conus_ics <- left_join(fs50_df, ics_density, by = "fishid50k") %>%
          lat = coords.x2) %>%
   dplyr::select(-coords.x1, -coords.x2) 
 
-p1 <- conus_ff %>%
+p1 <- conus_bu %>%
+  na.omit() %>%
+  filter(class_coarse == "WUI") %>%
+  filter(n_den >= 1) %>%
+  mutate(buckets = bucket(n_den, 10)) %>%
+  transform(ptsz_n = factor(ptsz_n, levels=c("0 - 25", "25 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
+  ggplot() +
+  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
+               color='black', fill = "gray97", size = .50) +
+  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
+  coord_equal() +
+  scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
+  scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
+  theme_nothing(legend = TRUE) +
+  # ggtitle('(C) Homes threatened') +
+  theme(plot.title = element_text(hjust = 0, size = 12),
+        strip.background=element_blank(),
+        strip.text.x = element_text(size = 12, face = "bold"),
+        strip.text.y = element_text(size = 12),
+        legend.key = element_rect(fill = "white"))
+
+p2 <- conus_ff %>%
   filter(class_coarse == "WUI") %>%
   filter(n_den >= 1) %>%
   mutate(buckets = bucket(n_den, 10)) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
   transform(class = factor(class_coarse, levels=c("WUI", "Wildlands"))) %>%
   ggplot() +
-  geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray99", size = .50)+
+  geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray97", size = .50)+
   geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
   coord_equal() +
   scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
@@ -133,7 +154,7 @@ p1 <- conus_ff %>%
         strip.text.y = element_text(size = 12),
         legend.key = element_rect(fill = "white"))
 
-p2 <- conus_burn_area %>%
+p3 <- conus_burn_area %>%
   na.omit() %>%
   filter(class_coarse == "WUI") %>%
   transform(class_coarse = factor(class_coarse, levels=c("WUI", "VLD", "Wildlands"))) %>%
@@ -142,10 +163,10 @@ p2 <- conus_burn_area %>%
   transform(frsz_cl = factor(frsz_cl, levels=c("0-4", "4-100", "100-400", "400-1000", ">1000"))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
-               color='black', fill = "gray99", size = .50) +
+               color='black', fill = "gray97", size = .50) +
   geom_point(aes(x = long, y = lat, colour = factor(pct_class), size = frsz_cl), stroke = 0) +
   coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(7,"Spectral"))) +
+  scale_colour_manual(values = rev(brewer.pal(7,"RdYlBu"))) +
   scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
   theme_nothing(legend = TRUE) +
   # ggtitle('(B) Percent class burned')+
@@ -154,27 +175,6 @@ p2 <- conus_burn_area %>%
         strip.text.x = element_blank(),
         strip.text.y = element_blank(),
         legend.key = element_rect(fill = "white")) 
-
-p3 <- conus_bu %>%
-  na.omit() %>%
-  filter(class_coarse == "WUI") %>%
-  filter(n_den >= 1) %>%
-  mutate(buckets = bucket(n_den, 10)) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("0 - 25", "25 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
-               color='black', fill = "gray99", size = .50) +
-  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
-  coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(11,"RdYlBu"))) +
-  scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
-  theme_nothing(legend = TRUE) +
-  # ggtitle('(C) Homes threatened') +
-  theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background=element_blank(),
-        strip.text.x = element_text(size = 12, face = "bold"),
-        strip.text.y = element_text(size = 12),
-        legend.key = element_rect(fill = "white"))
 
 p1l <- p1 + theme(legend.position="none")
 p2l <- p2 + theme(legend.position="none")
