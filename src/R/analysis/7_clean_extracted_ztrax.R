@@ -21,6 +21,29 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))) {
   bu_ics_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))
 }
 
+# ICS 209 250m buffer
+if (!file.exists(file.path(rmarkdown_files, 'bu_ics_250m_cleaned.rds'))) {
+  
+  bu_ics_250m_cleaned <- read_rds(file.path(dir_cleaned_ics_250m_ztrax_rds, 'all_cleaned_ics_250m_built_up.rds')) %>%
+    mutate(start_year = year) %>%
+    group_by(incident_unique_id, built_class) %>%
+    arrange(desc(incident_unique_id, built_class, year)) %>%
+    mutate(build_up_count_no_zero = build_up_count - first(build_up_count),
+           build_up_intensity_sqm_no_zero = build_up_intensity_sqm - first(build_up_intensity_sqm)) %>%
+    ungroup() %>%
+    left_join(wui_209, ., by = c('start_year', 'incident_unique_id')) %>%
+    mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
+    mutate(built_class = ifelse(is.na(built_class), 'No Structures', as.character(built_class))) %>%
+    dplyr::select(-year)
+  
+  write_rds(bu_ics_250m_cleaned, file.path(rmarkdown_files, 'bu_ics_250m_cleaned.rds'))
+  system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+  
+} else {
+  
+  bu_ics_250m_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_250m_cleaned.rds'))
+}
+
 # WUI all years
 if (!file.exists(file.path(rmarkdown_files, 'bu_wui_cleaned_validation.rds'))) {
   # This cleaning needs a 240 GB RAM machine and takes ~24 hours

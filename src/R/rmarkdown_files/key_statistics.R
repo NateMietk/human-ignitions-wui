@@ -5,7 +5,8 @@ library(kableExtra)
 library(mblm)
 
 fpa_wui_df <- read_rds(file.path(rmarkdown_files, 'fpa_wui_df.rds'))
-fpa_bae_wui_df <- read_rds(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))
+fpa_bae_wui_df <- read_rds(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds')) %>%
+  left_join(., wuw_area, by = c('class', 'decadal'))
 wui_209_df <- read_rds(file.path(rmarkdown_files, "wui_209_df.rds"))
 bu_complete_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
 bu_ics_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))
@@ -171,13 +172,11 @@ as_tibble(as.data.frame(bu_complete_cleaned)) %>%
 
 # Average cost per fire in the WUI
 as_tibble(as.data.frame(wui_209_df)) %>%
-  filter((class %in% c('Interface WUI', 'Intermix WUI'))) %>%
-  filter(cause != 'Unk') %>% 
-  group_by(start_year, cause) %>%
-  summarise(freq = sum(area_km2),
+  filter((class_coarse %in% c('Wildlands'))) %>%
+  group_by(cause, start_year) %>%
+  summarise(freq = n(),
             costs = sum(costs),
             cost_per_fire = costs/freq) %>%
-  mutate(cause = as.factor(cause)) %>%
   group_by(cause) %>%
   do(data.frame(rbind(smean.cl.boot(.$cost_per_fire, B = 10000)))) %>%
   mutate(average_cost_per_fire = round(Mean, 4),
@@ -186,22 +185,22 @@ as_tibble(as.data.frame(wui_209_df)) %>%
   dplyr::select(-Mean, -Lower, -Upper)
 
 mtbs_fitted_0 <- as_tibble(as.data.frame(wui_209_df)) %>%
-  filter((class %in% c('Interface WUI', 'Intermix WUI'))) %>%
+  filter((class_coarse %in% c('VLD'))) %>%
   droplevels() %>%
   group_by(start_year) %>%
   summarise(costs = sum(costs, na.rm = TRUE)) 
 
 # Human cost per km2 in east vs west
 as_tibble(as.data.frame(wui_209_df)) %>%
-  filter((class %in% c('Interface WUI', 'Intermix WUI'))) %>%
+  filter((class_coarse %in% c('Wildlands'))) %>%
   filter(cause != 'Unk') %>% 
-  group_by(start_year, region, cause) %>%
-  summarise(freq = sum(area_km2),
-            costs = sum(costs),
-            cost_per_fire = costs/freq) %>%
+  group_by(region, start_year, cause) %>%
+  summarise(freq = sum(area_km2, na.rm = TRUE),
+            costs = sum(costs, na.rm = TRUE),
+            cost_per_km2 = costs/freq) %>%
   mutate(cause = as.factor(cause)) %>%
   group_by(region, cause) %>%
-  do(data.frame(rbind(smean.cl.boot(.$cost_per_fire, B = 10000)))) %>%
+  do(data.frame(rbind(smean.cl.boot(.$cost_per_km2, B = 10000)))) %>%
   mutate(average_cost_per_fire = round(Mean, 4),
          lower_95_ci = round(Lower, 4),
          upper_95_ci = round(Upper, 4)) %>%
