@@ -732,8 +732,7 @@ if(!file.exists(file.path(ics_spatial, "ics209_wui_conus.gpkg"))) {
                                    ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))),
            regions = ifelse(regions == 'East', 'North East', as.character(regions))) %>%
     rename_all(tolower) %>%
-    dplyr::select(-stusps.1) %>%
-    dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)'))
+    dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape|.1|stusps.2)'))
   
   # Write out the shapefile.
   st_write(wui_209, file.path(ics_spatial, "ics209_wui_conus.gpkg"),
