@@ -1824,6 +1824,8 @@ if(!exists('s7e_final')) {
 
 ##### Table 8 - Risk Tables ---------------------------------------------------------
 # Table 8a - CONUS Asses the risk of homes by ignition type regardless of class type
+bu_ics_complete_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_complete_cleaned.rds'))
+
 if(!exists('s8a_final')) {
   
   s8a_final <- as.data.frame(bu_ics_complete_cleaned) %>%
