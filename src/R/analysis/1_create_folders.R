@@ -42,6 +42,11 @@ dir_ics_ztrax_rds <- file.path(zpoints_out, 'ics_built_up_rds')
 dir_cleaned_ics_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_built_up_rds')
 dir_ics_250m_ztrax_rds <- file.path(zpoints_out, 'ics_250m_built_up_rds')
 dir_cleaned_ics_250m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_250m_built_up_rds')
+dir_ics_500m_ztrax_rds <- file.path(zpoints_out, 'ics_500m_built_up_rds')
+dir_cleaned_ics_500m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_500m_built_up_rds')
+dir_ics_1000m_ztrax_rds <- file.path(zpoints_out, 'ics_1000m_built_up_rds')
+dir_cleaned_ics_1000m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_1000m_built_up_rds')
+
 dir_fpa_ztrax_rds <- file.path(zpoints_out, 'fpa_built_up_rds')
 dir_cleaned_fpa_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_built_up_rds')
 dir_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'fpa_250m_built_up_rds')
@@ -107,6 +112,7 @@ var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa
                 zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds, 
                 dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds,
                 dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds,
-                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds,figs_dir, draft_dir, main_text_figs, supplements_text_figs,
+                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds, dir_ics_500m_ztrax_rds, dir_cleaned_ics_500m_ztrax_rds, dir_ics_1000m_ztrax_rds,
+                dir_cleaned_ics_1000m_ztrax_rds, figs_dir, draft_dir, main_text_figs, supplements_text_figs,
                 climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))

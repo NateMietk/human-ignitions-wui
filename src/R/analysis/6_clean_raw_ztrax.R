@@ -73,17 +73,19 @@ if(!file.exists(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.r
   cleaned_ics_all <- do.call(rbind, cleaned_ics) %>%
     na.omit()  %>%
     mutate(year = yearbuilt) %>%
-    dplyr::select(incident_unique_id, year, built_class, build_up_count, build_up_intensity_sqm)
+    mutate(build_up_count_0 = build_up_count, 
+           build_up_intensity_sqm_0 = build_up_intensity_sqm) %>%
+    dplyr::select(incident_unique_id, year, built_class, build_up_count_0, build_up_intensity_sqm_0)
   
   cleaned_ics_all %>%
     write_rds(., file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.rds'))
   
   system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
-    
-  } else {
-    
-    cleaned_ics_all <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_build_up.rds'))
-  }
+  
+} else {
+  
+  cleaned_ics_all <- read_rds(file.path(dir_cleaned_ics_ztrax_rds, 'all_cleaned_ics_built_up.rds'))
+}
 
 # Built up units per ICS 209 block groups with 250m buffer
 if(!file.exists(file.path(dir_cleaned_ics_250m_ztrax_rds, 'all_cleaned_ics_250m_built_up.rds'))) {
@@ -95,14 +97,14 @@ if(!file.exists(file.path(dir_cleaned_ics_250m_ztrax_rds, 'all_cleaned_ics_250m_
   cl <- makeCluster(getOption("cl.cores", detectCores()))
   
   cleaned_ics_250m <- pblapply(gpkgs,
-                          FUN = intersect_ztrax,
-                          mask = ics209_bae_250m,
-                          which_dataset = '3',
-                          out_dir_cleaned = dir_cleaned_ics_250m_ztrax_rds,
-                          out_name_cleaned = '_cleaned_ics_250m_built_up.rds', 
-                          out_dir = dir_ics_250m_ztrax_rds,
-                          out_name = '_ztrax_ics_250m.rds', 
-                          cl = cl)
+                               FUN = intersect_ztrax,
+                               mask = ics209_bae_250m,
+                               which_dataset = '3',
+                               out_dir_cleaned = dir_cleaned_ics_250m_ztrax_rds,
+                               out_name_cleaned = '_cleaned_ics_250m_built_up.rds', 
+                               out_dir = dir_ics_250m_ztrax_rds,
+                               out_name = '_ztrax_ics_250m.rds', 
+                               cl = cl)
   
   stopCluster(cl)
   
@@ -110,7 +112,9 @@ if(!file.exists(file.path(dir_cleaned_ics_250m_ztrax_rds, 'all_cleaned_ics_250m_
   cleaned_ics_250m_all <- do.call(rbind, cleaned_ics_250m) %>%
     na.omit()  %>%
     mutate(year = yearbuilt) %>%
-    dplyr::select(incident_unique_id, year, built_class, build_up_count, build_up_intensity_sqm)
+    mutate(build_up_count_250 = build_up_count, 
+           build_up_intensity_sqm_250 = build_up_intensity_sqm) %>%
+    dplyr::select(incident_unique_id, year, built_class, build_up_count_250, build_up_intensity_sqm_250)
   
   cleaned_ics_250m_all %>%
     write_rds(., file.path(dir_cleaned_ics_250m_ztrax_rds, 'all_cleaned_ics_250m_built_up.rds'))
@@ -120,6 +124,85 @@ if(!file.exists(file.path(dir_cleaned_ics_250m_ztrax_rds, 'all_cleaned_ics_250m_
 } else {
   
   cleaned_ics_250m_all <- read_rds(file.path(dir_cleaned_ics_250m_ztrax_rds, 'all_cleaned_ics_250m_built_up.rds'))
+}
+
+
+# Built up units per ICS 209 block groups with 500m buffer
+if(!file.exists(file.path(dir_cleaned_ics_500m_ztrax_rds, 'all_cleaned_ics_500m_built_up.rds'))) {
+  
+  # find the number of built-up units and build-up area by census block group, built year, and built class
+  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
+  
+  pboptions(type = 'txt', use_lb = TRUE)
+  cl <- makeCluster(getOption("cl.cores", detectCores()))
+  
+  cleaned_ics_500m <- pblapply(gpkgs,
+                               FUN = intersect_ztrax,
+                               mask = ics209_bae_500m,
+                               which_dataset = '3',
+                               out_dir_cleaned = dir_cleaned_ics_500m_ztrax_rds,
+                               out_name_cleaned = '_cleaned_ics_500m_built_up.rds', 
+                               out_dir = dir_ics_500m_ztrax_rds,
+                               out_name = '_ztrax_ics_500m.rds', 
+                               cl = cl)
+  
+  stopCluster(cl)
+  
+  #bind all of these together in one dataframe
+  cleaned_ics_500m_all <- do.call(rbind, cleaned_ics_500m) %>%
+    na.omit()  %>%
+    mutate(year = yearbuilt) %>%
+    mutate(build_up_count_500 = build_up_count, 
+           build_up_intensity_sqm_500 = build_up_intensity_sqm) %>%
+    dplyr::select(incident_unique_id, year, built_class, build_up_count_500, build_up_intensity_sqm_500)
+  
+  cleaned_ics_500m_all %>%
+    write_rds(., file.path(dir_cleaned_ics_500m_ztrax_rds, 'all_cleaned_ics_500m_built_up.rds'))
+  
+  system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
+  
+} else {
+  
+  cleaned_ics_500m_all <- read_rds(file.path(dir_cleaned_ics_500m_ztrax_rds, 'all_cleaned_ics_500m_built_up.rds'))
+}
+
+# Built up units per ICS 209 block groups with 1000m buffer
+if(!file.exists(file.path(dir_cleaned_ics_1000m_ztrax_rds, 'all_cleaned_ics_1000m_built_up.rds'))) {
+  
+  # find the number of built-up units and build-up area by census block group, built year, and built class
+  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
+  
+  pboptions(type = 'txt', use_lb = TRUE)
+  cl <- makeCluster(getOption("cl.cores", detectCores()))
+  
+  cleaned_ics_1000m <- pblapply(gpkgs,
+                                FUN = intersect_ztrax,
+                                mask = ics209_bae_1000m,
+                                which_dataset = '3',
+                                out_dir_cleaned = dir_cleaned_ics_1000m_ztrax_rds,
+                                out_name_cleaned = '_cleaned_ics_1000m_built_up.rds', 
+                                out_dir = dir_ics_1000m_ztrax_rds,
+                                out_name = '_ztrax_ics_1000m.rds', 
+                                cl = cl)
+  
+  stopCluster(cl)
+  
+  #bind all of these together in one dataframe
+  cleaned_ics_1000m_all <- do.call(rbind, cleaned_ics_1000m) %>%
+    na.omit()  %>%
+    mutate(year = yearbuilt) %>%
+    mutate(build_up_count_1000 = build_up_count, 
+           build_up_intensity_sqm_1000 = build_up_intensity_sqm) %>%
+    dplyr::select(incident_unique_id, year, built_class, build_up_count_1000, build_up_intensity_sqm_1000)
+  
+  cleaned_ics_1000m_all %>%
+    write_rds(., file.path(dir_cleaned_ics_1000m_ztrax_rds, 'all_cleaned_ics_1000m_built_up.rds'))
+  
+  system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
+  
+} else {
+  
+  cleaned_ics_1000m_all <- read_rds(file.path(dir_cleaned_ics_1000m_ztrax_rds, 'all_cleaned_ics_1000m_built_up.rds'))
 }
 
 # Built up units per FPA perimeters

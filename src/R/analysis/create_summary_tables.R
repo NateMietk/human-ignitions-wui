@@ -11,7 +11,7 @@ row_order_wclass <- c("fire_frequency", "wildfire_burned_area", "class_burned_ar
                       'costs', 'build_up_count_0', 'build_up_count_250', 'build_up_count_500', 'build_up_count_1000',
                       'pct_frequency', 'pct_burned_area', 'pct_class_burned_area', 'pct_costs', 'pt_build_up_count_0',
                       'pt_build_up_count_250', 'pt_build_up_count_500', 'pt_build_up_count_1000')
-raw_order_risky <- c('fire_frequency', 'wildfire_area', 'costs', 'risky_built_up')
+raw_order_risky <- c('fire_frequency', 'wildfire_area', 'costs', 'risky_built_up_0', 'risky_built_up_250', 'risky_built_up_500', 'risky_built_up_1000')
 row_order_for_class <- c("fire_frequency", "wildfire_burned_area", "class_burned_area", 'fire_season_length', 'median_discovery_day',
                          'costs', 'build_up_count_0', 'build_up_count_250', 'build_up_count_500', 'build_up_count_1000')
 
@@ -1826,16 +1826,20 @@ if(!exists('s7e_final')) {
 # Table 8a - CONUS Asses the risk of homes by ignition type regardless of class type
 if(!exists('s8a_final')) {
   
-  s8a_final <- as.data.frame(bu_ics_cleaned) %>%
+  s8a_final <- as.data.frame(bu_ics_complete_cleaned) %>%
     filter(built_class != 'Non-Residential') %>%
     droplevels() %>%
     filter(cause != 'Unk') %>%
-    mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
+    mutate(at_risk = ifelse(build_up_count_no_zero_0 == 0 & build_up_count_no_zero_250 == 0 & 
+                              build_up_count_no_zero_500 == 0 & build_up_count_no_zero_1000 == 0, "Not at risk", 'At risk')) %>% 
     group_by(cause, at_risk) %>%
     summarise(fire_frequency = n(),
               wildfire_area = sum(area_km2),
               costs = sum(costs),
-              risky_built_up = sum(build_up_count_no_zero)) %>%
+              risky_built_up_0 = sum(build_up_count_no_zero_0),
+              risky_built_up_250 = sum(build_up_count_no_zero_250),
+              risky_built_up_500 = sum(build_up_count_no_zero_500),
+              risky_built_up_1000 = sum(build_up_count_no_zero_1000)) %>%
     mutate_if(is.numeric, funs(round(., 2))) %>%
     tidyr::unite(cause_risk, cause, at_risk) %>%
     tidyr::gather(var, value, -cause_risk) %>% 
@@ -1852,18 +1856,22 @@ if(!exists('s8a_final')) {
 # Asses the risk of homes by ignition type AND WUI, VLD, and Wildlands only
 if(!exists('s8b_final')) {
   
-  s8b_final <- bu_ics_cleaned %>%
+  s8b_final <- as.data.frame(bu_ics_complete_cleaned) %>%
     filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
     transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
     filter(built_class != 'Non-Residential') %>%
     droplevels() %>%
     filter(cause != 'Unk') %>%
-    mutate(at_risk = ifelse(build_up_count_no_zero == 0, "Not at risk", 'At risk')) %>% 
+    mutate(at_risk = ifelse(build_up_count_no_zero_0 == 0 & build_up_count_no_zero_250 == 0 & 
+                              build_up_count_no_zero_500 == 0 & build_up_count_no_zero_1000 == 0, "Not at risk", 'At risk')) %>% 
     group_by(class, cause, at_risk) %>%
     summarise(fire_frequency = n(),
               wildfire_area = sum(area_km2),
               costs = sum(costs),
-              risky_built_up = sum(build_up_count_no_zero)) %>%
+              risky_built_up_0 = sum(build_up_count_no_zero_0),
+              risky_built_up_250 = sum(build_up_count_no_zero_250),
+              risky_built_up_500 = sum(build_up_count_no_zero_500),
+              risky_built_up_1000 = sum(build_up_count_no_zero_1000)) %>%
     mutate_if(is.numeric, funs(round(., 2))) %>%
     tidyr::unite(ignition_class, class, cause, at_risk) %>%
     tidyr::gather(var, value, -ignition_class) %>% 
