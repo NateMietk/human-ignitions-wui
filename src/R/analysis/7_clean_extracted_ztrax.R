@@ -5,13 +5,15 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))) {
     mutate(start_year = year) %>%
     group_by(incident_unique_id, built_class) %>%
     arrange(desc(incident_unique_id, built_class, year)) %>%
-    mutate(build_up_count_no_zero = build_up_count - first(build_up_count),
-           build_up_intensity_sqm_no_zero = build_up_intensity_sqm - first(build_up_intensity_sqm)) %>%
+    mutate(build_up_count_no_zero_0 = build_up_count_0 - first(build_up_count_0),
+           build_up_intensity_sqm_no_zero_0 = build_up_intensity_sqm_0 - first(build_up_intensity_sqm_0)) %>%
     ungroup() %>%
-    left_join(wui_209, ., by = c('start_year', 'incident_unique_id')) %>%
+    left_join(wui_209, ., by = c('incident_unique_id', 'start_year')) %>%
     mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
     mutate(built_class = ifelse(is.na(built_class), 'No Structures', as.character(built_class))) %>%
-    dplyr::select(-year)
+    as.data.frame() %>%
+    dplyr::select(incident_unique_id, year, built_class, build_up_count_0, build_up_count_no_zero_0, 
+                  build_up_intensity_sqm_0, build_up_intensity_sqm_no_zero_0, -geom)
   
   write_rds(bu_ics_cleaned, file.path(rmarkdown_files, 'bu_ics_cleaned.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
@@ -28,13 +30,15 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_ics_250m_cleaned.rds'))) {
     mutate(start_year = year) %>%
     group_by(incident_unique_id, built_class) %>%
     arrange(desc(incident_unique_id, built_class, year)) %>%
-    mutate(build_up_count_no_zero = build_up_count - first(build_up_count),
-           build_up_intensity_sqm_no_zero = build_up_intensity_sqm - first(build_up_intensity_sqm)) %>%
+    mutate(build_up_count_no_zero_250 = build_up_count_250 - first(build_up_count_250),
+           build_up_intensity_sqm_no_zero_250 = build_up_intensity_sqm_250 - first(build_up_intensity_sqm_250)) %>%
     ungroup() %>%
-    left_join(wui_209, ., by = c('start_year', 'incident_unique_id')) %>%
+    left_join(wui_209, ., by = c('incident_unique_id', 'start_year')) %>%
     mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
     mutate(built_class = ifelse(is.na(built_class), 'No Structures', as.character(built_class))) %>%
-    dplyr::select(-year)
+    as.data.frame() %>%
+    dplyr::select(incident_unique_id, year, built_class, build_up_count_250, build_up_count_no_zero_250, 
+                  build_up_intensity_sqm_250, build_up_intensity_sqm_no_zero_250, -geom)
   
   write_rds(bu_ics_250m_cleaned, file.path(rmarkdown_files, 'bu_ics_250m_cleaned.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
@@ -43,6 +47,90 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_ics_250m_cleaned.rds'))) {
   
   bu_ics_250m_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_250m_cleaned.rds'))
 }
+
+# ICS 209 500m buffer
+if (!file.exists(file.path(rmarkdown_files, 'bu_ics_500m_cleaned.rds'))) {
+  
+  bu_ics_500m_cleaned <- read_rds(file.path(dir_cleaned_ics_500m_ztrax_rds, 'all_cleaned_ics_500m_built_up.rds')) %>%
+    mutate(start_year = year) %>%
+    group_by(incident_unique_id, built_class) %>%
+    arrange(desc(incident_unique_id, built_class, year)) %>%
+    mutate(build_up_count_no_zero_500 = build_up_count_500 - first(build_up_count_500),
+           build_up_intensity_sqm_no_zero_500 = build_up_intensity_sqm_500 - first(build_up_intensity_sqm_500)) %>%
+    ungroup() %>%
+    left_join(wui_209, ., by = c('incident_unique_id', 'start_year')) %>%
+    mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
+    mutate(built_class = ifelse(is.na(built_class), 'No Structures', as.character(built_class))) %>%
+    as.data.frame() %>%
+    dplyr::select(incident_unique_id, year, built_class, build_up_count_500, build_up_count_no_zero_500, 
+                  build_up_intensity_sqm_500, build_up_intensity_sqm_no_zero_500, -geom)
+  
+  write_rds(bu_ics_500m_cleaned, file.path(rmarkdown_files, 'bu_ics_500m_cleaned.rds'))
+  system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+  
+} else {
+  
+  bu_ics_500m_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_500m_cleaned.rds'))
+}
+
+# ICS 209 1000m buffer
+if (!file.exists(file.path(rmarkdown_files, 'bu_ics_1000m_cleaned.rds'))) {
+  
+  bu_ics_1000m_cleaned <- read_rds(file.path(dir_cleaned_ics_1000m_ztrax_rds, 'all_cleaned_ics_1000m_built_up.rds')) %>%
+    mutate(start_year = year) %>%
+    group_by(incident_unique_id, built_class) %>%
+    arrange(desc(incident_unique_id, built_class, year)) %>%
+    mutate(build_up_count_no_zero_1000 = build_up_count_1000 - first(build_up_count_1000),
+           build_up_intensity_sqm_no_zero_1000 = build_up_intensity_sqm_1000 - first(build_up_intensity_sqm_1000)) %>%
+    ungroup() %>%
+    left_join(wui_209, ., by = c('incident_unique_id', 'start_year')) %>%
+    mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
+    mutate(built_class = ifelse(is.na(built_class), 'No Structures', as.character(built_class))) %>%
+    as.data.frame() %>%
+    dplyr::select(incident_unique_id, year, built_class, build_up_count_1000, build_up_count_no_zero_1000, 
+                  build_up_intensity_sqm_1000, build_up_intensity_sqm_no_zero_1000, -geom)
+  
+  write_rds(bu_ics_1000m_cleaned, file.path(rmarkdown_files, 'bu_ics_1000m_cleaned.rds'))
+  system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+  
+} else {
+  
+  bu_ics_1000m_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_1000m_cleaned.rds'))
+}
+
+# ICS ZTRAX complete joined and cleaned
+if (!file.exists(file.path(rmarkdown_files, 'bu_ics_complete_cleaned.rds'))) {
+  
+  bu_ics_complete_cleaned <- bu_ics_cleaned %>%
+    left_join(., bu_ics_250m_cleaned, by = c('incident_unique_id', 'built_class', 'year')) %>%
+    left_join(., bu_ics_500m_cleaned, by = c('incident_unique_id', 'built_class', 'year')) %>%
+    left_join(., bu_ics_1000m_cleaned, by = c('incident_unique_id', 'built_class', 'year')) %>%
+    as_tibble() %>%
+    mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
+    mutate_if(is.character, as.factor) %>%
+    mutate(build_up_count_0 = build_up_count_0,
+           build_up_count_250 = build_up_count_250 - build_up_count_0,
+           build_up_count_500 = build_up_count_500 - (build_up_count_0 + build_up_count_250),
+           build_up_count_1000 = build_up_count_1000 - (build_up_count_0 + build_up_count_250 + build_up_count_500),
+           build_up_count_no_zero_0 = build_up_count_no_zero_0,
+           build_up_count_no_zero_250 = build_up_count_no_zero_250 - build_up_count_no_zero_0,
+           build_up_count_no_zero_500 = build_up_count_no_zero_500 - (build_up_count_no_zero_0 + build_up_count_no_zero_250),
+           build_up_count_no_zero_1000 = build_up_count_no_zero_1000 - (build_up_count_no_zero_0 + build_up_count_no_zero_250 + build_up_count_no_zero_500)) %>%
+    mutate(start_year = year) %>%
+    dplyr::select(incident_unique_id, start_year, built_class, build_up_count_0, build_up_count_250, build_up_count_1000, build_up_count_no_zero_0, build_up_count_no_zero_250, 
+                  build_up_count_no_zero_500, build_up_count_no_zero_1000) %>%
+    left_join(wui_209, ., by = c('incident_unique_id', 'start_year')) %>%
+    mutate(built_class = ifelse(is.na(built_class), "No Structures", as.character(built_class))) %>% 
+    mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) 
+  
+  write_rds(bu_ics_complete_cleaned, file.path(rmarkdown_files, 'bu_ics_complete_cleaned.rds'))
+  system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+  
+} else {
+  
+  bu_ics_complete_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_ics_complete_cleaned.rds'))
+}
+
 
 # WUI all years
 if (!file.exists(file.path(rmarkdown_files, 'bu_wui_cleaned_validation.rds'))) {
