@@ -26,17 +26,20 @@ ggsave(file.path(supplements_text_figs, "figureS6.tiff"), p1, width = 7, height 
 system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
 
 df <- as_tibble(as.data.frame(bu_ics_complete_cleaned)) %>%
+  filter(cause != 'Unk') %>%
+  filter(built_class == 'Residential') %>%
   filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
   transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
   mutate(fire_size_ha = area_km2*100,
          fire_size = case_when(
-           fire_size_ha >=  0 & fire_size_ha < 100 ~ '0-100',
+           fire_size_ha >  0 & fire_size_ha < 100 ~ '0-100',
            fire_size_ha >= 100 & fire_size_ha < 200 ~ '100-200',
            fire_size_ha >= 200 & fire_size_ha < 400 ~ '200-400',
            fire_size_ha >= 400 & fire_size_ha < 1000 ~ '400-1k',
            fire_size_ha >= 1000 & fire_size_ha < 10000 ~ '1k-10k',
            fire_size_ha >= 10000 & fire_size_ha < 50000 ~ '10k-50k',
-           fire_size_ha >= 50000 ~ '> 50k', TRUE ~ NA_character_ )) 
+           fire_size_ha >= 50000 ~ '> 50k', TRUE ~ NA_character_ )) %>%
+  na.omit()
 
 p1 <- df %>%
   transform(fire_size = factor(fire_size, levels=c('0-100', '100-200', '200-400', '400-1k', '1k-10k', '10k-50k', '> 50k'))) %>%
@@ -50,7 +53,6 @@ system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
 
 p1 <- df %>%
   transform(fire_size = factor(fire_size, levels=c('0-100', '100-200', '200-400', '400-1k', '1k-10k', '10k-50k', '> 50k'))) %>%
-  filter(cause != 'Unk') %>%
   ggplot(aes(x = fire_size, y = log(costs), fill = cause)) +
   geom_boxplot(position = position_dodge()) +
   scale_fill_manual(values = c("#D62728","#1F77B4")) +
