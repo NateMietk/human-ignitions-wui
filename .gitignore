@@ -6,7 +6,6 @@
 .RData
 .rstudio
 .DS_Store
-*.Rproj
 
 # Example code in package build process
 *-Ex.R
