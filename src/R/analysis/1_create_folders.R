@@ -1,8 +1,15 @@
 # Libraries ---------------------------------------------------------------
-x <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom', 'nabor', 'velox', 'Hmisc', 'pbapply',
-       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 'raster', 'scales')
-lapply(x, library, character.only = TRUE, verbose = FALSE)
-
+packages <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom', 'nabor', 'velox', 'Hmisc', 'pbapply',
+       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 'raster', 'scales', 'mblm')
+if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
+  # automatically installs packages if not found
+  install.packages(setdiff(packages, rownames(installed.packages())))  
+  # loads the library once installed
+  lapply(packages, library, character.only = TRUE, quietly = TRUE) 
+} else {
+  # if package is already install this loads it
+  lapply(packages, library, character.only = TRUE, quietly = TRUE) 
+}
 source("src/functions/helper_functions.R")
 source("src/functions/make_grid.R")
 source("src/functions/ggplot_theme.R")

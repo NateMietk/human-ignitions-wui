@@ -103,3 +103,24 @@ xpoints_cnt_2 <- left_join(min_diffs, pred_diffs) %>%
 
 xpoints_cnt <- left_join(xpoints_cnt_2, xpoints_cnt_1)
 
+
+# What is the number of homes at the peaks?
+firefreq_p <- fishdis_reg %>%
+  transform(regions = factor(regions, levels=c('West', 'Central', 'South East', 'North East'))) %>%
+  ggplot(aes(x = log(median_homedensity), y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(size = 1)
+filter(ten_year != '1994-2004') %>%
+  ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"),
+              fullrange = TRUE, size = 0.75) +
+  scale_color_manual(values = c("red","black")) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 2) 
+
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(group, y, x, PANEL) %>%
+  group_by(PANEL, group) %>%
+  summarise(y = max(y)) %>%
+  left_join(., ggplot_build(firefreq_p)$data[[1]], by = 'y')

@@ -1,17 +1,16 @@
-bu_complete_long_no_zero <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+bu_complete_long_no_zero <- as_tibble(as.data.frame(read_rds(file.path(rmarkdown_files, 'bu_complete_cleaned.rds')))) %>%
   dplyr::select(fpa_id, class, ignition, discovery_year, built_class, build_up_count_no_zero_0) %>%
   gather(key = 'buffer_class', value = 'built_count', -fpa_id, -class, -ignition, -discovery_year, -built_class) %>%
   mutate(buffer_class = case_when(
     buffer_class == 'build_up_count_no_zero_0' ~ 'Fire perimeter',
     TRUE ~ NA_character_)) %>% filter(buffer_class == 'Fire perimeter') %>% 
-  mutate(fpa_id = as.factor(fpa_id))
+  mutate(fpa_id = as.factor(fpa_id)) %>%
+  left_join(., fpa_wui_df, by = c('fpa_id', 'discovery_year', 'ignition', 'class')) %>%
+  filter((class_coarse %in% c('WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class == 'Residential')
 
 # Time series of burned area per ignition
 p1 <- bu_complete_long_no_zero %>%
-  left_join(., fpa_wui, by = c('fpa_id', 'discovery_year', 'ignition', 'class')) %>%
-  # filter(region != 'Central') %>%
-  filter((class_coarse %in% c('WUI', 'VLD', 'Wildlands'))) %>%
-  filter(built_class == 'Residential') %>%
   transform(class_coarse = factor(class_coarse, levels=c('WUI', 'Wildlands'))) %>%
   group_by(discovery_year, ignition) %>%
   summarise(burn_area = sum(fire_size_km2)) %>%
@@ -29,13 +28,9 @@ p1 <- bu_complete_long_no_zero %>%
 
 # Time series of threatened homes per ignition
 p2 <- bu_complete_long_no_zero %>%
-  left_join(., fpa_wui, by = c('fpa_id', 'discovery_year', 'ignition', 'class')) %>%
-  # filter(region != 'Central') %>%
-  filter((class_coarse %in% c('WUI', 'VLD', 'Wildlands'))) %>%
-  filter(built_class == 'Residential') %>%
   transform(class_coarse = factor(class_coarse, levels=c('WUI', 'Wildlands'))) %>%
   group_by(discovery_year, ignition) %>%
-  summarise(built_count = sum(built_count)) %>%
+  summarise(built_count = sum(built_count, na.rm = TRUE)) %>%
   ggplot(aes(x = discovery_year, y = built_count/10000, group = ignition, color = ignition)) +
   geom_point() +
   geom_line() +
