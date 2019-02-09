@@ -83,3 +83,21 @@ if (!file.exists(mtbs_shp)) {
                 raw_prefix, " ",
                 s3_raw_prefix))
 }
+
+geo_mac_shp <- file.path(geo_mac_raw_dir, 'US_HIST_FIRE_PERIMTRS_DD83.gdb')
+if (!file.exists(mtbs_shp)) {
+  loc <- "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/historic_fire_data/US_HIST_FIRE_PERIMTRS_DD83.gdb.zip"
+  dest <- paste0(geo_mac_raw_dir, ".zip")
+  download.file(loc, dest)
+  unzip(dest, exdir = geo_mac_raw_dir)
+  unlink(dest)
+  assert_that(file.exists(geo_mac_shp))
+  system(paste0("aws s3 sync ",
+                raw_prefix, " ",
+                s3_raw_prefix))
+}
+
+
+
+
+
