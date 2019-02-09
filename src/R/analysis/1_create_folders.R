@@ -3,17 +3,18 @@ packages <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal",
        "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 'raster', 'scales', 'mblm')
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   # automatically installs packages if not found
-  install.packages(setdiff(packages, rownames(installed.packages())))  
+  install.packages(setdiff(packages, rownames(installed.packages())))
   # loads the library once installed
-  lapply(packages, library, character.only = TRUE, quietly = TRUE) 
+  lapply(packages, library, character.only = TRUE, quietly = TRUE)
 } else {
   # if package is already install this loads it
-  lapply(packages, library, character.only = TRUE, quietly = TRUE) 
+  lapply(packages, library, character.only = TRUE, quietly = TRUE)
 }
-source("src/functions/helper_functions.R")
-source("src/functions/make_grid.R")
-source("src/functions/ggplot_theme.R")
-source("src/functions/plot_theme.R")
+
+# load all functions
+file_sources <- list.files(file.path('src', 'functions'), pattern="*.R", 
+                           full.names=TRUE, ignore.case=TRUE)
+invisible(sapply(file_sources, source, .GlobalEnv))
 
 proj_ed <- "+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs" #USA_Contiguous_Equidistant_Conic
 proj_ea <- "+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"
@@ -28,6 +29,7 @@ wui_prefix <- file.path(raw_prefix, "us_wui")
 fpa_prefix <- file.path(raw_prefix, "fpa-fod")
 mtbs_prefix <- file.path(raw_prefix, "mtbs_fod_perimeter_data")
 ztrax_prefix <- file.path(raw_prefix, 'ZTRAX_ZASMT_UTMAIN_SPATIAL_CLEAN')
+geo_mac_raw_dir <- file.path(raw_prefix, "US_HIST_FIRE_PERIMTRS_DD83")
 
 # Cleaned data output folders
 bounds_crt <- file.path(prefix, "bounds")
@@ -43,6 +45,10 @@ zpoints_out <- file.path(ztrax_out, 'ztrax_points')
 
 #all built up
 dir_raw_ztrax_gpkg <- file.path(zpoints_out, 'raw_built_up_gpkg')
+stacked_ztrax_rst_dir <- file.path(ztrax_out, "stacked_ztrax_rst")
+count_ztrax_rst_dir<- file.path(ztrax_out, "ztrax_raw_count_1980_2015_1k")
+cumsum_ztrax_rst_dir<- file.path(ztrax_out, "ztrax_raw_cumsum_1980_2015_1k")
+
 dir_wui_ztrax_rds <- file.path(zpoints_out, 'wui_built_up_rds')
 dir_cleaned_wui_ztrax_rds <- file.path(zpoints_out, 'cleaned_wui_built_up_rds')
 dir_ics_ztrax_rds <- file.path(zpoints_out, 'ics_built_up_rds')
@@ -74,6 +80,7 @@ fpa_out <- file.path(fire_crt, "fpa-fod")
 mtbs_out <- file.path(fire_crt, "mtbs_fod_perimeter_data")
 fire_pnt <- file.path(fpa_out, 'points')
 fire_poly <- file.path(fpa_out, 'perimeters')
+geo_mac_dir <- file.path(fire_crt, "geo_mac")
 
 climate_dir <- file.path(prefix, 'climate')
 pdsi_dir <- file.path(climate_dir, 'pdsi')
@@ -115,11 +122,11 @@ s3_figs_dir <- 's3://earthlab-natem/human-ignitions-wui/figs'
 # Check if directory exists for all variable aggregate outputs, if not then create
 var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt, ztrax_out, ztrax_prefix,
                 bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out, bui_out, bu_out,
-                swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly, 
-                zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds, 
+                swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly,
+                zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds,
                 dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds,
                 dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds,
                 dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds, dir_ics_500m_ztrax_rds, dir_cleaned_ics_500m_ztrax_rds, dir_ics_1000m_ztrax_rds,
                 dir_cleaned_ics_1000m_ztrax_rds, figs_dir, draft_dir, main_text_figs, supplements_text_figs,
-                climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir)
+                climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir, stacked_ztrax_rst_dir, count_ztrax_rst_dir, cumsum_ztrax_rst_dir, geo_mac_raw_dir, geo_mac_dir)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
