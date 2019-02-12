@@ -494,7 +494,7 @@ if (!exists('mtbs_fire')) {
              MTBS_DISCOVERY_DAY = StartDay,
              MTBS_DISCOVERY_MONTH = StartMonth,
              MTBS_ACRES = Acres,
-             RADIUS = "NA") %>%
+             RADIUS = NA_real_) %>%
       dplyr::select(MTBS_ID, MTBS_FIRE_NAME, MTBS_DISCOVERY_DAY, MTBS_DISCOVERY_MONTH, MTBS_DISCOVERY_YEAR, MTBS_ACRES, RADIUS) %>%
       merge(., as.data.frame(fpa_fire), by = c("MTBS_ID", "MTBS_FIRE_NAME"), all = FALSE) %>%
       dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
@@ -504,7 +504,7 @@ if (!exists('mtbs_fire')) {
     
     st_write(mtbs_fire, file.path(mtbs_out, "mtbs_conus.gpkg"),
              driver = "GPKG",
-             update=TRUE)
+             delete_layer=TRUE)
     
     system(paste0("aws s3 sync ",
                   fire_crt, " ",
