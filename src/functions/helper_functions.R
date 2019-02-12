@@ -188,6 +188,52 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
     return(cleaned)
   }
   
+  if (which_dataset == '4') {
+    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+      
+      imported <- sf::st_read(x) %>%
+        sf::st_join(., mask, join = st_intersects) %>%
+        setNames(tolower(names(.))) %>%
+        as.data.frame() %>%
+        dplyr::mutate(yearbuilt = ifelse(yearbuilt == 0, 0,
+                                         ifelse(yearbuilt != 0 & yearbuilt <= 1990, 1990, yearbuilt))) %>%
+        dplyr::group_by(mtbs_id, built_class, yearbuilt) %>%
+        dplyr::summarise(build_up_count = n(),
+                         build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
+        dplyr::ungroup() %>%
+        as.data.frame()
+      
+      readr::write_rds(imported,
+                       file.path(out_dir,  paste0(filename, out_name)))
+    } else {
+      imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
+    }
+    
+    if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
+      
+      cleaned <- ungroup(imported) %>%
+        mutate(mtbs_id = factor(mtbs_id)) %>%
+        group_by(mtbs_id, built_class, yearbuilt) %>%
+        summarise(build_up_count = sum(build_up_count),
+                  build_up_intensity_sqm = sum(build_up_intensity_sqm)) %>%
+        mutate(build_up_count = cumsum(build_up_count),
+               build_up_intensity_sqm = cumsum(build_up_intensity_sqm)) %>%
+        ungroup() %>%
+        complete(nesting(mtbs_id, built_class), yearbuilt = c(0, 1990:2015)) %>%
+        group_by(mtbs_id, built_class) %>%
+        fill(everything(), .direction = 'up') %>%
+        ungroup() %>%
+        group_by(mtbs_id, built_class) %>%
+        fill(everything(), .direction = 'down')
+      
+      cleaned %>%
+        write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
+    } else {
+      cleaned <- read_rds(file.path(out_dir_cleaned,  paste0(filename, out_name_cleaned)))
+    }
+    return(cleaned)
+  }
+  
 }
 
 
@@ -700,3 +746,4 @@ theme_pub <- function(base_size=11, base_family="") {
             axis.text.x = element_text(size = 10, angle = 65, hjust = 1),
             axis.text.y = element_text(size = 11)))
 }
+
