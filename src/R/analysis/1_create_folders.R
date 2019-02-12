@@ -29,7 +29,7 @@ wui_prefix <- file.path(raw_prefix, "us_wui")
 fpa_prefix <- file.path(raw_prefix, "fpa-fod")
 mtbs_prefix <- file.path(raw_prefix, "mtbs_fod_perimeter_data")
 ztrax_prefix <- file.path(raw_prefix, 'ZTRAX_ZASMT_UTMAIN_SPATIAL_CLEAN')
-geo_mac_raw_dir <- file.path(raw_prefix, "US_HIST_FIRE_PERIMTRS_DD83")
+geomac_raw_dir <- file.path(raw_prefix, "US_HIST_FIRE_PERIMTRS_DD83")
 
 # Cleaned data output folders
 bounds_crt <- file.path(prefix, "bounds")
@@ -80,7 +80,7 @@ fpa_out <- file.path(fire_crt, "fpa-fod")
 mtbs_out <- file.path(fire_crt, "mtbs_fod_perimeter_data")
 fire_pnt <- file.path(fpa_out, 'points')
 fire_poly <- file.path(fpa_out, 'perimeters')
-geo_mac_dir <- file.path(fire_crt, "geo_mac")
+geomac_dir <- file.path(fire_crt, "geomac")
 
 climate_dir <- file.path(prefix, 'climate')
 pdsi_dir <- file.path(climate_dir, 'pdsi')
@@ -128,5 +128,5 @@ var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa
                 dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds,
                 dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds, dir_ics_500m_ztrax_rds, dir_cleaned_ics_500m_ztrax_rds, dir_ics_1000m_ztrax_rds,
                 dir_cleaned_ics_1000m_ztrax_rds, figs_dir, draft_dir, main_text_figs, supplements_text_figs,
-                climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir, stacked_ztrax_rst_dir, count_ztrax_rst_dir, cumsum_ztrax_rst_dir, geo_mac_raw_dir, geo_mac_dir)
+                climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir, stacked_ztrax_rst_dir, count_ztrax_rst_dir, cumsum_ztrax_rst_dir, geomac_raw_dir, geomac_dir)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
