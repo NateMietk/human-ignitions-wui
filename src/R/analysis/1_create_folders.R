@@ -75,12 +75,12 @@ bu_out <- file.path(ztrax_out, 'building_counts')
 bu_out <- file.path(bu_out, 'building_counts_all')
 
 fire_crt <- file.path(prefix, "fire")
+accuracy_assessment_dir <- file.path(fire_crt, "accuracy_assessment")
 nifc_crt <- file.path(fire_crt, "nifc")
 fpa_out <- file.path(fire_crt, "fpa-fod")
 mtbs_out <- file.path(fire_crt, "mtbs_fod_perimeter_data")
 fire_pnt <- file.path(fpa_out, 'points')
 fire_poly <- file.path(fpa_out, 'perimeters')
-geomac_dir <- file.path(fire_crt, "geomac")
 
 climate_dir <- file.path(prefix, 'climate')
 pdsi_dir <- file.path(climate_dir, 'pdsi')
@@ -126,7 +126,7 @@ var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa
                 zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds,
                 dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds,
                 dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds,
-                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds, dir_ics_500m_ztrax_rds, dir_cleaned_ics_500m_ztrax_rds, dir_ics_1000m_ztrax_rds,
+                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds, dir_ics_500m_ztrax_rds, dir_cleaned_ics_500m_ztrax_rds, dir_ics_1000m_ztrax_rds, accuracy_assessment_dir,
                 dir_cleaned_ics_1000m_ztrax_rds, figs_dir, draft_dir, main_text_figs, supplements_text_figs,
-                climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir, stacked_ztrax_rst_dir, count_ztrax_rst_dir, cumsum_ztrax_rst_dir, geomac_raw_dir, geomac_dir)
+                climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, ppt_dir, ppt_mean_dir, ppt_anomalies_dir, stacked_ztrax_rst_dir, count_ztrax_rst_dir, cumsum_ztrax_rst_dir, geomac_raw_dir)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
