@@ -175,17 +175,13 @@ if (!exists("fishnet_10k")) {
 # Intersects the region
 if (!exists("bounds")) {
   if (!file.exists(file.path(bounds_crt, "eco_fish_bounds.gpkg"))) {
-    bounds <- st_intersection(usa_shp, ecoreg) %>%
-      st_intersection(., fishnet_50k) %>%
-      st_intersection(., fishnet_25k) 
+    bounds <- st_intersection(ecoreg, fishnet_50k) %>%
+      st_intersection(., fishnet_25k)
     
-    sf::st_write(bounds,
-                 file.path(bounds_crt, "eco_fish_bounds.gpkg"),
+    sf::st_write(bounds, file.path(bounds_crt, "eco_fish_bounds.gpkg"),
                  driver = "GPKG", delete_layer = TRUE)
     
-    system(paste0("aws s3 sync ",
-                  bounds_crt, " ",
-                  s3_bounds_prefix))
+    system(paste0("aws s3 sync ", bounds_crt, " ", s3_bounds_prefix))
   } else {
     bounds <- sf::st_read(file.path(bounds_crt, "eco_fish_bounds.gpkg"))
   }
@@ -197,21 +193,28 @@ if (!exists('wui')) {
   if (!file.exists(file.path(wui_out, "wui_bounds.gpkg"))) {
     # st_layers(dsn = file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb"))
     
-    wui <- st_read(dsn = file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb"),
-                   layer = "CONUS_WUI_cp12") %>%
-      st_make_valid() %>%
-      st_simplify(., preserveTopology = TRUE, dTolerance = 0.001) %>%
+    wui_conus <- sf::st_read(dsn = file.path(wui_prefix, "CONUS_WUI_cp12_d.gdb"),
+                             layer = "CONUS_WUI_cp12") %>%
+      lwgeom::st_make_valid() %>%
+      sf::st_simplify(., preserveTopology = TRUE, dTolerance = 0.001) %>%
       mutate(Class90 = classify_wui(WUICLASS90),
              Class00 = classify_wui(WUICLASS00),
              Class10 = classify_wui(WUICLASS10))  %>%
-      st_transform(st_crs(usa_shp)) %>%  # e.g. US National Atlas Equal Area
-      st_make_valid() %>%
-      st_intersection(bounds)
+      sf::st_transform(st_crs(usa_shp)) %>%
+      lwgeom::st_make_valid() %>%
+      sf::st_intersection(usa_shp) %>%
+      mutate(class_area_km2 = as.numeric(st_area(.))/1000000)
+    
+    st_write(wui_conus, file.path(wui_out, "wui_conus.gpkg"),
+             driver = "GPKG", delete_layer = TRUE)
+    system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
+    
+    wui <- wui_conus %>%  # e.g. US National Atlas Equal Area
+      sf::st_intersection(bounds)
     
     st_write(wui, file.path(wui_out, "wui_bounds.gpkg"),
-             driver = "GPKG",
-             delete_layer = TRUE)
-    system(paste0("aws s3 sync ", prefix, " ", s3_base))
+             driver = "GPKG", delete_layer = TRUE)
+    system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
     
   } else {
     wui <- st_read(dsn = file.path(wui_out, "wui_bounds.gpkg"))
@@ -221,9 +224,9 @@ if (!exists('wui')) {
 if (!exists('wui_class_area')) {
   if (!file.exists(file.path(wui_out, "wui_class_area.rds"))) {
     wui_class_area <- wui %>%
-      mutate(total_class_area = as.numeric(st_area(Shape))/1000000) %>%
+      mutate(total_class_area = as.numeric(st_area(.))/1000000) %>%
       rename_all(tolower) %>%
-      dplyr::select(fishid50k, fishid25k, us_l3name, stusps, class90, class00, class10, total_class_area, shape)
+      dplyr::select(fishid50k, fishid25k, us_l3name, stusps, class90, class00, class10, total_class_area)
     
     write_rds(wui_class_area, file.path(wui_out, "wui_class_area.rds"))
   }
@@ -246,7 +249,7 @@ if (!exists('wui_fish25k_sum')) {
       summarise(total_fishid25k_area = sum(total_class_area))
     
     write_rds(wui_fish25k_sum, file.path(wui_out, "wui_fish25k_sum.rds"))
-    system(paste0("aws s3 sync ", prefix, " ", s3_base))
+    system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
   }
   wui_fish25k_sum <- read_rds(file.path(wui_out, "wui_fish25k_sum.rds"))
 }
@@ -267,7 +270,7 @@ if (!exists('wui_fish50k_sum')) {
       summarise(total_fishid50k_area = sum(total_class_area))
     
     write_rds(wui_fish50k_sum, file.path(wui_out, "wui_fish50k_sum.rds"))
-    system(paste0("aws s3 sync ", prefix, " ", s3_base))
+    system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
   }
   wui_fish50k_sum <- read_rds(file.path(wui_out, "wui_fish50k_sum.rds"))
 }
@@ -288,7 +291,7 @@ if (!exists('wui_ecol3name_sum')) {
       summarise(total_ecol3name_area = sum(total_class_area))
     
     write_rds(wui_ecol3name_sum, file.path(wui_out, "wui_ecol3name_sum.rds"))
-    system(paste0("aws s3 sync ", prefix, " ", s3_base))
+    system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
   }
   wui_ecol3name_sum <- read_rds(file.path(wui_out, "wui_ecol3name_sum.rds"))
 }
@@ -309,7 +312,7 @@ if (!exists('wui_stusps_sum')) {
       summarise(total_stusps_area = sum(total_class_area))
     
     write_rds(wui_stusps_sum, file.path(wui_out, "wui_stusps_sum.rds"))
-    system(paste0("aws s3 sync ", prefix, " ", s3_base))
+    system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
   }
   wui_stusps_sum <- read_rds(file.path(wui_out, "wui_stusps_sum.rds"))
 }
@@ -332,7 +335,7 @@ if (!exists('wui_area')) {
       summarise(total_class_area = sum(total_class_area))
     
     write_rds(wuw_area, file.path(wui_out, 'wui_areas.rds'))
-    system(paste0("aws s3 sync ", prefix, " ", s3_base))
+    system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
     
   } else {
     wuw_area <- read_rds(file.path(wui_out, 'wui_areas.rds'))
@@ -340,11 +343,11 @@ if (!exists('wui_area')) {
 }
 
 if (!exists('wui_df')) {
-  if (!file.exists(file.path(rmarkdown_files, "wui_df.rds"))) {
+  if (!file.exists(file.path(wui_out, "wui_df.rds"))) {
     
-    wui_df <- wui %>%
+    wui_df <- wui_conus %>%
+      rename_all(tolower) %>%
       as.data.frame() %>%
-      setNames(tolower(names(.))) %>%
       mutate(house_units_1990 = hhu1990,
              house_units_2000 = hhu2000,
              house_units_2010 = hhu2010,
@@ -353,9 +356,9 @@ if (!exists('wui_df')) {
              house_den_2010 = huden2000) %>%
       dplyr::select(-matches('(huden|hhuden|hu|hhu|shu|shuden|flag|wuiclass|veg|water|shape|geom)')) %>%
       as_tibble() %>%
-      mutate( year = 0) %>%
+      mutate(year = 0) %>%
       complete(
-        nesting(blk10, statefp, stusps, pop1990, popden1990, pop2000, popden2000, pop2010, popden2010,
+        nesting(blk10, statefp, stusps, class_area_km2, pop1990, popden1990, pop2000, popden2000, pop2010, popden2010,
                 class90, class00, class10, house_units_1990, house_units_2000, house_units_2010,
                 house_den_1990, house_den_2000, house_den_2010),
         year = c(1990, 2000, 2010)) %>%
@@ -377,14 +380,50 @@ if (!exists('wui_df')) {
                                    year == 2010 ~ house_den_2010, TRUE ~ NA_real_),
              class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
                                                ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))))) %>%
-      dplyr::select(blk10, year, statefp, stusps, class, class_coarse, house_units, number_of_persons, pop_den, house_den)
+      dplyr::select(blk10, year, statefp, stusps, class, class_coarse, class_area_km2, house_units, number_of_persons, pop_den, house_den)
     
-    write_rds(wui_df, file.path(rmarkdown_files, "wui_df.rds"))
+    write_rds(wui_df, file.path(wui_out, "wui_df.rds"))
     
-    system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
+    wui_mean <- wui_df %>%
+      filter(year == 2010) %>%
+      filter(class_coarse != 'Other' | class_coarse != 'Urban') %>%
+      group_by() %>%
+      summarise(n = n(),
+                mean_blk_size = mean(class_area_km2),
+                max_blk_size = max(class_area_km2),
+                min_blk_size = min(class_area_km2),
+                sd_blk_size = sd(class_area_km2),
+                `25%`=quantile(class_area_km2, probs=0.25),
+                `50%`=quantile(class_area_km2, probs=0.5),
+                `75%`=quantile(class_area_km2, probs=0.75),
+                `95%`=quantile(class_area_km2, probs=0.95)) %>%
+      mutate(se_blk_size = sd_blk_size / sqrt(n),
+             lower_ci_blk_size = mean_blk_size - qt(1 - (0.05 / 2), n - 1) * se_blk_size,
+             upper_ci_blk_size = mean_blk_size + qt(1 - (0.05 / 2), n - 1) * se_blk_size)
+    write_rds(wui_mean, file.path(wui_out, "wui_mean_blk_size.rds"))
+    
+    wui_mean_class <- wui_df %>%
+      filter(year == 2010) %>%
+      filter(class_coarse != 'Other' | class_coarse != 'Urban') %>%
+      group_by(class_coarse) %>%
+      summarise(n = n(),
+                mean_blk_size = mean(class_area_km2),
+                max_blk_size = max(class_area_km2),
+                min_blk_size = min(class_area_km2),
+                sd_blk_size = sd(class_area_km2),
+                `25%`=quantile(class_area_km2, probs=0.25),
+                `50%`=quantile(class_area_km2, probs=0.5),
+                `75%`=quantile(class_area_km2, probs=0.75),
+                `95%`=quantile(class_area_km2, probs=0.95)) %>%
+      mutate(se_blk_size = sd_blk_size / sqrt(n),
+             lower_ci_blk_size = mean_blk_size - qt(1 - (0.05 / 2), n - 1) * se_blk_size,
+             upper_ci_blk_size = mean_blk_size + qt(1 - (0.05 / 2), n - 1) * se_blk_size)
+    
+    write_rds(wui_mean_class, file.path(wui_out, "wui_mean_blk_size_class.rds"))
+    system(paste0("aws s3 sync ", anthro_out, " ", s3_anthro_prefix))
     
   } else {
-    wui_df <- read_rds(file.path(rmarkdown_files, "wui_df.rds"))
+    wui_df <- read_rds(file.path(wui_out, "wui_df.rds"))
   }
 }
 
