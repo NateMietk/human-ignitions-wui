@@ -542,12 +542,9 @@ if (!exists('mtbs_fire')) {
       st_make_valid()
     
     st_write(mtbs_fire, file.path(mtbs_out, "mtbs_conus.gpkg"),
-             driver = "GPKG",
-             delete_layer=TRUE)
+             driver = "GPKG", delete_layer=TRUE)
     
-    system(paste0("aws s3 sync ",
-                  fire_crt, " ",
-                  s3_fire_prefix))
+    system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   } else {
     mtbs_fire <- st_read(dsn = file.path(mtbs_out, "mtbs_conus.gpkg"))
   }
