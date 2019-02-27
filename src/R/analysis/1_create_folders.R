@@ -112,13 +112,14 @@ supplements_text_figs <- file.path(draft_dir, 'supplements')
 
 # for pushing and pulling to s3 using the system function
 s3_base <- 's3://earthlab-natem/human-ignitions-wui'
-s3_rmarkdown <- 's3://earthlab-natem/human-ignitions-wui/src/R/rmarkdown_files'
-s3_distance <- 's3://earthlab-natem/human-ignitions-wui/anthro/wui/distance_from_urban'
-s3_bounds_prefix <- 's3://earthlab-natem/human-ignitions-wui/bounds'
-s3_anthro_prefix <- 's3://earthlab-natem/human-ignitions-wui/anthro'
-s3_fire_prefix <- 's3://earthlab-natem/human-ignitions-wui/fire'
-s3_raw_prefix <- 's3://earthlab-natem/human-ignitions-wui/raw'
-s3_figs_dir <- 's3://earthlab-natem/human-ignitions-wui/figs'
+s3_data <- file.path(s3_base, 'data')
+s3_rmarkdown <- file.path(s3_base, 'src', 'R', 'rmarkdown_files')
+s3_figs_dir <- file.path(s3_base, 'figs') 
+s3_bounds_prefix <- file.path(s3_data, 'bounds')
+s3_anthro_prefix <- file.path(s3_data, 'anthro') 
+s3_distance <- file.path(s3_anthro_prefix, 'wui', 'distance_from_urban')
+s3_fire_prefix <- file.path(s3_data, 'fire') 
+s3_raw_prefix <- file.path(s3_data, 'raw') 
 
 # Check if directory exists for all variable aggregate outputs, if not then create
 var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt, ztrax_out, ztrax_prefix,
