@@ -53,8 +53,8 @@ if(!file.exists(file.path(accuracy_assessment_dir, 'geomac_fpa.gpkg'))) {
 # Find the polygon in the mtbs that contain an FPA id
 if(!file.exists(file.path(accuracy_assessment_dir, 'mtbs_fpa.gpkg'))) {
 
-  mtbs_fpa_final <- clean_mtbs(mtbs, shp_filename = 'mtbs_fpa.gpkg', rds_filename = 'mtbs_fpa_count_stats.rds')
-  mtbs_2600m_fpa_final <- clean_mtbs(mtbs, buffer = TRUE, shp_filename = 'mtbs_2600m_fpa.gpkg', rds_filename = 'mtbs_2600m_fpa_count_stats.rds')
+  mtbs_fpa_final <- clean_mtbs(shp_filename = 'mtbs_fpa.gpkg', rds_filename = 'mtbs_fpa_count_stats.rds')
+  mtbs_2600m_fpa_final <- clean_mtbs(buffer = TRUE, shp_filename = 'mtbs_2600m_fpa.gpkg', rds_filename = 'mtbs_2600m_fpa_count_stats.rds')
   
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
@@ -70,7 +70,11 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"))) {
            RADIUS = sqrt(FIRE_SIZE_M2/pi)) %>%
     st_make_valid()
   
+  fpa_mtbs_geomac_2600m <- do.call(rbind, list(geomac_2600m_fpa_final, mtbs_2600m_fpa_final)) %>%
+    st_make_valid()
+  
   fpa_mtbs_geomac <- fpa_mtbs_geomac[!is.na(st_dimension(fpa_mtbs_geomac)),]
+  fpa_mtbs_geomac_2600m <- fpa_mtbs_geomac_2600m[!is.na(st_dimension(fpa_mtbs_geomac_2600m)),]
   
   fpa_mtbs_geomac_250m <- fpa_mtbs_geomac %>% 
     st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 250)
@@ -80,6 +84,8 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"))) {
     st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 1000)
 
   st_write(fpa_mtbs_geomac, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  st_write(fpa_mtbs_geomac_2600m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_2600m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
   st_write(fpa_mtbs_geomac_250m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_250m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
