@@ -1,4 +1,5 @@
 # Libraries ---------------------------------------------------------------
+devtools::install_github("r-spatial/lwgeom")
 packages <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom', 'nabor', 'velox', 'Hmisc', 'pbapply',
        "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 'raster', 'scales', 'mblm', 'doSNOW')
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
