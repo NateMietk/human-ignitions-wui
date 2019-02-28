@@ -60,7 +60,7 @@ clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mt
                   STATE, STAT_CAUSE_DESCR, IGNITION) %>%
     lwgeom::st_make_valid(.)
   
-  mtbs_count_df <- data.frame(as.data.frame(mtbs_shp) %>% count(),
+  mtbs_count_df <- data.frame(as.data.frame(mtbs) %>% count(),
                               as.data.frame(mtbs_fpa_final) %>% count()) %>%
     dplyr::select(mtbs_inital_count = n,
                   mtbs_final_count = n.1) %>%

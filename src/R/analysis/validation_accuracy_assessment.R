@@ -101,6 +101,8 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"))) {
   fpa_mtbs_geomac_250m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_250m.gpkg")) 
   fpa_mtbs_geomac_500m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_500m.gpkg")) 
   fpa_mtbs_geomac_1000m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_1000m.gpkg")) 
+  fpa_mtbs_geomac_2600m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_2600m.gpkg")) 
+  
 }
 
 # Create a burned area estimate of the geomac+mtbs with FPA id
