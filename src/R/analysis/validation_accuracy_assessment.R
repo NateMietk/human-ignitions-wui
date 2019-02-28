@@ -47,6 +47,7 @@ if(!file.exists(file.path(accuracy_assessment_dir, 'geomac_fpa.gpkg'))) {
   
   } else {
     geomac_fpa_final <- st_read(file.path(accuracy_assessment_dir, 'geomac_fpa.gpkg'))
+    geomac_2600m_fpa_final <- st_read(file.path(accuracy_assessment_dir, 'geomac_2600m_fpa.gpkg'))
   }
 
 # Find the polygon in the mtbs that contain an FPA id
@@ -59,20 +60,41 @@ if(!file.exists(file.path(accuracy_assessment_dir, 'mtbs_fpa.gpkg'))) {
   
 } else {
   mtbs_fpa_final <- st_read(file.path(accuracy_assessment_dir, 'mtbs_fpa.gpkg')) 
-}
+  mtbs_2600m_fpa_final <- st_read(file.path(accuracy_assessment_dir, 'mtbs_2600m_fpa.gpkg')) 
+  }
 
 # Adjoin the cleaned mtbs and geomac databases that have known FPA ids
 if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"))) {
   fpa_mtbs_geomac <- do.call(rbind, list(geomac_fpa_final, mtbs_fpa_final)) %>%
     mutate(FIRE_SIZE_M2 = as.numeric(st_area(.)),
-           RADIUS = sqrt(FIRE_SIZE_M2/pi))
+           RADIUS = sqrt(FIRE_SIZE_M2/pi)) %>%
+    st_make_valid()
+  
+  fpa_mtbs_geomac <- fpa_mtbs_geomac[!is.na(st_dimension(fpa_mtbs_geomac)),]
+  
+  fpa_mtbs_geomac_250m <- fpa_mtbs_geomac %>% 
+    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 250)
+  fpa_mtbs_geomac_500m <- fpa_mtbs_geomac %>% 
+    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 500)
+  fpa_mtbs_geomac_1000m <- fpa_mtbs_geomac %>% 
+    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 1000)
 
   st_write(fpa_mtbs_geomac, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
+  st_write(fpa_mtbs_geomac_250m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_250m.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  st_write(fpa_mtbs_geomac_500m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_500m.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  st_write(fpa_mtbs_geomac_1000m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_1000m.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
 } else {
   fpa_mtbs_geomac <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg")) 
+  fpa_mtbs_geomac_250m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_250m.gpkg")) 
+  fpa_mtbs_geomac_500m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_500m.gpkg")) 
+  fpa_mtbs_geomac_1000m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_1000m.gpkg")) 
 }
 
 # Create a burned area estimate of the geomac+mtbs with FPA id
@@ -88,12 +110,30 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae.gpkg"))
     st_transform(proj_ea) %>%
     lwgeom::st_make_valid(.)
   
+  fpa_mtbs_geomac_bae <- fpa_mtbs_geomac_bae[!is.na(st_dimension(fpa_mtbs_geomac_bae)),]
+  fpa_mtbs_geomac_bae_250m <- fpa_mtbs_geomac_bae %>% 
+    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 250)
+  fpa_mtbs_geomac_bae_500m <- fpa_mtbs_geomac_bae %>% 
+    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 500)
+  fpa_mtbs_geomac_bae_1000m <- fpa_mtbs_geomac_bae %>% 
+    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 1000)
+  
   st_write(fpa_mtbs_geomac_bae, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
+  st_write(fpa_mtbs_geomac_bae_250m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_250m.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  st_write(fpa_mtbs_geomac_bae_500m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_500m.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  st_write(fpa_mtbs_geomac_bae_1000m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_1000m.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
+  
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
 } else {
   fpa_mtbs_geomac_bae <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae.gpkg")) 
+  fpa_mtbs_geomac_bae_250m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_250m.gpkg")) 
+  fpa_mtbs_geomac_bae_500m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_500m.gpkg")) 
+  fpa_mtbs_geomac_bae_1000m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_1000m.gpkg")) 
 }
 
 # Find the difference in burned area from the estimated and 'true' perimeters
@@ -130,31 +170,51 @@ as.data.frame(buffer_perimeter_difference) %>%
   mutate(accuracy = DIF_FIRE_SIZE_M2/FIRE_SIZE_M2)
 
 # How many homes are threatened in the buffered areas compared to 'true' polygons
-idx_yearly <- year(seq(as.Date(paste0('1992-01-01')), as.Date(paste0('2015-01-01')), by = 'year'))
+idx_yearly <- year(seq(as.Date('1980-01-01'), as.Date('2016-01-01'), by = 'year'))
 
 ztrax <- list.files(cumsum_ztrax_rst_dir, full.names = TRUE) %>%
   raster::stack(.) %>%
-  setZ(., idx_yearly)
+  setZ(., idx_yearly) %>%
+  subset(., which(getZ(.) >= '1992' &
+                    getZ(.) <= '2015'))
 
 if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax.gpkg"))) {
 
   fpa_mtbs_geomac_ztrax <- extract_ztrax(rst_in = ztrax, shp_in = fpa_mtbs_geomac)
-  st_write(fpa_mtbs_geomac_ztrax, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
+  fpa_mtbs_geomac_ztrax_250m <- extract_ztrax(rst_in = ztrax, shp_in = fpa_mtbs_geomac_250m)
+  fpa_mtbs_geomac_ztrax_500m <- extract_ztrax(rst_in = ztrax, shp_in = fpa_mtbs_geomac_500m)
+  fpa_mtbs_geomac_ztrax_1000m <- extract_ztrax(rst_in = ztrax, shp_in = fpa_mtbs_geomac_1000m)
+  
+  write_rds(fpa_mtbs_geomac_ztrax, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax.rds"))
+  write_rds(fpa_mtbs_geomac_ztrax_250m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_250m.rds"))
+  write_rds(fpa_mtbs_geomac_ztrax_500m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_500m.rds"))
+  write_rds(fpa_mtbs_geomac_ztrax_1000m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_1000m.rds"))
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
 
 } else {
   fpa_mtbs_geomac_ztrax <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax.gpkg"))
-}
+  fpa_mtbs_geomac_ztrax_250m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_250m.rds"))
+  fpa_mtbs_geomac_ztrax_500m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_500m.rds"))
+  fpa_mtbs_geomac_ztrax_1000m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_1000m.rds"))
+  }
 
-if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_ztrax.gpkg"))) {
+if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_bae.gpkg"))) {
 
-  fpa_mtbs_geomac_bae_ztrax <- extract_ztrax(rst_in = ztrax, shp_in = fpa_mtbs_geomac_bae)
-  st_write(fpa_mtbs_geomac_bae_ztrax, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_ztrax.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
+  fpa_mtbs_geomac_ztrax_bae <- extract_ztrax(rst_in = ztrax, shp_in = fpa_mtbs_geomac_bae)
+  fpa_mtbs_geomac_ztrax_bae_250m <- extract_ztrax(rst_in = ztrax, shp_in = fpa_mtbs_geomac_bae_250m)
+  fpa_mtbs_geomac_ztrax_bae_500m <- extract_ztrax(rst_in = ztrax, shp_in = fpa_mtbs_geomac_bae_500m)
+  fpa_mtbs_geomac_ztrax_bae_1000m <- extract_ztrax(rst_in = ztrax, shp_in = fpa_mtbs_geomac_bae_1000m)
+  
+  write_rds(fpa_mtbs_geomac_ztrax_bae, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_bae.gpkg"))
+  write_rds(fpa_mtbs_geomac_ztrax_bae_250m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_bae_250m.rds"))
+  write_rds(fpa_mtbs_geomac_ztrax_bae_500m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_bae_500m.rds"))
+  write_rds(fpa_mtbs_geomac_ztrax_bae_1000m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_bae_1000m.rds"))
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
 } else {
-  fpa_mtbs_geomac_bae_ztrax <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_ztrax.gpkg"))
-}
+  fpa_mtbs_geomac_ztrax_bae <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_bae.gpkg"))
+  fpa_mtbs_geomac_ztrax_bae_250m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_bae_250m.rds"))
+  fpa_mtbs_geomac_ztrax_bae_500m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_bae_500m.rds"))
+  fpa_mtbs_geomac_ztrax_bae_1000m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_ztrax_bae_1000m.rds"))
+  }
 
