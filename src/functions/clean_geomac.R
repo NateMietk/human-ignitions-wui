@@ -25,7 +25,7 @@ clean_geomac <- function(shp_in, fpa_shp = fpa_fire, out_dir = accuracy_assessme
   geomac_fpa_vals <- geomac_fpa_filtered %>%
     dplyr::select(row_number) %>%
     as.data.frame(.) %>%
-    dplyr::select(-Shape) %>%
+    dplyr::select(-contains('Shape|geom')) %>%
     group_by(row_number) %>%
     count() %>%
     arrange(desc(n)) %>%
@@ -41,11 +41,10 @@ clean_geomac <- function(shp_in, fpa_shp = fpa_fire, out_dir = accuracy_assessme
   st_geometry(geomac_fpa_final) = "geom"
   
   geomac_count_df <- data.frame(as.data.frame(geomac) %>% count(),
-                                as.data.frame(geomac_fpa_final) %>% count(),
-                                geomac_final_count/geomac_inital_count) %>%
+                              as.data.frame(geomac_fpa_final) %>% count()) %>%
     dplyr::select(geomac_inital_count = n,
-                  geomac_final_count = n.1,
-                  pct_fpa_in_geomac = n.2)
+                  geomac_final_count = n.1) %>%
+    mutate(pct_fpa_in_geomac = geomac_final_count/geomac_inital_count)
   
   write_rds(geomac_count_df, file.path(out_dir, rds_filename))
   st_write(geomac_fpa_final, file.path(out_dir, shp_filename), delete_layer = TRUE)
