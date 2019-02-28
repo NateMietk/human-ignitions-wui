@@ -524,8 +524,8 @@ if(!file.exists(file.path(rmarkdown_files, 'fpa_wui_df.rds'))) {
 #Clean and prep the MTBS data to match the FPA database naming convention
 if (!exists('mtbs_fire')) {
   if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
-    mtbs_fire <- st_read(dsn = file.path(mtbs_prefix, 'mtbs_perimeter_data_v2'),
-                         layer = "dissolve_mtbs_perims_1984-2015_DD_20170501", quiet= TRUE) %>%
+    mtbs_fire <- st_read(dsn = mtbs_prefix,
+                         layer = "mtbs_perims_DD", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%
       mutate(MTBS_ID = Fire_ID,
              MTBS_FIRE_NAME = Fire_Name,
