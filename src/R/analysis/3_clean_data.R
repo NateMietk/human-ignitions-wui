@@ -438,12 +438,12 @@ if (!exists('fpa_fire')) {
                     FIRE_YEAR, DISCOVERY_DATE, DISCOVERY_DOY, STAT_CAUSE_DESCR, FIRE_SIZE, STATE) %>%
       filter(STAT_CAUSE_DESCR != 'Missing/Undefined') %>%
       mutate(IGNITION = ifelse(STAT_CAUSE_DESCR == "Lightning", "Lightning", "Human"),
-             FIRE_SIZE_m2 = FIRE_SIZE*4046.86,
-             FIRE_SIZE_km2 = FIRE_SIZE_m2/1000000,
-             FIRE_SIZE_ha = FIRE_SIZE_m2/10000,
+             FIRE_SIZE_km2 = FIRE_SIZE/247.105,
+             FIRE_SIZE_ha = FIRE_SIZE_km2*100,
+             FIRE_SIZE_CL = as.factor(classify_fire_size_cl(FIRE_SIZE_ha)),
              DISCOVERY_DAY = day(DISCOVERY_DATE),
              DISCOVERY_MONTH = month(DISCOVERY_DATE),
-             DISCOVERY_YEAR = FIRE_YEAR)  %>%
+             DISCOVERY_YEAR = FIRE_YEAR) %>%
       st_transform(st_crs(usa_shp)) %>%
       st_intersection(., st_union(usa_shp))
     
@@ -494,7 +494,7 @@ if (!exists('fpa_wui')) {
              class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
                                                ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))),
              seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
-             size = as.factor(classify_fire_size_cl(FIRE_SIZE_km2)),
+             size = as.factor(classify_fire_size_cl(FIRE_SIZE_ha)),
              regions = as.factor(ifelse(regions == 'East', 'North East', as.character(regions)))) %>%
       rename_all(tolower) %>%
       dplyr::select(-stusps.1) %>%
