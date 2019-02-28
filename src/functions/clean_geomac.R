@@ -1,7 +1,7 @@
-clean_geomac <- function(shp_in, fpa_fire = fpa_fire, accuracy_assessment_dir = accuracy_assessment_dir,
-                         fpa_fire = fpa_fire, shp_filename, rds_filename) {
+clean_geomac <- function(shp_in, fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir,
+                          shp_filename, rds_filename) {
   geomac_fpa <- shp_in %>%
-    st_join(., fpa_fire)
+    st_join(., fpa_shp)
   
   # If there are multiple points per polygon, filter based on same fire year and within 25% of total fire sizes
   geomac_fpa_filtered <- geomac_fpa %>%
@@ -40,12 +40,14 @@ clean_geomac <- function(shp_in, fpa_fire = fpa_fire, accuracy_assessment_dir = 
   names(geomac_fpa_final)[20]="geom"
   st_geometry(geomac_fpa_final) = "geom"
   
-  geomac_count_df <- tibble(
-    geomac_inital_count = as.data.frame(geomac) %>% count(),
-    geomac_final_count = as.data.frame(geomac_fpa_final) %>% count(),
-    pct_fpa_in_geomac = geomac_final_count/geomac_inital_count)
+  geomac_count_df <- data.frame(as.data.frame(geomac) %>% count(),
+                                as.data.frame(geomac_fpa_final) %>% count(),
+                                geomac_final_count/geomac_inital_count) %>%
+    dplyr::select(geomac_inital_count = n,
+                  geomac_final_count = n.1,
+                  pct_fpa_in_geomac = n.2)
   
-  write_rds(geomac_count_df, file.path(accuracy_assessment_dir, rds_filename))
-  st_write(geomac_fpa_final, file.path(accuracy_assessment_dir, shp_filename), delete_layer = TRUE)
+  write_rds(geomac_count_df, file.path(out_dir, rds_filename))
+  st_write(geomac_fpa_final, file.path(out_dir, shp_filename), delete_layer = TRUE)
   return(geomac_fpa_final)
 }

@@ -1,9 +1,9 @@
-clean_mtbs <- function(shp_in, fpa_fire = fpa_fire, accuracy_assessment_dir = accuracy_assessment_dir, mtbs_prefix = mtbs_prefix, usa_shp = usa_shp,
-                       mtbs_fire = mtbs_fire, fpa_fire = fpa_fire, shp_filename, rds_filename, buffer = FALSE) {
+clean_mtbs <- function(shp_in, fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mtbs_dir = mtbs_prefix, usa = usa_shp,
+                       mtbs_shp = mtbs_fire, shp_filename, rds_filename, buffer = FALSE) {
   # Find the percentage of FPA points are contained in the MTBS database
-  mtbs <- st_read(dsn = file.path(mtbs_prefix, 'mtbs_perimeter_data_v2'),
+  mtbs <- st_read(dsn = file.path(mtbs_dir, 'mtbs_perimeter_data_v2'),
                   layer = "dissolve_mtbs_perims_1984-2015_DD_20170501", quiet= TRUE) %>%
-    st_transform(st_crs(usa_shp)) %>%
+    st_transform(st_crs(usa)) %>%
     filter(Year >= 1992 & Year <= 2015) %>%
     mutate(MTBS_ID = Fire_ID,
            MTBS_FIRE_NAME = Fire_Name,
@@ -14,14 +14,14 @@ clean_mtbs <- function(shp_in, fpa_fire = fpa_fire, accuracy_assessment_dir = ac
     dplyr::select(MTBS_ID, MTBS_FIRE_NAME, MTBS_DISCOVERY_DAY, MTBS_DISCOVERY_MONTH, MTBS_DISCOVERY_YEAR, MTBS_ACRES) 
   
   if(buffer == TRUE) {
-    mtbs <- mtbs %>%
-      st_buffer(2600)
+    mtbs <- mtbs %>% 
+      st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 1000)
   }
   
   # After joining based on ID, find the FPA points within MTBS polygons
   mtbs_remaining <- mtbs %>% 
-    anti_join(., as.data.frame(mtbs_fire), by = c('MTBS_ID', 'MTBS_FIRE_NAME', 'MTBS_DISCOVERY_DAY', 'MTBS_DISCOVERY_MONTH', 'MTBS_DISCOVERY_YEAR', 'MTBS_ACRES')) %>%
-    st_intersection(., fpa_fire %>% dplyr::select(FPA_ID, FIRE_SIZE, DISCOVERY_DAY, DISCOVERY_MONTH, DISCOVERY_YEAR)) %>%
+    anti_join(., as.data.frame(mtbs_shp), by = c('MTBS_ID', 'MTBS_FIRE_NAME', 'MTBS_DISCOVERY_DAY', 'MTBS_DISCOVERY_MONTH', 'MTBS_DISCOVERY_YEAR', 'MTBS_ACRES')) %>%
+    st_intersection(., fpa_shp %>% dplyr::select(FPA_ID, FIRE_SIZE, DISCOVERY_DAY, DISCOVERY_MONTH, DISCOVERY_YEAR)) %>%
     as.data.frame(.) %>% dplyr::select(-geometry) %>%
     left_join(mtbs, ., by = c('MTBS_ID', 'MTBS_FIRE_NAME', 'MTBS_DISCOVERY_DAY', 'MTBS_DISCOVERY_MONTH', 'MTBS_DISCOVERY_YEAR', 'MTBS_ACRES'))
   
@@ -35,7 +35,7 @@ clean_mtbs <- function(shp_in, fpa_fire = fpa_fire, accuracy_assessment_dir = ac
   # Create a full dataframe of the outlier MTBS + FPA fires to be folded into the main df
   mtbs_remaining_filtered <- mtbs_remaining_filtered_id_only%>%
     dplyr::select('FPA_ID') %>%
-    left_join(., as.data.frame(fpa_fire) %>% dplyr::select(-geom), by = 'FPA_ID') %>%
+    left_join(., as.data.frame(fpa_shp) %>% dplyr::select(-geom), by = 'FPA_ID') %>%
     dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
                   DISCOVERY_YEAR, DISCOVERY_DOY, DISCOVERY_MONTH, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION) %>%
     bind_cols(., as.data.frame(mtbs_remaining_filtered_id_only) %>% dplyr::select(-FPA_ID, -geometry)) %>%
@@ -48,7 +48,7 @@ clean_mtbs <- function(shp_in, fpa_fire = fpa_fire, accuracy_assessment_dir = ac
            GEOMAC_ACRES = NA_real_)
   
   # Add these additional fires into the mtbs_fire points database
-  mtbs_fpa_final <- as.data.frame(mtbs_fire) %>%
+  mtbs_fpa_final <- as.data.frame(mtbs_shp) %>%
     full_join(., as.data.frame(mtbs_remaining_filtered) %>% dplyr::select(-geometry)) %>%
     st_as_sf() %>%
     dplyr::select(FPA_ID, MTBS_ID, GEOMAC_ID, 
@@ -60,12 +60,14 @@ clean_mtbs <- function(shp_in, fpa_fire = fpa_fire, accuracy_assessment_dir = ac
                   STATE, STAT_CAUSE_DESCR, IGNITION) %>%
     lwgeom::st_make_valid(.)
   
-  mtbs_count_df <- tibble(
-    mtbs_inital_count = as.data.frame(mtbs) %>% count(),
-    mtbs_final_count = as.data.frame(mtbs_fpa_final) %>% count(),
-    pct_fpa_in_mtbs = mtbs_final_count/mtbs_inital_count)
+  mtbs_count_df <- data.frame(as.data.frame(geomac) %>% count(),
+                              as.data.frame(geomac_fpa_final) %>% count(),
+                              geomac_final_count/geomac_inital_count) %>%
+    dplyr::select(mtbs_inital_count = n,
+                  mtbs_final_count = n.1,
+                  pct_fpa_in_mtbs = n.2)
   
-  write_rds(geomac_count_df, file.path(accuracy_assessment_dir, rds_filename))
-  st_write(mtbs_fpa_final, file.path(accuracy_assessment_dir, shp_filename), delete_layer = TRUE)
+  write_rds(geomac_count_df, file.path(out_dir, rds_filename))
+  st_write(mtbs_fpa_final, file.path(out_dir, shp_filename), delete_layer = TRUE)
   return(mtbs_fpa_final)
 }
