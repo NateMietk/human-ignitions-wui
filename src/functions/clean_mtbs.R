@@ -1,8 +1,8 @@
-clean_mtbs <- function(shp_in, fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mtbs_dir = mtbs_prefix, usa = usa_shp,
+clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mtbs_dir = mtbs_prefix, usa = usa_shp,
                        mtbs_shp = mtbs_fire, shp_filename, rds_filename, buffer = FALSE) {
   # Find the percentage of FPA points are contained in the MTBS database
-  mtbs <- st_read(dsn = file.path(mtbs_dir, 'mtbs_perimeter_data_v2'),
-                  layer = "dissolve_mtbs_perims_1984-2015_DD_20170501", quiet= TRUE) %>%
+  mtbs <- st_read(dsn = mtbs_dir,
+                  layer = "mtbs_perims_DD", quiet= TRUE) %>%
     st_transform(st_crs(usa)) %>%
     filter(Year >= 1992 & Year <= 2015) %>%
     mutate(MTBS_ID = Fire_ID,
@@ -60,14 +60,13 @@ clean_mtbs <- function(shp_in, fpa_shp = fpa_fire, out_dir = accuracy_assessment
                   STATE, STAT_CAUSE_DESCR, IGNITION) %>%
     lwgeom::st_make_valid(.)
   
-  mtbs_count_df <- data.frame(as.data.frame(geomac) %>% count(),
-                              as.data.frame(geomac_fpa_final) %>% count(),
-                              geomac_final_count/geomac_inital_count) %>%
+  mtbs_count_df <- data.frame(as.data.frame(mtbs_shp) %>% count(),
+                              as.data.frame(mtbs_fpa_final) %>% count()) %>%
     dplyr::select(mtbs_inital_count = n,
-                  mtbs_final_count = n.1,
-                  pct_fpa_in_mtbs = n.2)
+                  mtbs_final_count = n.1) %>%
+    mutate(pct_fpa_in_mtbs = mtbs_final_count/mtbs_inital_count)
   
-  write_rds(geomac_count_df, file.path(out_dir, rds_filename))
+  write_rds(mtbs_count_df, file.path(out_dir, rds_filename))
   st_write(mtbs_fpa_final, file.path(out_dir, shp_filename), delete_layer = TRUE)
   return(mtbs_fpa_final)
 }
