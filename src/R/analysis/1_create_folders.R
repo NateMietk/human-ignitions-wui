@@ -1,7 +1,9 @@
 # Libraries ---------------------------------------------------------------
-devtools::install_github("r-spatial/lwgeom")
-packages <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'lwgeom', 'nabor', 'velox', 'Hmisc', 'pbapply',
-       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 'raster', 'scales', 'mblm', 'doSNOW')
+# Only run the lwgeom once if using docker
+# devtools::install_github("r-spatial/lwgeom")
+packages <- c("data.table", "tidyverse", "magrittr", "sf", "gridExtra", "rgdal", "raster", "rgeos", "data.table", 'nabor', 'velox', 'Hmisc', 'pbapply',
+       "assertthat", "purrr", "httr", 'zoo', "rvest", "lubridate", "doParallel", "sp", "RColorBrewer", "ggmap", "ggthemes", 'snowfall', 'parallel', 
+       'raster', 'scales', 'mblm', 'doSNOW', 'lwgeom')
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   # automatically installs packages if not found
   install.packages(setdiff(packages, rownames(installed.packages())))
