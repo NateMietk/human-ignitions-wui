@@ -21,7 +21,6 @@ invisible(sapply(file_sources, source, .GlobalEnv))
 
 proj_ed <- "+proj=eqdc +lat_0=39 +lon_0=-96 +lat_1=33 +lat_2=45 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs" #USA_Contiguous_Equidistant_Conic
 proj_ea <- "+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"
-ncores <- 5
 
 # Raw data folders
 prefix <- "data"
