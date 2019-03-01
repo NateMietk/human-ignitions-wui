@@ -15,7 +15,7 @@ clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mt
   
   if(buffer == TRUE) {
     mtbs <- mtbs %>% 
-      st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 1000)
+      st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 2600)
   }
   
   # After joining based on ID, find the FPA points within MTBS polygons
@@ -33,23 +33,25 @@ clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mt
     dplyr::select("MTBS_ID", 'FPA_ID')
   
   # Create a full dataframe of the outlier MTBS + FPA fires to be folded into the main df
-  mtbs_remaining_filtered <- mtbs_remaining_filtered_id_only%>%
+  mtbs_remaining_filtered <- mtbs_remaining_filtered_id_only %>%
     dplyr::select('FPA_ID') %>%
-    left_join(., as.data.frame(fpa_shp) %>% dplyr::select(-geom), by = 'FPA_ID') %>%
-    dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
+    left_join(., as.data.frame(fpa_shp) %>% dplyr::select(-contains('geometry|geom')), by = 'FPA_ID') %>%
+    dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2,
                   DISCOVERY_YEAR, DISCOVERY_DOY, DISCOVERY_MONTH, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION) %>%
-    bind_cols(., as.data.frame(mtbs_remaining_filtered_id_only) %>% dplyr::select(-FPA_ID, -geometry)) %>%
+    bind_cols(., as.data.frame(mtbs_remaining_filtered_id_only) %>% dplyr::select(-FPA_ID, -contains('geometry|geom'))) %>%
     merge(., as.data.frame(mtbs) %>% dplyr::select(-geometry), by = 'MTBS_ID', all = FALSE) %>%
-    dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2, MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH, MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION) %>%
+    dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, 
+                  MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2, MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, 
+                  MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH, MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION) %>%
     st_cast("MULTIPOLYGON") %>%
     mutate(GEOMAC_ID = factor(NA_character_),
            GEOMAC_FIRE_NAME = factor(NA_character_),
            GEOMAC_DISCOVERY_YEAR = NA_integer_,
            GEOMAC_ACRES = NA_real_)
-  
+    
   # Add these additional fires into the mtbs_fire points database
   mtbs_fpa_final <- as.data.frame(mtbs_shp) %>%
-    full_join(., as.data.frame(mtbs_remaining_filtered) %>% dplyr::select(-geometry)) %>%
+    full_join(., as.data.frame(mtbs_remaining_filtered) %>% dplyr::select(-contains('geometry|geom'))) %>%
     st_as_sf() %>%
     dplyr::select(FPA_ID, MTBS_ID, GEOMAC_ID, 
                   GEOMAC_FIRE_NAME, MTBS_FIRE_NAME,
@@ -65,6 +67,9 @@ clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mt
     dplyr::select(mtbs_inital_count = n,
                   mtbs_final_count = n.1) %>%
     mutate(pct_fpa_in_mtbs = mtbs_final_count/mtbs_inital_count)
+  
+  names(mtbs_fpa_final)[20]="geom"
+  st_geometry(mtbs_fpa_final) = "geom"
   
   write_rds(mtbs_count_df, file.path(out_dir, rds_filename))
   st_write(mtbs_fpa_final, file.path(out_dir, shp_filename), delete_layer = TRUE)

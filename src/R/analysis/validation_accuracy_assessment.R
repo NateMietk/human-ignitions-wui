@@ -17,18 +17,19 @@ if(!file.exists(file.path(accuracy_assessment_dir, 'geomac.gpkg'))) {
     summarise(GEOMAC_DISCOVERY_YEAR = first(GEOMAC_DISCOVERY_YEAR),
               GEOMAC_ACRES = sum(GEOMAC_ACRES)) %>% ungroup()
   
-  geommac_mtbs_repeats <- st_join(mtbs, geomac) %>%  
+  geommac_mtbs_repeats <- st_join(mtbs_fire, geomac) %>%  
     filter(GEOMAC_DISCOVERY_YEAR == MTBS_DISCOVERY_YEAR) %>%
     dplyr::select(GEOMAC_ID, GEOMAC_FIRE_NAME, GEOMAC_DISCOVERY_YEAR) 
   
   geomac <- geomac %>%
-    anti_join(., as.data.frame(geommac_mtbs_repeats) %>% dplyr::select(-geometry), by = c('GEOMAC_ID', 'GEOMAC_FIRE_NAME', 'GEOMAC_DISCOVERY_YEAR'))
+    anti_join(., as.data.frame(geommac_mtbs_repeats) %>% dplyr::select(-contains('geom|geometry|Shape')), 
+                                                                       by = c('GEOMAC_ID', 'GEOMAC_FIRE_NAME', 'GEOMAC_DISCOVERY_YEAR'))
   
   geomac_2600m <- geomac %>%
     st_buffer(2600)
   
-  st_write(geomac, file.path(accuracy_assessment_dir, 'geomac.gpkg'))
-  st_write(geomac_2600m, file.path(accuracy_assessment_dir, 'geomac_2600m.gpkg'))
+  st_write(geomac, file.path(accuracy_assessment_dir, 'geomac.gpkg'), delete_layer = TRUE)
+  st_write(geomac_2600m, file.path(accuracy_assessment_dir, 'geomac_2600m.gpkg'), delete_layer = TRUE)
   
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
@@ -76,25 +77,18 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"))) {
   fpa_mtbs_geomac <- fpa_mtbs_geomac[!is.na(st_dimension(fpa_mtbs_geomac)),]
   fpa_mtbs_geomac_2600m <- fpa_mtbs_geomac_2600m[!is.na(st_dimension(fpa_mtbs_geomac_2600m)),]
   
-  fpa_mtbs_geomac_250m <- fpa_mtbs_geomac %>% 
-    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 250)
-  fpa_mtbs_geomac_500m <- fpa_mtbs_geomac %>% 
-    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 500)
-  fpa_mtbs_geomac_1000m <- fpa_mtbs_geomac %>% 
-    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 1000)
-
   st_write(fpa_mtbs_geomac, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
   st_write(fpa_mtbs_geomac_2600m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_2600m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
-  st_write(fpa_mtbs_geomac_250m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_250m.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
-  st_write(fpa_mtbs_geomac_500m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_500m.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
-  st_write(fpa_mtbs_geomac_1000m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_1000m.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
   
-  system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
+  for(i in c(250, 500, 1000)) {
+    fpa_df <- fpa_mtbs_geomac %>% 
+      st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = i) %>%
+      st_write(., file.path(accuracy_assessment_dir, paste0("fpa_mtbs_geomac_", i, "m.gpkg")),
+             driver = "GPKG", delete_layer = TRUE)
+    system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
+  }
   
 } else {
   fpa_mtbs_geomac <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg")) 
@@ -102,8 +96,7 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"))) {
   fpa_mtbs_geomac_500m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_500m.gpkg")) 
   fpa_mtbs_geomac_1000m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_1000m.gpkg")) 
   fpa_mtbs_geomac_2600m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_2600m.gpkg")) 
-  
-}
+  }
 
 # Create a burned area estimate of the geomac+mtbs with FPA id
 if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae.gpkg"))) {
@@ -119,24 +112,16 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae.gpkg"))
     lwgeom::st_make_valid(.)
   
   fpa_mtbs_geomac_bae <- fpa_mtbs_geomac_bae[!is.na(st_dimension(fpa_mtbs_geomac_bae)),]
-  fpa_mtbs_geomac_bae_250m <- fpa_mtbs_geomac_bae %>% 
-    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 250)
-  fpa_mtbs_geomac_bae_500m <- fpa_mtbs_geomac_bae %>% 
-    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 500)
-  fpa_mtbs_geomac_bae_1000m <- fpa_mtbs_geomac_bae %>% 
-    st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 1000)
-  
   st_write(fpa_mtbs_geomac_bae, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
-  st_write(fpa_mtbs_geomac_bae_250m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_250m.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
-  st_write(fpa_mtbs_geomac_bae_500m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_500m.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
-  st_write(fpa_mtbs_geomac_bae_1000m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_1000m.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
   
-  system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
-  
+  for(i in c(250, 500, 1000)) {
+    fpa_df <- fpa_mtbs_geomac_bae %>% 
+      st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = i) %>%
+      st_write(., file.path(accuracy_assessment_dir, paste0("fpa_mtbs_geomac_bae_", i, "m.gpkg")),
+               driver = "GPKG", delete_layer = TRUE)
+    system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
+  }
 } else {
   fpa_mtbs_geomac_bae <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae.gpkg")) 
   fpa_mtbs_geomac_bae_250m <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_bae_250m.gpkg")) 

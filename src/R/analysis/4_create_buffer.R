@@ -3,27 +3,36 @@
 if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
   # Create the distance variable to create the simple buffers
   
-  fpa_fire <- fpa_fire %>%
-    mutate(MTBS_ACRES = NA,
-           MTBS_DISCOVERY_YEAR = NA,
-           MTBS_DISCOVERY_MONTH = NA,
-           MTBS_DISCOVERY_DAY = NA,
+  fpa_fire_add <- fpa_fire %>%
+    mutate(MTBS_ACRES = NA_real_,
+           MTBS_DISCOVERY_YEAR = NA_integer_,
+           MTBS_DISCOVERY_MONTH = NA_integer_,
+           MTBS_DISCOVERY_DAY = NA_integer_,
+           GEOMAC_ID = factor(NA_character_),
+           GEOMAC_FIRE_NAME = factor(NA_character_),
+           GEOMAC_DISCOVERY_YEAR = NA_integer_,
+           GEOMAC_ACRES = NA_real_,
            RADIUS = NA) %>%
-    dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
-                  MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
-                  MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS)
+  dplyr::select(FPA_ID, MTBS_ID, GEOMAC_ID, 
+                GEOMAC_FIRE_NAME, MTBS_FIRE_NAME,
+                FPA_ACRES = FIRE_SIZE, MTBS_ACRES, GEOMAC_ACRES, 
+                FPA_DISCOVERY_YEAR = DISCOVERY_YEAR, MTBS_DISCOVERY_YEAR, GEOMAC_DISCOVERY_YEAR,
+                MTBS_DISCOVERY_MONTH, FPA_DISCOVERY_MONTH = DISCOVERY_MONTH, 
+                FPA_ = DISCOVERY_DAY, MTBS_DISCOVERY_DAY, FPA_DISCOVERY_DOY = DISCOVERY_DOY,
+                STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS) 
   
-  bae <- fpa_fire %>%
+  bae <- fpa_fire_add %>%
+    anti_join(., as.data.frame(fpa_mtbs_geomac) %>% dplyr::select(FPA_ID)) %>%
     st_transform(proj_ed) %>%
-    mutate(RADIUS = sqrt(FIRE_SIZE_m2/pi)) %>%
-    filter(is.na(MTBS_ID))
+    mutate(RADIUS = sqrt((FPA_ACRES*4046.86)/pi)) %>%
+    filter(is.na(MTBS_ID)|is.na(GEOMAC_ID))
   
   bae <- st_parallel(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS) %>%
     st_transform(proj_ea)
   
-  bae <- do.call(rbind, list(bae = bae, mtbs_fire = mtbs_fire)) %>%
+  bae <- do.call(rbind, list(bae = bae, fpa_mtbs_geomac = fpa_mtbs_geomac)) %>%
     st_cast('POLYGON') %>%
-    dplyr::select(FPA_ID, DISCOVERY_YEAR, FIRE_SIZE_km2, geometry)
+    dplyr::select(FPA_ID, MTBS_ID, GEOMAC_ID, DISCOVERY_YEAR, FPA_ACRES, geometry)
   
   st_write(bae, file.path(fire_poly, "fpa_mtbs_bae.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
