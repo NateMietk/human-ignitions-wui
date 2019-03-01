@@ -440,10 +440,11 @@ if (!exists('fpa_fire')) {
       mutate(IGNITION = ifelse(STAT_CAUSE_DESCR == "Lightning", "Lightning", "Human"),
              FIRE_SIZE_km2 = FIRE_SIZE/247.105,
              FIRE_SIZE_ha = FIRE_SIZE_km2*100,
-             FIRE_SIZE_CL = as.factor(classify_fire_size_cl(FIRE_SIZE_ha)),
+             FIRE_SIZE_CL = as.factor(classify_fire_size(FIRE_SIZE_km2)),
              DISCOVERY_DAY = day(DISCOVERY_DATE),
              DISCOVERY_MONTH = month(DISCOVERY_DATE),
-             DISCOVERY_YEAR = FIRE_YEAR) %>%
+             DISCOVERY_YEAR = FIRE_YEAR,
+             SEASONS = as.factor(classify_seasons(DISCOVERY_DOY))) %>%
       st_transform(st_crs(usa_shp)) %>%
       st_intersection(., st_union(usa_shp))
     
@@ -493,12 +494,10 @@ if (!exists('fpa_wui')) {
                                            ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HHU2010, NA ))),
              class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
                                                ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))),
-             seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
-             size = as.factor(classify_fire_size_cl(FIRE_SIZE_ha)),
              regions = as.factor(ifelse(regions == 'East', 'North East', as.character(regions)))) %>%
       rename_all(tolower) %>%
       dplyr::select(-stusps.1) %>%
-      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|water|shape)'))
+      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|water|shape)')) 
     
     st_write(fpa_wui, file.path(fire_pnt, "fpa_wui_conus.gpkg"),
              driver = "GPKG", delete_layer = TRUE)
@@ -524,8 +523,7 @@ if(!file.exists(file.path(rmarkdown_files, 'fpa_wui_df.rds'))) {
 #Clean and prep the MTBS data to match the FPA database naming convention
 if (!exists('mtbs_fire')) {
   if (!file.exists(file.path(mtbs_out, "mtbs_conus.gpkg"))) {
-    mtbs_fire <- st_read(dsn = mtbs_prefix,
-                         layer = "mtbs_perims_DD", quiet= TRUE) %>%
+    mtbs_fire <- st_read(dsn = mtbs_prefix, layer = "mtbs_perims_DD", quiet= TRUE) %>%
       st_transform(st_crs(usa_shp)) %>%
       mutate(MTBS_ID = Fire_ID,
              MTBS_FIRE_NAME = Fire_Name,
@@ -536,10 +534,13 @@ if (!exists('mtbs_fire')) {
              RADIUS = NA_real_) %>%
       dplyr::select(MTBS_ID, MTBS_FIRE_NAME, MTBS_DISCOVERY_DAY, MTBS_DISCOVERY_MONTH, MTBS_DISCOVERY_YEAR, MTBS_ACRES, RADIUS) %>%
       merge(., as.data.frame(fpa_fire), by = c("MTBS_ID", "MTBS_FIRE_NAME"), all = FALSE) %>%
-      dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_m2, FIRE_SIZE_ha, FIRE_SIZE_km2,
-                    MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
-                    MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS)  %>%
+      dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, MTBS_ACRES, FIRE_SIZE, 
+                    FIRE_SIZE_ha, FIRE_SIZE_km2, FIRE_SIZE_CL, MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH,
+                    MTBS_DISCOVERY_DAY, DISCOVERY_DAY, SEASONS, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS)  %>%
       st_make_valid()
+    
+    names(mtbs_fire)[25]="geom"
+    st_geometry(mtbs_fire) = "geom"
     
     st_write(mtbs_fire, file.path(mtbs_out, "mtbs_conus.gpkg"),
              driver = "GPKG", delete_layer=TRUE)
@@ -553,25 +554,51 @@ if (!exists('mtbs_fire')) {
 # Spatially join the MTBS to WUI
 if (!exists('mtbs_wui')) {
   if (!file.exists(file.path(mtbs_out, "mtbs_wui.gpkg"))) {
-    mtbs_wui <- mtbs_fire %>%
+    mtbs_wui_step1 <- mtbs_fire %>%
       st_intersection(., wui) %>%
-      st_make_valid() %>%
-      st_intersection(., bounds) %>%
-      st_make_valid() %>%
-      mutate(ClArea_m2 = as.numeric(st_area(Shape)),
-             ClArea_km2 = ClArea_m2/1000000,
-             Class = ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
-                            ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
-                                   ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
-                                          NA))))
+      st_make_valid()
     
-    st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"),
-             driver = "GPKG",
-             delete_layer = TRUE)
+    mtbs_wui <- mtbs_wui_step1 %>%
+      mutate(wui_area_km2 = (as.numeric(st_area(geom))/1000000),
+           class = as.factor(ifelse(DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, as.character(Class90),
+                                    ifelse(DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, as.character(Class00),
+                                           ifelse(DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, as.character(Class10),
+                                                  NA)))),
+           ten_year = as.factor(ifelse(DISCOVERY_YEAR >= 1994 & DISCOVERY_YEAR <= 2004, '1994-2004',
+                                       ifelse(DISCOVERY_YEAR >= 2005 & DISCOVERY_YEAR <= 2015, '2005-2015', NA))),
+           bidecadal = as.factor(ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 1995, 1995,
+                                        ifelse(DISCOVERY_YEAR >= 1996 & DISCOVERY_YEAR <= 2000, 2000,
+                                               ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2005, 2005,
+                                                      ifelse(DISCOVERY_YEAR >= 2006 & DISCOVERY_YEAR <= 2010, 2010,
+                                                             ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2015,
+                                                                    DISCOVERY_YEAR )))))),
+           decadal = as.factor(ifelse(DISCOVERY_YEAR >= 1991 & DISCOVERY_YEAR <= 2000, 1990,
+                                      ifelse(DISCOVERY_YEAR >= 2001 & DISCOVERY_YEAR <= 2010, 2000,
+                                             ifelse(DISCOVERY_YEAR >= 2011 & DISCOVERY_YEAR <= 2015, 2010,
+                                                    DISCOVERY_YEAR )))),
+           number_of_persons = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POP1990,
+                                       ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POP2000,
+                                               ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POP2010, NA))),
+           pop_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, POPDEN1990,
+                             ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, POPDEN2000,
+                                     ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, POPDEN2010, NA ))),
+           house_den = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, HUDEN1990,
+                               ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HUDEN2000,
+                                       ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HUDEN2010, NA ))),
+           house_units = ifelse( DISCOVERY_YEAR >= 1992 | DISCOVERY_YEAR < 2000, HHU1990,
+                                 ifelse( DISCOVERY_YEAR >= 2000 | DISCOVERY_YEAR < 2009, HHU2000,
+                                         ifelse( DISCOVERY_YEAR >= 2010 | DISCOVERY_YEAR < 2016, HHU2010, NA ))),
+           class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
+                                             ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))),
+           seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
+           size = as.factor(classify_fire_size(FIRE_SIZE_km2)),
+           regions = as.factor(ifelse(regions == 'East', 'North East', as.character(regions)))) %>%
+      rename_all(tolower) %>%
+      dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape|.1)'))
     
-    system(paste0("aws s3 sync ",
-                  fire_crt, " ",
-                  s3_fire_prefix))
+    st_write(mtbs_wui, file.path(mtbs_out, "mtbs_wui.gpkg"), driver = "GPKG", delete_layer = TRUE)
+    
+    system(paste0("aws s3 sync ", fire_crt, " ",  s3_fire_prefix))
   } else {
     mtbs_wui <- st_read(dsn = file.path(mtbs_out, "mtbs_wui.gpkg"))
   }
