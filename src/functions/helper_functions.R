@@ -301,18 +301,6 @@ load_data <- function(url, dir, layer, outname) {
 }
 
 
-classify_fire_size_cl <-  function(x) {
-  # break out fires into small, med, large
-  # input:
-  #   - x: vector of fire sizes
-  # output:
-  #   - y: vector (same length) of classified fire sizes ----- Km2
-  ifelse(x < 0.25, "< 10 ha",
-         ifelse(x >= 0.25 & x < 4, "10 - 400 ha",
-                ifelse(x >= 4 & x < 50, "400 - 5000 ha",
-                       ifelse(x >= 50 & x < 250, "5000 - 20000 ha", "> 20000 ha"))))
-}
-
 # http://www.spatialanalytics.co.nz/post/2017/09/11/a-parallel-function-for-spatial-analysis-in-r/
 # Paralise any simple features analysis.
 st_par <- function(sf_df, sf_func, n_cores, ...){

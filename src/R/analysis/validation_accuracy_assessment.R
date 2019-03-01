@@ -55,7 +55,7 @@ if(!file.exists(file.path(accuracy_assessment_dir, 'geomac_fpa.gpkg'))) {
 if(!file.exists(file.path(accuracy_assessment_dir, 'mtbs_fpa.gpkg'))) {
 
   mtbs_fpa_final <- clean_mtbs(shp_filename = 'mtbs_fpa.gpkg', rds_filename = 'mtbs_fpa_count_stats.rds')
-  mtbs_2600m_fpa_final <- clean_mtbs(buffer = TRUE, shp_filename = 'mtbs_2600m_fpa.gpkg', rds_filename = 'mtbs_2600m_fpa_count_stats.rds')
+  mtbs_2600m_fpa_final <- clean_mtbs(buffer = TRUE, cores = 1, shp_filename = 'mtbs_2600m_fpa.gpkg', rds_filename = 'mtbs_2600m_fpa_count_stats.rds')
   
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
@@ -67,18 +67,15 @@ if(!file.exists(file.path(accuracy_assessment_dir, 'mtbs_fpa.gpkg'))) {
 # Adjoin the cleaned mtbs and geomac databases that have known FPA ids
 if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"))) {
   fpa_mtbs_geomac <- do.call(rbind, list(geomac_fpa_final, mtbs_fpa_final)) %>%
-    mutate(FIRE_SIZE_M2 = as.numeric(st_area(.)),
-           RADIUS = sqrt(FIRE_SIZE_M2/pi)) %>%
+    mutate(RADIUS = sqrt(as.numeric(st_area(.))/pi)) %>%
     st_make_valid()
+  fpa_mtbs_geomac <- fpa_mtbs_geomac[!is.na(st_dimension(fpa_mtbs_geomac)),]
+  st_write(fpa_mtbs_geomac, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"),
+           driver = "GPKG", delete_layer = TRUE)
   
   fpa_mtbs_geomac_2600m <- do.call(rbind, list(geomac_2600m_fpa_final, mtbs_2600m_fpa_final)) %>%
     st_make_valid()
-  
-  fpa_mtbs_geomac <- fpa_mtbs_geomac[!is.na(st_dimension(fpa_mtbs_geomac)),]
   fpa_mtbs_geomac_2600m <- fpa_mtbs_geomac_2600m[!is.na(st_dimension(fpa_mtbs_geomac_2600m)),]
-  
-  st_write(fpa_mtbs_geomac, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
   st_write(fpa_mtbs_geomac_2600m, file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_2600m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
   

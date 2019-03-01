@@ -16,11 +16,11 @@ clean_geomac <- function(shp_in, fpa_shp = fpa_fire, out_dir = accuracy_assessme
            MTBS_ACRES = NA_real_) %>%
     dplyr::select(row_number, FPA_ID, MTBS_ID, GEOMAC_ID, 
                   GEOMAC_FIRE_NAME, MTBS_FIRE_NAME,
-                  FPA_ACRES = FIRE_SIZE, MTBS_ACRES, GEOMAC_ACRES, 
-                  FPA_DISCOVERY_YEAR = DISCOVERY_YEAR, MTBS_DISCOVERY_YEAR, GEOMAC_DISCOVERY_YEAR,
-                  MTBS_DISCOVERY_MONTH, FPA_DISCOVERY_MONTH = DISCOVERY_MONTH, 
-                  FPA_ = DISCOVERY_DAY, MTBS_DISCOVERY_DAY, FPA_DISCOVERY_DOY = DISCOVERY_DOY,
-                  STATE, STAT_CAUSE_DESCR, IGNITION)
+                  FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2, MTBS_ACRES, GEOMAC_ACRES, 
+                  FIRE_SIZE_CL, DISCOVERY_YEAR, MTBS_DISCOVERY_YEAR, GEOMAC_DISCOVERY_YEAR,
+                  MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH, 
+                  DISCOVERY_DAY, MTBS_DISCOVERY_DAY, DISCOVERY_DOY,
+                  SEASONS, STATE, STAT_CAUSE_DESCR, IGNITION)
   
   geomac_fpa_vals <- geomac_fpa_filtered %>%
     dplyr::select(row_number) %>%
@@ -37,7 +37,7 @@ clean_geomac <- function(shp_in, fpa_shp = fpa_fire, out_dir = accuracy_assessme
     dplyr::select(-row_number) %>%
     lwgeom::st_make_valid(.)
   
-  names(geomac_fpa_final)[20]="geom"
+  names(geomac_fpa_final)[24]="geom"
   st_geometry(geomac_fpa_final) = "geom"
   
   geomac_count_df <- data.frame(as.data.frame(geomac) %>% count(),

@@ -1,5 +1,5 @@
 clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mtbs_dir = mtbs_prefix, usa = usa_shp,
-                       mtbs_shp = mtbs_fire, shp_filename, rds_filename, buffer = FALSE) {
+                       mtbs_shp = mtbs_fire, shp_filename, rds_filename, buffer = FALSE, cores = parallel::detectCores()) {
   # Find the percentage of FPA points are contained in the MTBS database
   mtbs <- st_read(dsn = mtbs_dir,
                   layer = "mtbs_perims_DD", quiet= TRUE) %>%
@@ -15,7 +15,7 @@ clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mt
   
   if(buffer == TRUE) {
     mtbs <- mtbs %>% 
-      st_parallel(., st_buffer, n_cores =  parallel::detectCores(), dist = 2600)
+      st_parallel(., st_buffer, n_cores =  cores, dist = 2600)
   }
   
   # After joining based on ID, find the FPA points within MTBS polygons
@@ -36,13 +36,13 @@ clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mt
   mtbs_remaining_filtered <- mtbs_remaining_filtered_id_only %>%
     dplyr::select('FPA_ID') %>%
     left_join(., as.data.frame(fpa_shp) %>% dplyr::select(-contains('geometry|geom')), by = 'FPA_ID') %>%
-    dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2,
-                  DISCOVERY_YEAR, DISCOVERY_DOY, DISCOVERY_MONTH, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION) %>%
+    dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2, FIRE_SIZE_CL,
+                  DISCOVERY_YEAR, DISCOVERY_DOY, DISCOVERY_MONTH, DISCOVERY_DAY, SEASONS, STATE, STAT_CAUSE_DESCR, IGNITION) %>%
     bind_cols(., as.data.frame(mtbs_remaining_filtered_id_only) %>% dplyr::select(-FPA_ID, -contains('geometry|geom'))) %>%
     merge(., as.data.frame(mtbs) %>% dplyr::select(-geometry), by = 'MTBS_ID', all = FALSE) %>%
     dplyr::select(FPA_ID, LATITUDE, LONGITUDE, ICS_209_INCIDENT_NUMBER, ICS_209_NAME, MTBS_ID, MTBS_FIRE_NAME, 
-                  MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2, MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, 
-                  MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH, MTBS_DISCOVERY_DAY, DISCOVERY_DAY, STATE, STAT_CAUSE_DESCR, IGNITION) %>%
+                  MTBS_ACRES, FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2, FIRE_SIZE_CL, MTBS_DISCOVERY_YEAR, DISCOVERY_YEAR, DISCOVERY_DOY, 
+                  MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH, MTBS_DISCOVERY_DAY, DISCOVERY_DAY, SEASONS, STATE, STAT_CAUSE_DESCR, IGNITION) %>%
     st_cast("MULTIPOLYGON") %>%
     mutate(GEOMAC_ID = factor(NA_character_),
            GEOMAC_FIRE_NAME = factor(NA_character_),
@@ -55,11 +55,11 @@ clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mt
     st_as_sf() %>%
     dplyr::select(FPA_ID, MTBS_ID, GEOMAC_ID, 
                   GEOMAC_FIRE_NAME, MTBS_FIRE_NAME,
-                  FPA_ACRES = FIRE_SIZE, MTBS_ACRES, GEOMAC_ACRES, 
-                  FPA_DISCOVERY_YEAR = DISCOVERY_YEAR, MTBS_DISCOVERY_YEAR, GEOMAC_DISCOVERY_YEAR,
-                  MTBS_DISCOVERY_MONTH, FPA_DISCOVERY_MONTH = DISCOVERY_MONTH, 
-                  FPA_ = DISCOVERY_DAY, MTBS_DISCOVERY_DAY, FPA_DISCOVERY_DOY = DISCOVERY_DOY,
-                  STATE, STAT_CAUSE_DESCR, IGNITION) %>%
+                  FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2, MTBS_ACRES, GEOMAC_ACRES, 
+                  FIRE_SIZE_CL, DISCOVERY_YEAR, MTBS_DISCOVERY_YEAR, GEOMAC_DISCOVERY_YEAR,
+                  MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH, 
+                  DISCOVERY_DAY, MTBS_DISCOVERY_DAY, DISCOVERY_DOY,
+                  SEASONS, STATE, STAT_CAUSE_DESCR, IGNITION) %>%
     lwgeom::st_make_valid(.)
   
   mtbs_count_df <- data.frame(as.data.frame(mtbs) %>% count(),
@@ -68,7 +68,7 @@ clean_mtbs <- function(fpa_shp = fpa_fire, out_dir = accuracy_assessment_dir, mt
                   mtbs_final_count = n.1) %>%
     mutate(pct_fpa_in_mtbs = mtbs_final_count/mtbs_inital_count)
   
-  names(mtbs_fpa_final)[20]="geom"
+  names(mtbs_fpa_final)[24]="geom"
   st_geometry(mtbs_fpa_final) = "geom"
   
   write_rds(mtbs_count_df, file.path(out_dir, rds_filename))

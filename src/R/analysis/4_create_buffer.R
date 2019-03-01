@@ -12,30 +12,34 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
            GEOMAC_FIRE_NAME = factor(NA_character_),
            GEOMAC_DISCOVERY_YEAR = NA_integer_,
            GEOMAC_ACRES = NA_real_,
-           RADIUS = NA) %>%
+           RADIUS = NA_real_) %>%
   dplyr::select(FPA_ID, MTBS_ID, GEOMAC_ID, 
                 GEOMAC_FIRE_NAME, MTBS_FIRE_NAME,
-                FPA_ACRES = FIRE_SIZE, MTBS_ACRES, GEOMAC_ACRES, 
-                FPA_DISCOVERY_YEAR = DISCOVERY_YEAR, MTBS_DISCOVERY_YEAR, GEOMAC_DISCOVERY_YEAR,
-                MTBS_DISCOVERY_MONTH, FPA_DISCOVERY_MONTH = DISCOVERY_MONTH, 
-                FPA_ = DISCOVERY_DAY, MTBS_DISCOVERY_DAY, FPA_DISCOVERY_DOY = DISCOVERY_DOY,
-                STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS) 
+                FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2, MTBS_ACRES, GEOMAC_ACRES, FIRE_SIZE_CL, 
+                DISCOVERY_YEAR, MTBS_DISCOVERY_YEAR, GEOMAC_DISCOVERY_YEAR,
+                MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH, 
+                DISCOVERY_DAY, MTBS_DISCOVERY_DAY, DISCOVERY_DOY,
+                SEASONS, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS) 
   
-  bae <- fpa_fire_add %>%
+  bae_pre <- fpa_fire_add %>%
     anti_join(., as.data.frame(fpa_mtbs_geomac) %>% dplyr::select(FPA_ID)) %>%
     st_transform(proj_ed) %>%
-    mutate(RADIUS = sqrt((FPA_ACRES*4046.86)/pi)) %>%
+    mutate(RADIUS = sqrt((FIRE_SIZE*4046.86)/pi)) %>%
     filter(is.na(MTBS_ID)|is.na(GEOMAC_ID))
   
-  bae <- st_parallel(bae, st_buffer, n_cores = ncores, dist = bae$RADIUS) %>%
+  bae_pre <- st_parallel(bae_pre, st_buffer, n_cores = 1, dist = bae_pre$RADIUS) %>%
     st_transform(proj_ea)
   
-  bae <- do.call(rbind, list(bae = bae, fpa_mtbs_geomac = fpa_mtbs_geomac)) %>%
-    st_cast('POLYGON') %>%
-    dplyr::select(FPA_ID, MTBS_ID, GEOMAC_ID, DISCOVERY_YEAR, FPA_ACRES, geometry)
+  names(bae_pre)[25] = "geom"
+  st_geometry(bae_pre) = "geom"
   
-  st_write(bae, file.path(fire_poly, "fpa_mtbs_bae.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
+  stopifnot(identical(names(bae_pre), names(fpa_mtbs_geomac)))
+  
+  bae <- do.call(rbind, list(bae_pre = bae_pre, fpa_mtbs_geomac = fpa_mtbs_geomac)) %>%
+    st_cast('MULTIPOLYGON')
+  rownames(bae) <- NULL
+  
+  st_write(bae, file.path("fpa_mtbs_geomac_bae.gpkg"))
   
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
@@ -95,7 +99,7 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_1000m.gpkg'))) {
 # Buffered FPA perimeters intersected with the WUI data
 if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
   fpa_df <- as_tibble(as.data.frame(fpa_fire)) %>%
-    dplyr::select(-geom)
+    dplyr::select(-contains('geom|geometry'))
   
   fpa_bae_wui1 <- bae %>%
     st_intersection(., wui) %>%
