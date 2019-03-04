@@ -61,9 +61,9 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"))) {
   # Find the polygon in the mtbs that contain an FPA id
   if(!file.exists(file.path(accuracy_assessment_dir, 'mtbs_fpa.gpkg'))) {
     # Find the percentage of FPA points are contained in the MTBS database
-    mtbs <- st_read(dsn = mtbs_dir,
+    mtbs <- st_read(dsn = mtbs_prefix,
                     layer = "mtbs_perims_DD", quiet= TRUE) %>%
-      st_transform(st_crs(usa)) %>%
+      st_transform(st_crs(usa_shp)) %>%
       filter(Year >= 1992 & Year <= 2015) %>%
       mutate(MTBS_ID = Fire_ID,
              MTBS_FIRE_NAME = Fire_Name,
@@ -178,43 +178,54 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_difference.
   buffer_perimeter_difference <- st_read(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac_difference.gpkg")) 
 }
 
-# Those extra FPA points found outside of perimter and within 2.6 km of the perimeter - where are they located?
-additional_polys <- fpa_mtbs_geomac_2600m %>%
-  anti_join(., as.data.frame(fpa_mtbs_geomac) %>% dplyr::select(FPA_ID), by = 'FPA_ID') 
-
-additional_geomac <- inner_join(geomac, as.data.frame(additional_polys) %>%dplyr::select(-geom))
-additional_mtbs <- inner_join(mtbs, as.data.frame(additional_polys) %>% dplyr::select(-geom))
-
-
-
-additional_points <- fpa_mtbs_geomac_2600m_pts %>%
-  anti_join(., as.data.frame(fpa_mtbs_geomac_pts) %>% dplyr::select(FPA_ID), by = 'FPA_ID')
-
-
-distance_to_fire <- NULL
-
-for(i in unique(additional_polys$FPA_ID)) {
-  points <- additional_points %>%
-    filter(FPA_ID == i)
+if(!fie.exists( file.path( accuracy_assessment_dir, paste0('distance_to_geomac_mtbs.rds')))) {
+  # Those extra FPA points found outside of perimter and within 2.6 km of the perimeter - where are they located?
+  additional_polys <- fpa_mtbs_geomac_2600m %>%
+    anti_join(., as.data.frame(fpa_mtbs_geomac) %>% dplyr::select(FPA_ID), by = 'FPA_ID') 
   
-  poly <- additional_polys %>%
-    filter(FPA_ID == i)
-
-  distance_to_fire[[i]] <- points %>%
-    dplyr::select(FPA_ID) %>%
-    mutate(
-      distance_to_urban = st_distance(
-        st_geometry(.),
-        st_geometry(poly), by_element = TRUE)) 
+  additional_geomac <- inner_join(geomac, as.data.frame(additional_polys) %>%dplyr::select(-geom))
+  additional_mtbs <- inner_join(mtbs, as.data.frame(additional_polys) %>% dplyr::select(-geom))
+  additional_polys <- rbind(additional_geomac, additional_mtbs)
+  
+  additional_points <- fpa_mtbs_geomac_2600m_pts %>%
+    anti_join(., as.data.frame(fpa_mtbs_geomac_pts) %>% dplyr::select(FPA_ID), by = 'FPA_ID')
+  
+  distance_to_fire <- NULL
+  
+  for(i in unique(additional_polys$FPA_ID)) {
+    points <- additional_points %>%
+      filter(FPA_ID == i)
+    
+    poly <- additional_polys %>%
+      filter(FPA_ID == i)
+    
+    distance_to_fire[[i]] <- points %>%
+      dplyr::select(FPA_ID) %>%
+      mutate(
+        fpa_distance_from_geomac_mtbs = st_distance(
+          st_geometry(.),
+          st_geometry(poly), by_element = TRUE)) 
+  }
+  distance_to_geomac_mtbs <- do.call("rbind", distance_to_fire) #combine all vectors into a matrix
+  write_rds(distance_to_geomac_mtbs, file.path( accuracy_assessment_dir, paste0('distance_to_geomac_mtbs.rds')))
+} else {
+  distance_to_geomac_mtbs <- read_rds(file.path( accuracy_assessment_dir, paste0('distance_to_geomac_mtbs.rds')))
 }
-df <- do.call("rbind", distance_to_fire) #combine all vectors into a matrix
+
+dist_p <- distance_to_geomac_mtbs %>%
+  as.data.frame() %>%
+  mutate(fpa_distance_from_geomac_mtbs = as.numeric(fpa_distance_from_geomac_mtbs)) %>%
+  ggplot(aes(x = fpa_distance_from_geomac_mtbs)) +
+  geom_histogram(binwidth = 250, fill = 'white', color = 'black') +
+  xlab('Distance of FPA-FOD point to \nMTBS/Geomac perimeter edge (m)') +
+  ylab('Frequency') +
+  ggtitle('FPA-FOD points within 2.6km2 of MTBS/Geomac perimeter') +
+  theme_pub()
+
+ggsave(file = file.path(accuracy_assessment_dir, 'distance_historgram.pdf'), dist_p, 
+         width = 5.5, height = 6, dpi = 600, scale = 2.75, units = "cm")
 
 
-write_rds(distance_to_fire,
-          file.path(
-            distance_out,
-            paste0('distance_fpa_', i, '.rds')
-          ))
 # What is the percentage of FPA points that fall within GeoMac and MTBS polygons?
 # inital_count <- geomac_inital_count + mtbs_inital_count
 # final_count <- geomac_final_count + mtbs_final_count
