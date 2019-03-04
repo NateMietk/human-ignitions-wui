@@ -36,10 +36,10 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
   stopifnot(identical(names(bae_pre), names(fpa_mtbs_geomac)))
   
   bae <- do.call(rbind, list(bae_pre = bae_pre, fpa_mtbs_geomac = fpa_mtbs_geomac)) %>%
-    st_cast('MULTIPOLYGON')
+    st_cast('MULTIPOLYGON') %>% 
+    st_make_valid()
   rownames(bae) <- NULL
-  
-  st_write(bae, file.path("fpa_mtbs_geomac_bae.gpkg"))
+  st_write(bae, file.path(fire_poly, "fpa_mtbs_geomac_bae.gpkg"))
   
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
@@ -138,11 +138,11 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"))) {
            class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
                                              ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class)))),
            seasons = as.factor(classify_seasons(DISCOVERY_DOY)),
-           size = as.factor(classify_fire_size_cl(FIRE_SIZE_km2)),
+           size = as.factor(classify_fire_size(FIRE_SIZE_km2)),
            regions = as.factor(ifelse(regions == 'East', 'North East', as.character(regions)))) %>%
+    rename_all(tolower) %>%
     dplyr::select(-stusps.1) %>%
-    dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)')) %>%
-    rename_all(tolower)
+    dplyr::select(-matches('(1990|2000|2010|00|90|s10|flag|wuiclass|veg|blk|water|shape)'))
   
   st_write(fpa_bae_wui, file.path(fire_poly, "fpa_mtbs_bae_wui.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
@@ -222,12 +222,10 @@ if (!file.exists(file.path(fire_poly, "ics209_bae_1000m.gpkg"))) {
   ics209_bae_1000m <- st_read(file.path(fire_poly, "ics209_bae_1000m.gpkg"))
 }
 
-
 # output dataframe for rmarkdown
 if(!file.exists(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))) {
-  fpa_bae_wui_df <- as_tibble(as.data.frame(fpa_bae_wui)) %>%
-    dplyr::select(-c(latitude, longitude, geom, ics_209_incident_number, ics_209_name, mtbs_id, mtbs_fire_name)) %>%
-    write_rds(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))
+  fpa_bae_wui_df <- as_tibble(as.data.frame(fpa_bae_wui))
+  write_rds(fpa_bae_wui_df, file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))
   system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
 } else {
   fpa_bae_wui_df <- read_rds(file.path(rmarkdown_files, 'fpa_bae_wui_df.rds'))

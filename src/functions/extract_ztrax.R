@@ -6,7 +6,7 @@ extract_ztrax <- function(shp_in, rst_in) {
     fire_event <- shp_in %>%
       filter(FPA_ID == i) 
     fire_buff <- fire_event %>% st_buffer(2000)
-    fire_year <- fire_event$FPA_DISCOVERY_YEAR
+    fire_year <- fire_event$DISCOVERY_YEAR
     
     rst_event <- subset(rst_in,
                         which(getZ(rst_in) == fire_year)) %>%
