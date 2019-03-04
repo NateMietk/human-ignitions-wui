@@ -1,67 +1,64 @@
+df <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
+  filter(ignition == 'Lightning') %>%
+  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
+  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', 'VLD', 'Wildlands'))) %>%
+  filter(built_class == 'Residential') %>%
+  mutate(fire_size_ha = fire_size_km2*100,
+         fire_size = case_when(
+           fire_size_ha >  0 & fire_size_ha < 100 ~ '0-100',
+           fire_size_ha >= 100 & fire_size_ha < 200 ~ '100-200',
+           fire_size_ha >= 200 & fire_size_ha < 400 ~ '200-400',
+           fire_size_ha >= 400 & fire_size_ha < 1000 ~ '400-1k',
+           fire_size_ha >= 1000 & fire_size_ha < 10000 ~ '1k-10k',
+           fire_size_ha >= 10000 & fire_size_ha < 50000 ~ '10k-50k',
+           fire_size_ha >= 50000 ~ '> 50k', TRUE ~ NA_character_ )) 
 
-maxseasons <- as.data.frame(fpa_wui) %>%
-  group_by(fishid25k, ignition, class, seasons) %>%
-  summarise(fire_freq = n()) %>%
-  ungroup() %>%
-  spread(seasons, fire_freq) %>%
-  group_by(fishid25k, class, ignition) %>%
-  mutate(Fall = ifelse(is.na(as.numeric(Fall)), 0, as.numeric(Fall)),
-         Spring = ifelse(is.na(as.numeric(Spring)), 0, as.numeric(Spring)),
-         Summer = ifelse(is.na(as.numeric(Summer)), 0, as.numeric(Summer)),
-         Winter = ifelse(is.na(as.numeric(Winter)), 0, as.numeric(Winter)),
-         fire_freq = Fall + Spring + Summer + Winter) %>%
-  do(get_month_max(.)) 
+aov.models <- df %>%
+  dplyr::select(class, fire_size, build_up_count_no_zero_0) %>%
+  filter(build_up_count_no_zero_0 != 0) %>%
+  mutate(build_up_count_no_zero_0 = log(build_up_count_no_zero_0)) %>%
+  split(.$class) %>%
+  map(~ aov(build_up_count_no_zero_0 ~ fire_size, data = .x)) %>%
+  map( agricolae::HSD.test, trt = 'fire_size', group=TRUE) %>%
+  lapply(., '[', c(5)) %>%
+  lapply(., function(x) {
+    rownames_to_column(as.data.frame(x), var = "fire_size") %>%
+      dplyr::select(fire_size, 
+                    build_up_count_no_zero_0 = groups.build_up_count_no_zero_0,
+                    groups = groups.groups)}) %>%
+  dplyr::bind_rows(., .id = 'class') 
 
-maxseasons_full <- as.data.frame(fpa_wui) %>%
-  group_by(fishid25k, ignition, class, seasons) %>%
-  summarise(fire_freq = n()) %>%
-  ungroup() %>%
-  spread(seasons, fire_freq) %>%
-  group_by(fishid25k, class, ignition) %>%
-  mutate(Fall = ifelse(is.na(as.numeric(Fall)), 0, as.numeric(Fall)),
-         Spring = ifelse(is.na(as.numeric(Spring)), 0, as.numeric(Spring)),
-         Summer = ifelse(is.na(as.numeric(Summer)), 0, as.numeric(Summer)),
-         Winter = ifelse(is.na(as.numeric(Winter)), 0, as.numeric(Winter)),
-         fire_freq = Fall + Spring + Summer + Winter) %>%
-  left_join(., maxseasons, by = c("fishid25k", "class", "ignition")) %>%
-  mutate(ptsz_n = classify_ptsize_breaks(fire_freq),
-         max_season = as.factor(max_season))
+p1 <- df %>%
+  transform(fire_size = factor(fire_size, levels=c('0-100', '100-200', '200-400', '400-1k', '1k-10k', '10k-50k', '> 50k'))) %>%
+  ggplot(aes(x = fire_size, y = log(build_up_count_no_zero_0))) +
+  geom_boxplot(position = position_dodge(width = 0.85)) +
+  scale_fill_manual(values = c("#D62728","#1F77B4")) +
+  xlab('Fire Size (ha)') + ylab('log Average home threatened per fire event') +
+  theme_pub() +
+  facet_wrap(~class) +
+  theme(legend.position = 'none')
 
-conus_maxseason <- left_join(fs25_df, maxseasons_full, by = "fishid25k") %>%
-  mutate(long = coords.x1,
-         lat = coords.x2) %>%
-  dplyr::select(-coords.x1, -coords.x2)
+tt <- ggplot_build(p1)$data[[1]] %>%
+  dplyr::select(fill, group, PANEL, ymax_final) %>%
+  as_tibble() %>%
+  mutate(fire_size = case_when(
+    group == 1 ~ '0-100',
+    group == 2 ~ '100-200',
+    group == 3 ~ '200-400', 
+    group == 4 ~ '400-1k',
+    group == 5 ~ '1k-10k',
+    group == 6 ~ '10k-50k',
+    group == 7 ~ '> 50k'),
+    class = case_when(
+      PANEL == 1 ~ 'Interface WUI',
+      PANEL == 2 ~ 'Intermix WUI',
+      PANEL == 3 ~ 'VLD', 
+      PANEL == 4 ~ 'Wildlands')) %>%
+  dplyr::select(class, fire_size, ymax_final) %>%
+  left_join(aov.models, ., by = c('fire_size', 'class'))
 
-p1 <- conus_maxseason %>%
-  filter(!(is.na(ptsz_n))) %>%
-  filter(class %in% c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands")) %>%
-  transform(max_season = factor(max_season, levels=c("Winter", "Spring", "Summer", "Fall"))) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), color='black', fill = "gray97", size = .25) +
-  geom_point(aes(x = long, y = lat, colour = factor(max_season), size = ptsz_n), stroke = 0) +
-  coord_equal() + 
-  scale_color_manual(values = c("Winter" = "#1F77B4", 
-                                "Spring" = "#2CA02C", 
-                                "Summer" =  "#D62728", 
-                                "Fall" = "#FF7F0E"), 
-                     name="Max Season") + 
-  scale_size_discrete(range = c(0.2, 0.9)) +
-  theme_nothing(legend = TRUE) +
-  theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background=element_blank(),
-        strip.text.x = element_blank(),
-        strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white")) +
-  facet_grid(class ~ ignition, switch ="y")
+p1 <- p1 + geom_text(aes(x=fire_size, y=1.1 +ymax_final, label=groups), data=tt, fontface = "bold",
+                     position = position_dodge(width = 0.85))
 
-p1l <- p1 + theme(legend.position="none")
-
-ggsave(file =  file.path(supplements_text_figs, "figureS3.tiff"), p1l, width = 7, height = 8, dpi=1200) #saves g
-
-legend <- g_legend(p1) 
-ggsave(file =  file.path(supplements_text_figs, "figureS3_legend.tiff"), 
-       legend, width = 2, height = 4.5, dpi=1200) #saves g
-
+ggsave(file.path(supplements_text_figs, "figureS3.tiff"), p1, width = 5, height = 5, dpi = 600, scale = 3, units = "cm") #saves g
 system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

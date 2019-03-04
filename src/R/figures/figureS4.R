@@ -1,67 +1,127 @@
-
-maxseasons <- as.data.frame(fpa_wui) %>%
-  group_by(fishid50k, ignition, class, seasons) %>%
-  summarise(fire_freq = n()) %>%
+fishdis_reg <- as.data.frame(distance_rds) %>%
+  filter(class != 'Other' & class != 'High Urban') %>%
+  mutate(distance_to_urban = distance_to_urban * 0.001) %>%
+  group_by(fishid10k, ten_year, regions, ignition) %>%
+  summarise(
+    median_popdensity = median(pop_den),
+    median_homedensity = median(house_den),
+    median_distance = median(distance_to_urban),
+    fseason_lngth = IQR(discovery_doy),
+    median_doy = median(discovery_doy),
+    f_cnt = n()
+  ) %>%
   ungroup() %>%
-  spread(seasons, fire_freq) %>%
-  group_by(fishid50k, class, ignition) %>%
-  mutate(Fall = ifelse(is.na(as.numeric(Fall)), 0, as.numeric(Fall)),
-         Spring = ifelse(is.na(as.numeric(Spring)), 0, as.numeric(Spring)),
-         Summer = ifelse(is.na(as.numeric(Summer)), 0, as.numeric(Summer)),
-         Winter = ifelse(is.na(as.numeric(Winter)), 0, as.numeric(Winter)),
-         fire_freq = Fall + Spring + Summer + Winter) %>%
-  do(get_month_max(.)) 
+  mutate(inter = paste0(ignition, "_", ten_year)) %>%
+  filter(!is.na(ten_year))
 
-maxseasons_full <- as.data.frame(fpa_wui) %>%
-  group_by(fishid50k, ignition, class, seasons) %>%
-  summarise(fire_freq = n()) %>%
-  ungroup() %>%
-  spread(seasons, fire_freq) %>%
-  group_by(fishid50k, class, ignition) %>%
-  mutate(Fall = ifelse(is.na(as.numeric(Fall)), 0, as.numeric(Fall)),
-         Spring = ifelse(is.na(as.numeric(Spring)), 0, as.numeric(Spring)),
-         Summer = ifelse(is.na(as.numeric(Summer)), 0, as.numeric(Summer)),
-         Winter = ifelse(is.na(as.numeric(Winter)), 0, as.numeric(Winter)),
-         fire_freq = Fall + Spring + Summer + Winter) %>%
-  left_join(., maxseasons, by = c("fishid50k", "class", "ignition")) %>%
-  mutate(ptsz_n = classify_ptsize_breaks(fire_freq),
-         max_season = as.factor(max_season))
+# Distance versus fire frequency
+# fc9272 -> Human 1994-2004
+# D62728 -> Human 2005-2015
+# a6bddb -> Lightning 1994-2004
+# 1F77B4 -> Lightning 2005-2015
 
-conus_maxseason <- left_join(fs50_df, maxseasons_full, by = "fishid50k") %>%
-  mutate(long = coords.x1,
-         lat = coords.x2) %>%
-  dplyr::select(-coords.x1, -coords.x2)
-
-p1 <- conus_maxseason %>%
-  filter(!(is.na(ptsz_n))) %>%
-  filter(class %in% c("Intermix WUI", 'Interface WUI', "VLD", "Wildlands")) %>%
-  transform(max_season = factor(max_season, levels=c("Winter", "Spring", "Summer", "Fall"))) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
-  transform(class = factor(class, levels=c('Interface WUI', 'Intermix WUI', "VLD", 'Wildlands'))) %>%
-  ggplot() +
-  geom_polygon(data = st_df, aes(x = long, y = lat, group = group), color='black', fill = "gray97", size = .25) +
-  geom_point(aes(x = long, y = lat, colour = factor(max_season), size = ptsz_n), stroke = 0) +
-  coord_equal() + 
-  scale_color_manual(values = c("Winter" = "#1F77B4", 
-                                "Spring" = "#2CA02C", 
-                                "Summer" =  "#D62728", 
-                                "Fall" = "#FF7F0E"), 
-                     name="Max Season") + 
-  scale_size_discrete(range = c(0.2, 1.2)) +
-  theme_nothing(legend = TRUE) +
+# Median home density versus fire season length -------------------------------
+firefreq_p <- fishdis_reg %>%
+  transform(regions = factor(regions, levels=c('West', 'Central', 'South East', 'North East'))) %>%
+  ggplot(aes(x = log(median_homedensity), y = fseason_lngth, group = inter, color = inter)) +
+  geom_smooth(size = 1) +
+  geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
+  geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
+  scale_color_manual(values = c("#fc9272","#D62728", '#a6bddb','#1F77B4')) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
   theme(plot.title = element_text(hjust = 0, size = 12),
-        strip.background=element_blank(),
+        strip.background = element_blank(),
         strip.text.x = element_blank(),
         strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white")) +
-  facet_grid(class ~ ignition, switch ="y")
+        legend.key = element_rect(fill = "white"),
+        legend.position = "none") +
+  facet_wrap( ~ regions, nrow = 2) +
+  scale_y_continuous(limits = c(0,NA))
 
-p1l <- p1 + theme(legend.position="none")
-
-ggsave(file =  file.path(supplements_text_figs, "figureS4.tiff"), p1l, width = 7, height = 8, dpi=1200) #saves g
-
-legend <- g_legend(p1) 
-ggsave(file =  file.path(supplements_text_figs, "figureS4_legend.tiff"), 
-       legend, width = 2, height = 4.5, dpi=1200) #saves g
+ggsave(file.path(supplements_text_figs, "figureS9_homedensity_fseason.tiff"), firefreq_p, 
+       width = 7, height = 8, dpi = 600, scale = 3, units = "cm")
 
 system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
+
+firefreq_p <- fishdis_reg %>%
+  filter(ten_year != '1994-2004') %>%
+  ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"),
+              fullrange = TRUE, size = 0.75) +
+  scale_color_manual(values = c("red","black")) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 2) 
+
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(colour, y, x, PANEL) %>%
+  spread(colour, y) %>%
+  mutate(line_diff = abs(black - red))
+
+min_diffs <- pred_diffs %>%
+  group_by(PANEL) %>%
+  summarise(line_diff = min(line_diff))
+
+xpoints_cnt_1 <- left_join(min_diffs, pred_diffs) %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(x_0515 = round(first(xpt_cnt),0)) %>%
+  ungroup()
+
+firefreq_p <- fishdis_reg %>%
+  filter(ten_year == '1994-2004') %>%
+  ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"),
+              fullrange = TRUE, size = 0.75) +
+  scale_color_manual(values = c("red","black")) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 2) 
+
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(colour, y, x, PANEL) %>%
+  spread(colour, y) %>%
+  mutate(line_diff = abs(black - red))
+
+min_diffs <- pred_diffs %>%
+  group_by(PANEL) %>%
+  summarise(line_diff = min(line_diff))
+
+xpoints_cnt_2 <- left_join(min_diffs, pred_diffs) %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(x_9404 = round(first(xpt_cnt),0)) %>%
+  ungroup()
+
+xpoints_cnt <- left_join(xpoints_cnt_2, xpoints_cnt_1)
+
+
+# What is the number of homes at the peaks?
+firefreq_p <- fishdis_reg %>%
+  transform(regions = factor(regions, levels=c('West', 'Central', 'South East', 'North East'))) %>%
+  ggplot(aes(x = log(median_homedensity), y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(size = 1)
+filter(ten_year != '1994-2004') %>%
+  ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"),
+              fullrange = TRUE, size = 0.75) +
+  scale_color_manual(values = c("red","black")) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 2) 
+
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(group, y, x, PANEL) %>%
+  group_by(PANEL, group) %>%
+  summarise(y = max(y)) %>%
+  left_join(., ggplot_build(firefreq_p)$data[[1]], by = 'y')

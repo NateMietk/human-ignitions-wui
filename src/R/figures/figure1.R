@@ -115,7 +115,8 @@ conus_ics <- left_join(fs50_df, ics_density, by = "fishid50k") %>%
 
 p1 <- conus_bu %>%
   na.omit() %>%
-  filter(class_coarse %in% c("VLD")) %>%
+  filter(class_coarse %in% c("WUI", 'Wildlands')) %>%
+  transform(class_coarse = factor(class_coarse, levels=c("WUI", 'Wildlands'))) %>%
   filter(n_den >= 1) %>%
   mutate(buckets = bucket(n_den, 10)) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("0 - 25", "25 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
@@ -137,10 +138,11 @@ p1 <- conus_bu %>%
   facet_wrap(~class_coarse, nrow = 1)
 
 p2 <- conus_ff %>%
-  filter(class_coarse %in% c("VLD")) %>%
+  filter(class_coarse %in% c("WUI", 'Wildlands')) %>%
   filter(n_den >= 1) %>%
   mutate(buckets = bucket(n_den, 10)) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
+  transform(class_coarse = factor(class_coarse, levels=c("WUI", "Wildlands"))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray97", size = .50)+
   geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
@@ -159,7 +161,8 @@ p2 <- conus_ff %>%
 
 p3 <- conus_burn_area %>%
   na.omit() %>%
-  filter(class_coarse %in% c("VLD")) %>%
+  filter(class_coarse %in% c("WUI", 'Wildlands')) %>%
+  transform(class_coarse = factor(class_coarse, levels=c("WUI", "Wildlands"))) %>%
   transform(pct_class = factor(pct_class, levels=c("< 1", "1 - 10", "10 - 20", 
                                                    "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
   transform(frsz_cl = factor(frsz_cl, levels=c("0-4", "4-100", "100-400", "400-1000", ">1000"))) %>%
@@ -187,6 +190,16 @@ p3l <- p3 + theme(legend.position="none")
 grid.arrange(p1l, p2l, p3l, nrow = 3)
 g <- arrangeGrob(p1l, p2l, p3l, nrow = 3) #generates g
 
-ggsave(file = file.path(supplements_text_figs, "figureS1.tiff"), g, width = 3, height = 7, dpi = 600, scale = 3, units = "cm") #saves g
+ggsave(file = file.path(main_text_figs, "figure1.tiff"), g, width = 7, height = 7, dpi = 600, scale = 3, units = "cm") #saves g
+
+legend <- g_legend(p1) 
+ggsave(file = file.path(main_text_figs, "figure1a_legend.tiff"), 
+       legend, width = 2, height = 4.5, dpi=1200) #saves g
+legend <- g_legend(p2) 
+ggsave(file = file.path(main_text_figs, "figure1b_legend.tiff"), 
+       legend, width = 2, height = 4.5, dpi=1200) #saves g
+legend <- g_legend(p3) 
+ggsave(file = file.path(main_text_figs, "figure1c_legend.tiff"), 
+       legend, width = 2, height = 4.5, dpi=1200) #saves g
 
 system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
