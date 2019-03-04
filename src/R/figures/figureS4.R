@@ -28,7 +28,7 @@ firefreq_p <- fishdis_reg %>%
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
   scale_color_manual(values = c("#fc9272","#D62728", '#a6bddb','#1F77B4')) + 
-  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  xlab("log(Median Home Density)") + ylab("Fire Season Length (days)") +
   theme_pub()  +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
@@ -39,7 +39,7 @@ firefreq_p <- fishdis_reg %>%
   facet_wrap( ~ regions, nrow = 2) +
   scale_y_continuous(limits = c(0,NA))
 
-ggsave(file.path(supplements_text_figs, "figureS9_homedensity_fseason.tiff"), firefreq_p, 
+ggsave(file.path(supplements_text_figs, "figureS4.tiff"), firefreq_p, 
        width = 7, height = 8, dpi = 600, scale = 3, units = "cm")
 
 system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))

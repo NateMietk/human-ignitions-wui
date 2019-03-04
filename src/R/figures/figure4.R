@@ -23,7 +23,7 @@ firefreq_p <- fishdis_reg %>%
   geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
   geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
   scale_color_manual(values = c("#fc9272","#D62728", '#a6bddb','#1F77B4')) + 
-  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  xlab("log(Median Home Density)") + ylab("Ignition frequency") +
   theme_pub()  +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
