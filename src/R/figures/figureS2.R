@@ -58,10 +58,10 @@ p1 <- conus_maxseason %>%
 
 p1l <- p1 + theme(legend.position="none")
 
-ggsave(file =  file.path(supplements_text_figs, "figureS4.tiff"), p1l, width = 7, height = 8, dpi=1200) #saves g
+ggsave(file =  file.path(supplements_text_figs, "figureS2.tiff"), p1l, width = 7, height = 8, dpi=1200) #saves g
 
 legend <- g_legend(p1) 
-ggsave(file =  file.path(supplements_text_figs, "figureS4_legend.tiff"), 
+ggsave(file =  file.path(supplements_text_figs, "figureS2_legend.tiff"), 
        legend, width = 2, height = 4.5, dpi=1200) #saves g
 
 system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
