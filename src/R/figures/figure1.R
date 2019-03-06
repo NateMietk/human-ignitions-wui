@@ -1,4 +1,4 @@
-
+bu_complete_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
 
 ics_totals <- as.data.frame(wui_209) %>%
   mutate_if(is.character, as.factor) %>%
