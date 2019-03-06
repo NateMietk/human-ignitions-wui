@@ -404,18 +404,7 @@ classify_wui <-  function(x) {
 
 # Helper functions --------------------------------------------------------
 
-classify_bu <-  function(x) {
-  # break out fires into small, med, large
-  # input:
-  #   - x: vector of fire sizes
-  # output:
-  #   - y: vector (same length) of classified fire sizes ----- Km2
-  ifelse(x < 25, "0 - 25",
-         ifelse(x >= 25 & x < 250, "25 - 250",
-                ifelse(x >= 250 & x < 1000, "250 - 1000",
-                       ifelse(x >= 1000 & x < 10000, "1000 - 10000",
-                              "> 10000"))))
-}
+
 
 classify_bu_per_fire <-  function(x) {
   # break out fires into small, med, large
@@ -569,33 +558,6 @@ sen <- function(..., weights = NULL) {
   mblm::mblm(...)
 }
 
-classify_raw_fire_size <- function(x) {
-  # break out fires into small, med, large
-  # input:
-  #   - x: vector of fire sizes
-  # output:
-  #   - y: vector (same length) of classified fire sizes ----- Km2
-  ifelse(x < 4, "0-4",
-         ifelse(x >= 4 & x < 100, "4-100",
-                ifelse(x >= 100 & x < 400, "100-400",
-                       ifelse(x >= 400 & x < 1000, "400-1000", '>1000'))))
-}
-
-classify_pctbae <-  function(x) {
-  # break out fires into small, med, large
-  # input:
-  #   - x: vector of fire sizes
-  # output:
-  #   - y: vector (same length) of classified fire sizes ----- Km2
-  ifelse(x < 1, "< 1",
-         ifelse(x >= 0.01 & x < 10, "1 - 10",
-                ifelse(x >= 10 & x < 20, "10 - 20",
-                       ifelse(x >= 20 & x < 30, "20 - 30",
-                              ifelse(x >= 30 & x < 40, "30 - 40",
-                                     ifelse(x >= 40 & x < 50, "40 - 50",
-                                            "> 50"))))))
-  
-}
 
 classify_suppresscosts2 <-  function(x) {
   # break out fires into small, med, large
@@ -658,18 +620,6 @@ classify_seasons_bae <-  function(x) {
                        "Fall")))
 }
 
-classify_ptsize_breaks <-  function(x) {
-  # break out fires into small, med, large
-  # input:
-  #   - x: vector of fire sizes
-  # output:
-  #   - y: vector (same length) of classified fire sizes
-  ifelse(x >= 1 & x <= 25, "1 - 25",
-         ifelse(x >= 26 & x <= 100, "26 - 100",
-                ifelse(x >= 101 & x <= 300, "101 - 300",
-                       ifelse(x >= 301 & x <= 700, "301 - 700",
-                              "> 700"))))
-}
 
 classify_ptsize_breaks2 <-  function(x) {
   # break out fires into small, med, large
