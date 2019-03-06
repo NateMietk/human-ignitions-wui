@@ -1,4 +1,5 @@
 
+
 ics_totals <- as.data.frame(wui_209) %>%
   mutate_if(is.character, as.factor) %>%
   group_by(fishid50k, class_coarse) %>%
@@ -35,7 +36,9 @@ wui_fish50k_sum <- ungroup(read_rds(file.path(wui_out, "wui_fish50k_sum.rds"))) 
   filter(year == 2010) %>%
   mutate(class_coarse =  as.factor(ifelse( class == 'High Urban' | class == 'Med Urban' | class == 'Low Urban', 'Urban',
                                            ifelse( class == 'Intermix WUI' | class == 'Interface WUI', 'WUI', as.character(class))))) %>%
-  dplyr::select(-year, -class)
+  dplyr::select(-year, -class) %>%
+  group_by(fishid50k, class_coarse) %>%
+  summarise(total_fishid50k_area = sum(total_fishid50k_area))
 
 fire_density <- as.data.frame(fpa_wui) %>%
   group_by(fishid50k, ignition, class_coarse) %>%
@@ -112,76 +115,78 @@ conus_ics <- left_join(fs50_df, ics_density, by = "fishid50k") %>%
   mutate(long = coords.x1,
          lat = coords.x2) %>%
   dplyr::select(-coords.x1, -coords.x2) 
+#dark blue
+rgb(44,105,176, maxColorValue = 255)
+#light blue
+rgb(107,163,214, maxColorValue = 255)
+#light red
+rgb(244,115,122, maxColorValue = 255)
+# dark red
+rgb(189,10,54, maxColorValue = 255)
 
+  
 p1 <- conus_bu %>%
   na.omit() %>%
   filter(class_coarse %in% c("WUI", 'Wildlands')) %>%
   transform(class_coarse = factor(class_coarse, levels=c("WUI", 'Wildlands'))) %>%
   filter(n_den >= 1) %>%
-  mutate(buckets = bucket(n_den, 10)) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("0 - 25", "25 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
+  mutate(buckets = bucket(n_den, 26)) %>%
+  transform(ptsz_n = factor(ptsz_n, levels=c("0 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
                color='black', fill = "gray97", size = .50) +
-  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
+  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0.001) +
   coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(11,"RdBu"))) +
-  scale_size_discrete(range = c(.5, 1.5), name="Homes threatened") +
+  scale_color_manual(values = c("#2C69B0","#6BA3D6", "#F4737A", "#BD0A36")) + 
+  scale_size_discrete(range = c(.75, 1.5), name="Homes threatened") +
   theme_nothing(legend = TRUE) +
-  # ggtitle('(C) Homes threatened') +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
         strip.text.x = element_text(size = 12, face = "bold"),
         strip.text.y = element_text(size = 12),
-        legend.key = element_rect(fill = "white"),
-        plot.margin = unit(c(0,0,0,0), "cm")) +
+        legend.key = element_rect(fill = "white")) +
   facet_wrap(~class_coarse, nrow = 1)
 
 p2 <- conus_ff %>%
   filter(class_coarse %in% c("WUI", 'Wildlands')) %>%
   filter(n_den >= 1) %>%
-  mutate(buckets = bucket(n_den, 10)) %>%
-  transform(ptsz_n = factor(ptsz_n, levels=c("1 - 25", "26 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
+  mutate(buckets = bucket(n_den, 26)) %>%
+  transform(ptsz_n = factor(ptsz_n, levels=c("1 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
   transform(class_coarse = factor(class_coarse, levels=c("WUI", "Wildlands"))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray97", size = .50)+
   geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
   coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(11,"RdBu"))) +
+  scale_color_manual(values = c("#2C69B0","#6BA3D6", "#F4737A", "#BD0A36")) + 
   scale_size_discrete(range = c(.5, 1.5), name="Freq") +
   theme_nothing(legend = TRUE) +
-  # ggtitle('(A) Fire frequency') +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
         strip.text.x = element_blank(),
         strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white"),
-        plot.margin = unit(c(0,0,0,0), "cm")) +
+        legend.key = element_rect(fill = "white")) +
   facet_wrap(~class_coarse, nrow = 1)
 
 p3 <- conus_burn_area %>%
   na.omit() %>%
   filter(class_coarse %in% c("WUI", 'Wildlands')) %>%
   transform(class_coarse = factor(class_coarse, levels=c("WUI", "Wildlands"))) %>%
-  transform(pct_class = factor(pct_class, levels=c("< 1", "1 - 10", "10 - 20", 
-                                                   "20 - 30", "30 - 40", "40 - 50",  "> 50"))) %>%
+  transform(pct_class = factor(pct_class, levels=c("1 - 10", "10 - 30", "30 - 50",  "> 50"))) %>%
   transform(frsz_cl = factor(frsz_cl, levels=c("0-4", "4-100", "100-400", "400-1000", ">1000"))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
                color='black', fill = "gray97", size = .50) +
   geom_point(aes(x = long, y = lat, colour = factor(pct_class), size = frsz_cl), stroke = 0) +
   coord_equal() +
-  scale_colour_manual(values = rev(brewer.pal(7,"RdBu"))) +
+  scale_color_manual(values = c("#2C69B0","#6BA3D6", "#F4737A", "#BD0A36")) + 
   scale_size_discrete(range = c(.5, 1.5), name="Burned area") +
   theme_nothing(legend = TRUE) +
-  # ggtitle('(B) Percent class burned')+
+  facet_wrap(~class_coarse, nrow = 1) +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
         strip.text.x = element_blank(),
         strip.text.y = element_blank(),
-        legend.key = element_rect(fill = "white"),
-        plot.margin = unit(c(0,0,0,0), "cm")) +
-  facet_wrap(~class_coarse, nrow = 1)
+        legend.key = element_rect(fill = "white"))
 
 p1l <- p1 + theme(legend.position="none")
 p2l <- p2 + theme(legend.position="none")
