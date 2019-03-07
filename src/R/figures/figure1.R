@@ -115,34 +115,34 @@ conus_ics <- left_join(fs50_df, ics_density, by = "fishid50k") %>%
   mutate(long = coords.x1,
          lat = coords.x2) %>%
   dplyr::select(-coords.x1, -coords.x2) 
-#dark blue
-rgb(44,105,176, maxColorValue = 255)
-#light blue
-rgb(107,163,214, maxColorValue = 255)
-#lightest blue
-rgb(181,223,253, maxColorValue = 255)
-#lightest red
-rgb(244,182,176, maxColorValue = 255)
-#light red
-rgb(244,115,122, maxColorValue = 255)
-# dark red
-rgb(189,10,54, maxColorValue = 255)
 
-  
+rgb(0,107,164, maxColorValue = 255)
+rgb(44,105,176, maxColorValue = 255)
+rgb(107,163,214, maxColorValue = 255)
+rgb(181,223,253, maxColorValue = 255)
+rgb(255,182,176, maxColorValue = 255)
+rgb(244,115,112, maxColorValue = 255)
+rgb(177,3,24, maxColorValue = 255)
+
+rgb(140,86,75, maxColorValue = 255)
+rgb(23,190,207, maxColorValue = 255)
+rgb(214,39,40, maxColorValue = 255)
+
+
 p1 <- conus_bu %>%
   na.omit() %>%
   filter(class_coarse %in% c("WUI", 'Wildlands')) %>%
   transform(class_coarse = factor(class_coarse, levels=c("WUI", 'Wildlands'))) %>%
   filter(n_den >= 1) %>%
-  mutate(buckets = bucket(n_den, 20)) %>%
+  mutate(buckets = bucket(n_den, 15)) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("0 - 250", "250 - 1000", "1000 - 10000", "> 10000"))) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long, y = lat, group = group), 
                color='black', fill = "gray97", size = .50) +
   geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0.001) +
   coord_equal() +
-  scale_color_manual(values = c("#2C69B0","#6BA3D6", "#B5DFFD", "#F4B6B0", "#F4737A", "#BD0A36")) + 
-  scale_size_discrete(range = c(.75, 1.5), name="Homes threatened") +
+  scale_colour_manual(values = rev(brewer.pal(7,"RdYlBu"))) +
+  scale_size_discrete(range = c(.75, 1.35), name="Homes threatened") +
   theme_nothing(legend = TRUE) +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background=element_blank(),
@@ -154,15 +154,15 @@ p1 <- conus_bu %>%
 p2 <- conus_ff %>%
   filter(class_coarse %in% c("WUI", 'Wildlands')) %>%
   filter(n_den >= 1) %>%
-  mutate(buckets = bucket(n_den, 20)) %>%
   transform(ptsz_n = factor(ptsz_n, levels=c("1 - 100", "101 - 300", "301 - 700", "> 700"))) %>%
   transform(class_coarse = factor(class_coarse, levels=c("WUI", "Wildlands"))) %>%
+  mutate(buckets = bucket(n_den, 15)) %>%
   ggplot() +
   geom_polygon(data = st_df, aes(x = long,y = lat,group=group), color='black', fill = "gray97", size = .50)+
-  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0) +
+  geom_point(aes(x = long, y = lat, colour = factor(buckets), size = ptsz_n), stroke = 0.001) +
   coord_equal() +
-  scale_color_manual(values = c("#2C69B0","#6BA3D6", "#B5DFFD", "#F4B6B0", "#F4737A", "#BD0A36")) + 
-  scale_size_discrete(range = c(.5, 1.5), name="Freq") +
+  scale_colour_manual(values = rev(brewer.pal(7,"RdYlBu"))) +
+  scale_size_discrete(range = c(.75, 1.35), name="Freq") +
   theme_nothing(legend = TRUE) +
   theme(plot.title = element_text(hjust = 0, size = 12),
         strip.background = element_blank(),
@@ -182,8 +182,8 @@ p3 <- conus_burn_area %>%
                color='black', fill = "gray97", size = .50) +
   geom_point(aes(x = long, y = lat, colour = factor(pct_class), size = frsz_cl), stroke = 0) +
   coord_equal() +
-  scale_color_manual(values = c("#2C69B0","#6BA3D6", "#B5DFFD", "#F4B6B0", "#F4737A", "#BD0A36")) + 
-  scale_size_discrete(range = c(.5, 1.5), name="Burned area") +
+  scale_colour_manual(values = rev(brewer.pal(6,"RdYlBu"))) +
+  scale_size_discrete(range = c(.75, 1.35), name="Burned area") +
   theme_nothing(legend = TRUE) +
   facet_wrap(~class_coarse, nrow = 1) +
   theme(plot.title = element_text(hjust = 0, size = 12),

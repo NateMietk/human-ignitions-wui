@@ -66,9 +66,6 @@ tt <- ggplot_build(p1)$data[[1]] %>%
   left_join(aov.models, ., by = c('fire_size', 'class_coarse', 'ignition')) %>%
   transform(class_coarse = factor(class_coarse, levels=c('WUI', 'VLD', 'Wildlands')))
 
-p1 <- p1 + geom_text(aes(x=fire_size, y=1.4 +ymax_final, label=groups), data=tt,
-               position = position_dodge(width = 0.85))
-
 # COSTS 
 fire_sizes <- as_tibble(as.data.frame(wui_209)) %>%
   filter(cause != 'Unk') %>%
@@ -143,14 +140,17 @@ tt2 <- ggplot_build(p2)$data[[1]] %>%
   left_join(aov.models2, ., by = c('fire_size', 'class_coarse', 'cause')) %>%
   transform(class_coarse = factor(class_coarse, levels=c('WUI', 'VLD', 'Wildlands')))
 
-p2 <- p2 + geom_text(aes(x=fire_size, y=1.4 +ymax_final, label=groups), data=tt2,
-                     position = position_dodge(width = 0.85))  +
+p1_final <- p1 + geom_text(aes(x=fire_size, y=1.4 +ymax_final, label=groups), data=tt, size = 4,
+                           position = position_dodge(width = 0.85))
+
+p2_final <- p2 + geom_text(aes(x=fire_size, y=1.4 +ymax_final, label=groups), data=tt2, size = 4,
+                           position = position_dodge(width = 0.85)) +
   theme(strip.text.x = element_blank())
 
-p <- cowplot::plot_grid(p1, p2,
-    labels = c('',''), label_x = 0.2, nrow = 2)
+p_final <- cowplot::plot_grid(p1_final, p2_final,
+                              labels = c('',''), label_x = 0.2, nrow = 2)
 
-save_plot(file.path(main_text_figs, "figure3.tiff"), p,
+save_plot(file.path(main_text_figs, "figure3.tiff"), p_final,
           base_aspect_ratio = 3, base_height = 5.5, base_width = 8)
 
 system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
