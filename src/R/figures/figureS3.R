@@ -1,68 +1,127 @@
-bu_complete_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))
+fishdis_reg <- as.data.frame(distance_rds) %>%
+  filter(class != 'Other' & class != 'High Urban') %>%
+  mutate(distance_to_urban = distance_to_urban * 0.001) %>%
+  group_by(fishid10k, ten_year, regions, ignition) %>%
+  summarise(
+    median_popdensity = median(pop_den),
+    median_homedensity = median(house_den),
+    median_distance = median(distance_to_urban),
+    fseason_lngth = IQR(discovery_doy),
+    median_doy = median(discovery_doy),
+    f_cnt = n()
+  ) %>%
+  ungroup() %>%
+  mutate(inter = paste0(ignition, "_", ten_year)) %>%
+  filter(!is.na(ten_year))
 
-df <- as_tibble(as.data.frame(bu_complete_cleaned)) %>%
-  filter(ignition == 'Lightning') %>%
-  filter(!(class %in% c("High Urban", "Med Urban", "Low Urban", 'Other'))) %>%
-  transform(class_coarse = factor(class_coarse, levels=c('WUI', 'VLD', 'Wildlands'))) %>%
-  filter(built_class == 'Residential') %>%
-  mutate(fire_size_ha = fire_size_km2*100,
-         fire_size = case_when(
-           fire_size_ha >  0 & fire_size_ha < 100 ~ '0-100',
-           fire_size_ha >= 100 & fire_size_ha < 200 ~ '100-200',
-           fire_size_ha >= 200 & fire_size_ha < 400 ~ '200-400',
-           fire_size_ha >= 400 & fire_size_ha < 1000 ~ '400-1k',
-           fire_size_ha >= 1000 & fire_size_ha < 10000 ~ '1k-10k',
-           fire_size_ha >= 10000 & fire_size_ha < 50000 ~ '10k-50k',
-           fire_size_ha >= 50000 ~ '> 50k', TRUE ~ NA_character_ )) 
+# Distance versus fire frequency
+# fc9272 -> Human 1994-2004
+# D62728 -> Human 2005-2015
+# a6bddb -> Lightning 1994-2004
+# 1F77B4 -> Lightning 2005-2015
 
-aov.models <- df %>%
-  dplyr::select(class_coarse, fire_size, build_up_count_no_zero_0) %>%
-  filter(build_up_count_no_zero_0 != 0) %>%
-  mutate(build_up_count_no_zero_0 = log(build_up_count_no_zero_0)) %>%
-  split(.$class_coarse) %>%
-  map(~ aov(build_up_count_no_zero_0 ~ fire_size, data = .x)) %>%
-  map( agricolae::HSD.test, trt = 'fire_size', group=TRUE) %>%
-  lapply(., '[', c(5)) %>%
-  lapply(., function(x) {
-    rownames_to_column(as.data.frame(x), var = "fire_size") %>%
-      dplyr::select(fire_size, 
-                    build_up_count_no_zero_0 = groups.build_up_count_no_zero_0,
-                    groups = groups.groups)}) %>%
-  dplyr::bind_rows(., .id = 'class_coarse') 
+# Median home density versus fire season length -------------------------------
+firefreq_p <- fishdis_reg %>%
+  transform(regions = factor(regions, levels=c('West', 'Central', 'South East', 'North East'))) %>%
+  ggplot(aes(x = log(median_homedensity), y = fseason_lngth, group = inter, color = inter)) +
+  geom_smooth(size = 1) +
+  geom_vline(aes(xintercept = log(6.17)), linetype = "dashed", color  = "black") +
+  geom_vline(aes(xintercept = log(741.3162)), linetype = "dashed", color  = "black") +
+  scale_color_manual(values = c("#fc9272","#D62728", '#a6bddb','#1F77B4')) + 
+  xlab("log(Median Home Density)") + ylab("Fire Season Length (days)") +
+  theme_pub()  +
+  theme(plot.title = element_text(hjust = 0, size = 12),
+        strip.background = element_blank(),
+        strip.text.x = element_blank(),
+        strip.text.y = element_blank(),
+        legend.key = element_rect(fill = "white"),
+        legend.position = "none") +
+  facet_wrap( ~ regions, nrow = 2) +
+  scale_y_continuous(limits = c(0,NA))
 
-p1 <- df %>%
-  transform(class_coarse = factor(class_coarse, levels=c('WUI', 'VLD', 'Wildlands'))) %>%
-  transform(fire_size = factor(fire_size, levels=c('0-100', '100-200', '200-400', '400-1k', '1k-10k', '10k-50k', '> 50k'))) %>%
-  ggplot(aes(x = fire_size, y = log(build_up_count_no_zero_0))) +
-  geom_boxplot(position = position_dodge(width = 0.85), fill = 'gray') +
-  scale_fill_manual(values = c("#D62728","#1F77B4")) +
-  xlab('Fire Size (ha)') + ylab('log Average home threatened per fire event') +
-  geom_vline(aes(xintercept = 7.5), color = 'black') +
-  theme_pub() +
-  facet_wrap(~class_coarse) +
-  theme(legend.position = 'none')
+ggsave(file.path(supplements_text_figs, "figureS5.tiff"), firefreq_p, 
+       width = 7, height = 8, dpi = 600, scale = 3, units = "cm")
 
-tt <- ggplot_build(p1)$data[[1]] %>%
-  dplyr::select(fill, group, PANEL, ymax_final) %>%
-  as_tibble() %>%
-  mutate(fire_size = case_when(
-    group == 1 ~ '0-100',
-    group == 2 ~ '100-200',
-    group == 3 ~ '200-400', 
-    group == 4 ~ '400-1k',
-    group == 5 ~ '1k-10k',
-    group == 6 ~ '10k-50k',
-    group == 7 ~ '> 50k'),
-    class_coarse = case_when(
-      PANEL == 1 ~ 'WUI',
-      PANEL == 2 ~ 'VLD', 
-      PANEL == 3 ~ 'Wildlands')) %>%
-  dplyr::select(class_coarse, fire_size, ymax_final) %>%
-  left_join(aov.models, ., by = c('fire_size', 'class_coarse')) %>%
-  transform(class_coarse = factor(class_coarse, levels=c('WUI', 'VLD', 'Wildlands')))
-
-p1 <- p1 + geom_text(aes(x=fire_size, y=1.1 +ymax_final, label=groups), data=tt, fontface = "bold",
-                     position = position_dodge(width = 0.85))
-
-ggsave(file.path(supplements_text_figs, "figureS3.tiff"), p1, width = 6, height = 3, dpi = 600, scale = 3, units = "cm") #saves g
 system(paste0("aws s3 sync ", figs_dir, " ", s3_figs_dir))
+
+firefreq_p <- fishdis_reg %>%
+  filter(ten_year != '1994-2004') %>%
+  ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"),
+              fullrange = TRUE, size = 0.75) +
+  scale_color_manual(values = c("red","black")) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 2) 
+
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(colour, y, x, PANEL) %>%
+  spread(colour, y) %>%
+  mutate(line_diff = abs(black - red))
+
+min_diffs <- pred_diffs %>%
+  group_by(PANEL) %>%
+  summarise(line_diff = min(line_diff))
+
+xpoints_cnt_1 <- left_join(min_diffs, pred_diffs) %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(x_0515 = round(first(xpt_cnt),0)) %>%
+  ungroup()
+
+firefreq_p <- fishdis_reg %>%
+  filter(ten_year == '1994-2004') %>%
+  ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"),
+              fullrange = TRUE, size = 0.75) +
+  scale_color_manual(values = c("red","black")) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 2) 
+
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(colour, y, x, PANEL) %>%
+  spread(colour, y) %>%
+  mutate(line_diff = abs(black - red))
+
+min_diffs <- pred_diffs %>%
+  group_by(PANEL) %>%
+  summarise(line_diff = min(line_diff))
+
+xpoints_cnt_2 <- left_join(min_diffs, pred_diffs) %>%
+  mutate(regions = sort(unique(fishdis_reg$regions)),
+         xpt_cnt = x) %>%
+  dplyr::select(regions, xpt_cnt) %>%
+  left_join(., fishdis_reg, by = c("regions")) %>%
+  group_by(regions) %>%
+  summarise(x_9404 = round(first(xpt_cnt),0)) %>%
+  ungroup()
+
+xpoints_cnt <- left_join(xpoints_cnt_2, xpoints_cnt_1)
+
+
+# What is the number of homes at the peaks?
+firefreq_p <- fishdis_reg %>%
+  transform(regions = factor(regions, levels=c('West', 'Central', 'South East', 'North East'))) %>%
+  ggplot(aes(x = log(median_homedensity), y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(size = 1)
+filter(ten_year != '1994-2004') %>%
+  ggplot(aes(x = median_distance, y = f_cnt, group = inter, color = inter)) +
+  geom_smooth(method = "glm", method.args = list(family = "poisson"),
+              fullrange = TRUE, size = 0.75) +
+  scale_color_manual(values = c("red","black")) + 
+  xlab("Distance from urban center (km)") + ylab("Ignition frequency") +
+  theme_pub()  +
+  facet_wrap( ~ regions, nrow = 2) 
+
+pred_diffs <- ggplot_build(firefreq_p)$data[[1]] %>%
+  tbl_df %>%
+  dplyr::select(group, y, x, PANEL) %>%
+  group_by(PANEL, group) %>%
+  summarise(y = max(y)) %>%
+  left_join(., ggplot_build(firefreq_p)$data[[1]], by = 'y')
