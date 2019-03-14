@@ -360,7 +360,7 @@ if(!file.exists(file.path(dir_cleaned_fpa_2400m_ztrax_rds, 'all_cleaned_fpa_2400
   gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
   
   pboptions(type = 'txt', use_lb = TRUE)
-  cl <- makeCluster(getOption("cl.cores", 3))
+  cl <- makeCluster(getOption("cl.cores", 5))
 
   cleaned_fpa_2400m <- pblapply(gpkgs,
                                 FUN = intersect_ztrax,
