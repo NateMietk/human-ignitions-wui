@@ -352,3 +352,40 @@ if(!file.exists(file.path(dir_cleaned_fpa_1000m_ztrax_rds, 'all_cleaned_fpa_1000
   
   cleaned_fpa_1000m_all <- read_rds(file.path(dir_cleaned_fpa_1000m_ztrax_rds, 'all_cleaned_fpa_1000m_built_up.rds'))
 }
+
+# Built up units per FPA 2400m perimeters
+if(!file.exists(file.path(dir_cleaned_fpa_2400m_ztrax_rds, 'all_cleaned_fpa_2400m_built_up.rds'))) {
+  
+  # find the number of built-up units and build-up area by census block group, built year, and built class
+  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
+  
+  pboptions(type = 'txt', use_lb = TRUE)
+  cl <- makeCluster(getOption("cl.cores", 3))
+
+  cleaned_fpa_2400m <- pblapply(gpkgs,
+                                FUN = intersect_ztrax,
+                                mask = fpa_2400m,
+                                which_dataset = '2',
+                                out_dir_cleaned = dir_cleaned_fpa_2400m_ztrax_rds,
+                                out_name_cleaned = '_cleaned_fpa_2400m_built_up.rds', 
+                                out_dir = dir_fpa_2400m_ztrax_rds,
+                                out_name = '_ztrax_fpa_2400m.rds', 
+                                cl = cl)
+  
+  stopCluster(cl)
+  
+  #bind all of these together in one dataframe
+  cleaned_fpa_2400m_all <- do.call(rbind, cleaned_fpa_2400m) %>%
+    na.omit()  %>%
+    mutate(year = yearbuilt) %>%
+    dplyr::select(fpa_id, year, built_class, build_up_count, build_up_intensity_sqm)
+  
+  cleaned_fpa_2400m_all %>%
+    write_rds(., file.path(dir_cleaned_fpa_2400m_ztrax_rds, 'all_cleaned_fpa_2400m_built_up.rds'))
+  
+  system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
+  
+} else {
+  
+  cleaned_fpa_2400m_all <- read_rds(file.path(dir_cleaned_fpa_2400m_ztrax_rds, 'all_cleaned_fpa_2400m_built_up.rds'))
+}
