@@ -117,3 +117,4 @@ conus_ics <- left_join(fs50_df, ics_density, by = "fishid50k") %>%
   mutate(long = coords.x1,
          lat = coords.x2) %>%
   dplyr::select(-coords.x1, -coords.x2) 
+

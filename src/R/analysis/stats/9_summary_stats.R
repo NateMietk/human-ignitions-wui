@@ -67,7 +67,14 @@ as_tibble(as.data.frame(cleaned_fpa_decades)) %>%
   summarise(threat = sum(threatened_residential_built_up)) %>%
   mutate(percent = threat/sum(threat))
             
-            
+
+# What is the average fire size per CLASS
+pct_fire_size_class_ci <- as.data.frame(fpa_wui_df) %>%
+  filter(class_coarse %in% c('Other', 'Urban')) %>%
+  group_
+  group_by(class_coarse) %>%
+  do(data.frame(rbind(smean.cl.boot(.$fire_size_km2, B = 10000)))) 
+
 # What is the average yearly percent burn per CLASS
 pct_burn_class_ci <- as.data.frame(fpa_bae_wui) %>%
   filter(!(class_coarse %in% c('Other', 'Urban'))) %>%

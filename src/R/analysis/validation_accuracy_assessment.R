@@ -12,7 +12,7 @@ if (!file.exists(file.path(accuracy_assessment_dir, "fpa_mtbs_geomac.gpkg"))) {
              GEOMAC_FIRE_NAME = ifelse(GEOMAC_FIRE_NAME == 'Mm 192', '192',
                                        ifelse(GEOMAC_FIRE_NAME == 'Border no. 14', 'Border 14', GEOMAC_FIRE_NAME)),
              GEOMAC_DISCOVERY_YEAR = as.integer(as.character(year_)),
-             GEOMAC_ACRES = acres) %>%
+             GEOMAC_ACRES = as.numeric(st_area(Shape))/4046.856) %>%
       filter(GEOMAC_ID != '2001-CA-MDF-621' & GEOMAC_ID != '2002-WY-CAD' & GEOMAC_ID != '2010-CA-BDF-2010' & GEOMAC_ID != '2010-CO_ARF-FYQ7') %>%
       dplyr::select(GEOMAC_ID, GEOMAC_FIRE_NAME, GEOMAC_DISCOVERY_YEAR, GEOMAC_ACRES) %>%
       group_by(GEOMAC_ID, GEOMAC_FIRE_NAME) %>%

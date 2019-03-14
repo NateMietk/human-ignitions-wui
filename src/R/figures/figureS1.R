@@ -85,8 +85,8 @@ p2l <- p2 + theme(legend.position="none")
 p3l <- p3 + theme(legend.position="none")
 p4l <- p4 + theme(legend.position="none")
 
-grid.arrange(p1l, p2l, p3, p4, nrow = 4)
-g <- arrangeGrob(p1l, p2l, p3l, p4l, nrow = 4) #generates g
+grid.arrange(p2l, p3l, p4l, p1l, nrow = 4)
+g <- arrangeGrob(p2l, p3l, p4l, p1l, nrow = 4) #generates g
 
 ggsave(file = file.path(supplements_text_figs, "figureS1.tiff"), g, width = 7, height = 9, dpi = 600, scale = 3, units = "cm") #saves g
 
