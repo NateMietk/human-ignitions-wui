@@ -13,13 +13,13 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
            GEOMAC_DISCOVERY_YEAR = NA_integer_,
            GEOMAC_ACRES = NA_real_,
            RADIUS = NA_real_) %>%
-  dplyr::select(FPA_ID, MTBS_ID, GEOMAC_ID, 
-                GEOMAC_FIRE_NAME, MTBS_FIRE_NAME,
-                FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2, MTBS_ACRES, GEOMAC_ACRES, FIRE_SIZE_CL, 
-                DISCOVERY_YEAR, MTBS_DISCOVERY_YEAR, GEOMAC_DISCOVERY_YEAR,
-                MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH, 
-                DISCOVERY_DAY, MTBS_DISCOVERY_DAY, DISCOVERY_DOY,
-                SEASONS, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS) 
+    dplyr::select(FPA_ID, MTBS_ID, GEOMAC_ID, 
+                  GEOMAC_FIRE_NAME, MTBS_FIRE_NAME,
+                  FIRE_SIZE, FIRE_SIZE_ha, FIRE_SIZE_km2, MTBS_ACRES, GEOMAC_ACRES, FIRE_SIZE_CL, 
+                  DISCOVERY_YEAR, MTBS_DISCOVERY_YEAR, GEOMAC_DISCOVERY_YEAR,
+                  MTBS_DISCOVERY_MONTH, DISCOVERY_MONTH, 
+                  DISCOVERY_DAY, MTBS_DISCOVERY_DAY, DISCOVERY_DOY,
+                  SEASONS, STATE, STAT_CAUSE_DESCR, IGNITION, RADIUS) 
   
   bae_pre <- fpa_fire_add %>%
     anti_join(., as.data.frame(fpa_mtbs_geomac) %>% dplyr::select(FPA_ID)) %>%
@@ -52,6 +52,7 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
   
   fpa_250m <- bae %>%
     st_buffer(., dist = 250) 
+  fpa_250m <- st_erase(fpa_250m, bae)
   
   st_write(fpa_250m, file.path(fire_poly, "fpa_buffer_250m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
@@ -67,6 +68,7 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_500m.gpkg'))) {
   
   fpa_500m <- bae %>%
     st_buffer(., dist = 500)
+  fpa_500m <- st_erase(fpa_500m, fpa_250m)
   
   st_write(fpa_500m, file.path(fire_poly, "fpa_buffer_500m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
