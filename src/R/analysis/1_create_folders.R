@@ -51,28 +51,28 @@ dir_raw_ztrax_gpkg <- file.path(zpoints_out, 'raw_built_up_gpkg')
 stacked_ztrax_rst_dir <- file.path(ztrax_out, "stacked_ztrax_rst")
 count_ztrax_rst_dir<- file.path(ztrax_out, "ztrax_raw_count_1980_2015_1k")
 cumsum_ztrax_rst_dir<- file.path(ztrax_out, "ztrax_raw_cumsum_1980_2015_1k")
-# 
-# dir_wui_ztrax_rds <- file.path(zpoints_out, 'wui_built_up_rds')
-# dir_cleaned_wui_ztrax_rds <- file.path(zpoints_out, 'cleaned_wui_built_up_rds')
-# dir_ics_ztrax_rds <- file.path(zpoints_out, 'ics_built_up_rds')
-# dir_cleaned_ics_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_built_up_rds')
-# dir_ics_250m_ztrax_rds <- file.path(zpoints_out, 'ics_250m_built_up_rds')
-# dir_cleaned_ics_250m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_250m_built_up_rds')
-# dir_ics_500m_ztrax_rds <- file.path(zpoints_out, 'ics_500m_built_up_rds')
-# dir_cleaned_ics_500m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_500m_built_up_rds')
-# dir_ics_1000m_ztrax_rds <- file.path(zpoints_out, 'ics_1000m_built_up_rds')
-# dir_cleaned_ics_1000m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_1000m_built_up_rds')
 
-# dir_fpa_ztrax_rds <- file.path(zpoints_out, 'fpa_built_up_rds')
-# dir_cleaned_fpa_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_built_up_rds')
-# dir_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'fpa_250m_built_up_rds')
-# dir_cleaned_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_250m_built_up_rds')
-# dir_fpa_500m_ztrax_rds <- file.path(zpoints_out, 'fpa_500m_built_up_rds')
-# dir_cleaned_fpa_500m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_500m_built_up_rds')
-# dir_fpa_1000m_ztrax_rds <- file.path(zpoints_out, 'fpa_1000m_built_up_rds')
-# dir_cleaned_fpa_1000m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_1000m_built_up_rds')
-# dir_fpa_2400m_ztrax_rds <- file.path(zpoints_out, 'fpa_2400m_built_up_rds')
-# dir_cleaned_fpa_2400m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_2400m_built_up_rds')
+dir_wui_ztrax_rds <- file.path(zpoints_out, 'wui_built_up_rds')
+dir_cleaned_wui_ztrax_rds <- file.path(zpoints_out, 'cleaned_wui_built_up_rds')
+dir_ics_ztrax_rds <- file.path(zpoints_out, 'ics_built_up_rds')
+dir_cleaned_ics_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_built_up_rds')
+dir_ics_250m_ztrax_rds <- file.path(zpoints_out, 'ics_250m_built_up_rds')
+dir_cleaned_ics_250m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_250m_built_up_rds')
+dir_ics_500m_ztrax_rds <- file.path(zpoints_out, 'ics_500m_built_up_rds')
+dir_cleaned_ics_500m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_500m_built_up_rds')
+dir_ics_1000m_ztrax_rds <- file.path(zpoints_out, 'ics_1000m_built_up_rds')
+dir_cleaned_ics_1000m_ztrax_rds <- file.path(zpoints_out, 'cleaned_ics_1000m_built_up_rds')
+
+dir_fpa_ztrax_rds <- file.path(zpoints_out, 'fpa_built_up_rds')
+dir_cleaned_fpa_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_built_up_rds')
+dir_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'fpa_250m_built_up_rds')
+dir_cleaned_fpa_250m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_250m_built_up_rds')
+dir_fpa_500m_ztrax_rds <- file.path(zpoints_out, 'fpa_500m_built_up_rds')
+dir_cleaned_fpa_500m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_500m_built_up_rds')
+dir_fpa_1000m_ztrax_rds <- file.path(zpoints_out, 'fpa_1000m_built_up_rds')
+dir_cleaned_fpa_1000m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_1000m_built_up_rds')
+dir_fpa_2400m_ztrax_rds <- file.path(zpoints_out, 'fpa_2400m_built_up_rds')
+dir_cleaned_fpa_2400m_ztrax_rds <- file.path(zpoints_out, 'cleaned_fpa_2400m_built_up_rds')
 
 bui_out <- file.path(ztrax_out, 'built_up_intensity')
 bui_out <- file.path(bui_out, 'BUI')
@@ -129,14 +129,12 @@ s3_raw_prefix <- file.path(s3_data, 'raw')
 var_dir <- list(prefix, raw_prefix, us_prefix, ecoregion_prefix, wui_prefix, fpa_prefix, mtbs_prefix, nifc_crt, ztrax_out, ztrax_prefix,
                 bounds_crt, ecoreg_crt, anthro_out, fire_crt, ics_out, ics_outtbls, ics_intbls, wui_out, distance_out, bui_out, bu_out,
                 swse_crt, ics_famweb, ics_latlong, ics_spatial, ecoregion_out, fpa_out, mtbs_out, fishnet_path, fire_pnt, fire_poly,
-                zpoints_out, dir_raw_ztrax_gpkg, 
-                # dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds,
-                # dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds,
-                # dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds,
-                # dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds, dir_ics_500m_ztrax_rds, dir_cleaned_ics_500m_ztrax_rds, dir_ics_1000m_ztrax_rds, 
-                # dir_cleaned_ics_1000m_ztrax_rds, dir_fpa_2400m_ztrax_rds, dir_cleaned_fpa_2400m_ztrax_rds, 
-                accuracy_assessment_dir, figs_dir, draft_dir, main_text_figs, supplements_text_figs,
+                zpoints_out, dir_raw_ztrax_gpkg, dir_wui_ztrax_rds, dir_cleaned_wui_ztrax_rds, dir_fpa_ztrax_rds, dir_cleaned_fpa_ztrax_rds,
+                dir_fpa_250m_ztrax_rds, dir_cleaned_fpa_250m_ztrax_rds, rmarkdown_files, dir_ics_ztrax_rds, dir_cleaned_ics_ztrax_rds,
+                dir_fpa_500m_ztrax_rds, dir_cleaned_fpa_500m_ztrax_rds, dir_fpa_1000m_ztrax_rds, dir_cleaned_fpa_1000m_ztrax_rds,
+                dir_ics_250m_ztrax_rds, dir_cleaned_ics_250m_ztrax_rds, dir_ics_500m_ztrax_rds, dir_cleaned_ics_500m_ztrax_rds, dir_ics_1000m_ztrax_rds, accuracy_assessment_dir,
+                dir_cleaned_ics_1000m_ztrax_rds, figs_dir, draft_dir, main_text_figs, supplements_text_figs,
                 climate_dir, pdsi_dir, pdsi_mean_dir, pdsi_anomalies_dir, tmean_dir, temp_mean_dir, temp_anomalies_dir, 
                 ppt_dir, ppt_mean_dir, ppt_anomalies_dir, stacked_ztrax_rst_dir, count_ztrax_rst_dir, cumsum_ztrax_rst_dir, geomac_raw_dir, 
-                evt_dir)
+                evt_dir, dir_fpa_2400m_ztrax_rds, dir_cleaned_fpa_2400m_ztrax_rds)
 lapply(var_dir, function(x) if(!dir.exists(x)) dir.create(x, showWarnings = FALSE))
