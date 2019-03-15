@@ -12,7 +12,7 @@ stopCluster(cl)
 
 # Make a US point database 
 if(!file.exists(file.path(ztrax_prefix, 'conus_ztrax_points.gpkg'))) {
-  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = "44", full.names = TRUE)
+  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
   
   ztrax_list <- lapply(gpkgs, function(x) {
     dfs <- st_read(x)
