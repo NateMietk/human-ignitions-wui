@@ -1,4 +1,3 @@
-
 # Prep data by subsetting and transforming 
 gdbs <- list.files(ztrax_prefix, pattern = ".gdb", full.names = TRUE)
 
@@ -9,24 +8,6 @@ pblapply(gdbs, FUN = subset_ztrax, usa_shp = usa_shp,
          out_dir = dir_raw_ztrax_gpkg, cl = cl)
 system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
 stopCluster(cl)
-
-# Make a US point database 
-if(!file.exists(file.path(ztrax_prefix, 'conus_ztrax_points.gpkg'))) {
-  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
-  
-  ztrax_list <- lapply(gpkgs, function(x) {
-    dfs <- st_read(x)
-    return(dfs)
-  })
-  
-  ztrax_pts <- do.call('rbind', ztrax_list)
-  
-  st_write(ztrax_pts, file.path(ztrax_prefix, 'conus_ztrax_points.gpkg'))
-  system(paste0('aws s3 sync ', anthro_out, " ", s3_anthro_prefix))
-  
-} else {
-  ztrax_pts <- file.path(ztrax_prefix, 'conus_ztrax_points.gpkg')
-}
 
 # Built up units per WUI block groups
 if(!file.exists(file.path(dir_cleaned_wui_ztrax_rds, 'all_cleaned_wui_built_up.rds'))) {
@@ -375,10 +356,22 @@ if(!file.exists(file.path(dir_cleaned_fpa_1000m_ztrax_rds, 'all_cleaned_fpa_1000
 if(!file.exists(file.path(dir_cleaned_fpa_2400m_ztrax_rds, 'all_cleaned_fpa_2400m_built_up.rds'))) {
   
   # find the number of built-up units and build-up area by census block group, built year, and built class
-  cleaned_fpa_2400m <- intersect_ztrax(ztrax_pts, mask1 = fpa_2400m,
-                                       mask2 = fpa_1000m, which_dataset = '2',
-                                       out_name = 'ztrax_fpa_2400m_homeids.rds',
-                                       out_name_cleaned = 'ztrax_fpa_2400m.rds')
+  gpkgs <- list.files(dir_raw_ztrax_gpkg, pattern = ".gpkg", full.names = TRUE)
+  
+  pboptions(type = 'txt', use_lb = TRUE)
+  # cl <- makeCluster(getOption("cl.cores", 2))
+  
+  cleaned_fpa_2400m <- pblapply(gpkgs,
+                                FUN = intersect_ztrax,
+                                mask1 = fpa_2400m,
+                                mask2 = fpa_1000m,
+                                which_dataset = '2',
+                                out_dir_cleaned = dir_cleaned_fpa_2400m_ztrax_rds,
+                                out_name_cleaned = '_cleaned_fpa_2400m_built_up.rds', 
+                                out_dir = dir_fpa_2400m_ztrax_rds,
+                                out_name = '_ztrax_fpa_2400m.rds')
+  
+  # stopCluster(cl)
   
   #bind all of these together in one dataframe
   cleaned_fpa_2400m_all <- do.call(rbind, cleaned_fpa_2400m) %>%
