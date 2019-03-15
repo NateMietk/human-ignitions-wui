@@ -19,7 +19,7 @@ slim_fire <- fpa_fire %>%
   dplyr::sample_frac(0.1)
 
 pboptions(type = 'txt', use_lb = TRUE)
-cl <- makeCluster(getOption("cl.cores", detectCores()))
+cl <- makeCluster(getOption("cl.cores", 16))
 
 sampled_points <- pblapply(unique(slim_fire$FPA_ID), FUN = function(x, fire, grid) {
   require(tidyverse)
@@ -51,7 +51,7 @@ stopCluster(cl)
 
 full_sampled_points <- do.call('rbind', sampled_points) 
 
+full_sampled_points %>%
+  st_write(full_sampled_points, file.path(accuracy_assessment_dir, 'jittered_points_2_6km_grid.gpkg'))
 
 
-
-ztrax_pts
