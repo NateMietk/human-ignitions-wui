@@ -42,36 +42,34 @@ subset_ztrax <- function(i, gdbs, usa_shp, out_dir) {
   }
 }
 
-intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir, out_name, which_dataset) {
+intersect_ztrax <- function(x, mask1, mask2, out_dir = zpoints_out, out_name, out_name_cleaned, which_dataset, perimeter = FALSE) {
   require(sf)
   require(tidyverse)
   
-  filename <- x %>%
-    basename() %>%
-    str_extract(., "[[:digit:]]+")
+  if(perimeter == TRUE) {
+    holes = mask1
+  } else {
+    holes <- st_erase(mask1, mask2)
+  }
   
   if (which_dataset == '1') {
-    if(!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+    if(!file.exists(file.path(out_dir, out_name_cleaned))) {
       
-      imported <- sf::st_read(x) %>%
-        sf::st_join(., mask, join = st_intersects) %>%
+      imported <- holes %>%
+        sf::st_join(., x, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
         as.data.frame() %>%
         dplyr::mutate(yearbuilt = ifelse(yearbuilt == 0, 0,
-                                         ifelse(yearbuilt != 0 & yearbuilt <= 1990, 1990, yearbuilt))) %>%
+                                         ifelse(yearbuilt != 0 & yearbuilt <= 1990, 1990, yearbuilt))) 
+      imported %>%
+        readr::write_rds(., file.path(out_dir, out_name))
+      
+      imported <- imported  %>%
         dplyr::group_by(blk10, built_class, yearbuilt) %>%
         dplyr::summarise(build_up_count = n(),
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
         dplyr::ungroup() %>%
         as.data.frame()
-      
-      imported %>%
-        readr::write_rds(., file.path(out_dir,  paste0(filename, out_name)))
-    } else {
-      imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
-    }
-    
-    if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
       
       cleaned <- imported %>%
         mutate(blk10 = factor(blk10)) %>%
@@ -89,35 +87,31 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         fill(everything(), .direction = 'down')
       
       cleaned %>%
-        write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
+        write_rds(., file.path(out_dir, out_name_cleaned))
     } else {
-      cleaned <- read_rds(file.path(out_dir_cleaned,  paste0(filename, out_name_cleaned)))
+      cleaned <- read_rds(file.path(out_dir, out_name_cleaned))
     }
     return(cleaned)
   }
   
   if (which_dataset == '2') {
-    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+    if(!file.exists(file.path(out_dir, out_name_cleaned))) {
       
-      imported <- sf::st_read(x) %>%
-        sf::st_join(., mask, join = st_intersects) %>%
+      imported <- holes %>%
+        sf::st_join(., x, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
         as.data.frame() %>%
         dplyr::mutate(yearbuilt = ifelse(yearbuilt == 0, 0,
-                                         ifelse(yearbuilt != 0 & yearbuilt <= 1990, 1990, yearbuilt))) %>%
+                                         ifelse(yearbuilt != 0 & yearbuilt <= 1990, 1990, yearbuilt))) 
+      imported %>%
+        readr::write_rds(., file.path(out_dir, out_name))
+      
+      imported <- imported %>%
         dplyr::group_by(fpa_id, built_class, yearbuilt) %>%
         dplyr::summarise(build_up_count = n(),
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
         dplyr::ungroup() %>%
         as.data.frame()
-      
-      readr::write_rds(imported,
-                       file.path(out_dir,  paste0(filename, out_name)))
-    } else {
-      imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
-    }
-    
-    if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
       
       cleaned <- ungroup(imported) %>%
         mutate(fpa_id = factor(fpa_id)) %>%
@@ -135,35 +129,31 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         fill(everything(), .direction = 'down')
       
       cleaned %>%
-        write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
+        write_rds(., file.path(out_dir, out_name_cleaned))
     } else {
-      cleaned <- read_rds(file.path(out_dir_cleaned,  paste0(filename, out_name_cleaned)))
+      cleaned <- read_rds(file.path(out_dir,  out_name_cleaned))
     }
     return(cleaned)
   }
   
   if (which_dataset == '3') {
-    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+    if (!file.exists(file.path(out_dir, out_name_cleaned))) {
       
-      imported <- sf::st_read(x) %>%
-        sf::st_join(., mask, join = st_intersects) %>%
+      imported <- holes %>%
+        sf::st_join(., x, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
         as.data.frame() %>%
         dplyr::mutate(yearbuilt = ifelse(yearbuilt == 0, 0,
-                                         ifelse(yearbuilt != 0 & yearbuilt <= 1999, 1999, yearbuilt))) %>%
+                                         ifelse(yearbuilt != 0 & yearbuilt <= 1999, 1999, yearbuilt))) 
+      imported %>%
+        readr::write_rds(., file.path(out_dir, out_name))
+      
+      imported <- imported %>%
         dplyr::group_by(incident_unique_id, built_class, yearbuilt) %>%
         dplyr::summarise(build_up_count = n(),
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
         dplyr::ungroup() %>%
         as.data.frame()
-      
-      readr::write_rds(imported,
-                       file.path(out_dir,  paste0(filename, out_name)))
-    } else {
-      imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
-    }
-    
-    if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
       
       cleaned <- ungroup(imported) %>%
         mutate(incident_unique_id = factor(incident_unique_id)) %>%
@@ -181,35 +171,32 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         fill(everything(), .direction = 'down')
       
       cleaned %>%
-        write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
+        write_rds(., file.path(out_dir, out_name_cleaned))
     } else {
-      cleaned <- read_rds(file.path(out_dir_cleaned,  paste0(filename, out_name_cleaned)))
+      cleaned <- read_rds(file.path(out_dir,  out_name_cleaned))
     }
     return(cleaned)
   }
   
   if (which_dataset == '4') {
-    if (!file.exists(file.path(out_dir, paste0(filename, out_name)))) {
+    if (!file.exists(file.path(out_dir, out_name_cleaned))) {
       
-      imported <- sf::st_read(x) %>%
-        sf::st_join(., mask, join = st_intersects) %>%
+      imported <- holes %>%
+        sf::st_join(., x, join = st_intersects) %>%
         setNames(tolower(names(.))) %>%
         as.data.frame() %>%
         dplyr::mutate(yearbuilt = ifelse(yearbuilt == 0, 0,
-                                         ifelse(yearbuilt != 0 & yearbuilt <= 1990, 1990, yearbuilt))) %>%
+                                         ifelse(yearbuilt != 0 & yearbuilt <= 1990, 1990, yearbuilt))) 
+      
+      imported %>%
+        readr::write_rds(., file.path(out_dir, out_name))
+      
+      imported <- imported %>%
         dplyr::group_by(mtbs_id, built_class, yearbuilt) %>%
         dplyr::summarise(build_up_count = n(),
                          build_up_intensity_sqm = sum(bdareasqft)*0.092903) %>%
         dplyr::ungroup() %>%
         as.data.frame()
-      
-      readr::write_rds(imported,
-                       file.path(out_dir,  paste0(filename, out_name)))
-    } else {
-      imported <- read_rds(file.path(out_dir,  paste0(filename, out_name)))
-    }
-    
-    if(!file.exists(file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))) {
       
       cleaned <- ungroup(imported) %>%
         mutate(mtbs_id = factor(mtbs_id)) %>%
@@ -227,9 +214,9 @@ intersect_ztrax <- function(x, mask, out_dir_cleaned, out_name_cleaned, out_dir,
         fill(everything(), .direction = 'down')
       
       cleaned %>%
-        write_rds(., file.path(out_dir_cleaned, paste0(filename, out_name_cleaned)))
+        write_rds(., file.path(out_dir, out_name_cleaned))
     } else {
-      cleaned <- read_rds(file.path(out_dir_cleaned,  paste0(filename, out_name_cleaned)))
+      cleaned <- read_rds(file.path(out_dir,  out_name_cleaned))
     }
     return(cleaned)
   }
