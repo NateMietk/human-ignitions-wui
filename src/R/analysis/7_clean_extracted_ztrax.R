@@ -274,26 +274,6 @@ if (!file.exists(file.path(rmarkdown_files, 'bu_fpa_1000m_cleaned.rds'))) {
   bu_fpa_1000m_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_fpa_1000m_cleaned.rds'))
 }
 
-# FPA 2400m buffer
-if (!file.exists(file.path(rmarkdown_files, 'bu_fpa_2400m_cleaned.rds'))) {
-  
-  bu_fpa_2400m_cleaned <- read_rds(file.path(dir_cleaned_fpa_2400m_ztrax_rds, 'all_cleaned_fpa_2400m_built_up.rds')) %>%
-    ungroup() %>%
-    mutate_if(is.numeric, funs(ifelse(is.na(.), 0, .))) %>%
-    mutate(discovery_year = year,
-           build_up_count_2400 = build_up_count,
-           build_up_intensity_sqm_2400 = build_up_intensity_sqm,
-           built_class = ifelse(is.na(built_class), 'No Structures', as.character(built_class))) %>%
-    dplyr::select(-year, -build_up_count, -build_up_intensity_sqm)
-  
-  write_rds(bu_fpa_2400m_cleaned, file.path(rmarkdown_files, 'bu_fpa_2400m_cleaned.rds'))
-  system(paste0("aws s3 sync ", rmarkdown_files, " ", s3_rmarkdown))
-  
-} else {
-  
-  bu_fpa_2400m_cleaned <- read_rds(file.path(rmarkdown_files, 'bu_fpa_2400m_cleaned.rds'))
-}
-
 # FPA complete joined and cleaned
 if (!file.exists(file.path(rmarkdown_files, 'bu_complete_cleaned.rds'))) {
   
