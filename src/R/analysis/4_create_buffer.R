@@ -44,15 +44,21 @@ if (!file.exists(file.path(fire_poly, "fpa_mtbs_bae.gpkg"))) {
   system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
   
 } else {
-  bae <- st_read(file.path(fire_poly, "fpa_mtbs_bae.gpkg")) 
+  bae <- st_read(file.path(fire_poly, "fpa_mtbs_bae.gpkg")) %>%
+    st_set_precision(., precision = 0.001)
 }
 
 # Buffered FPA 250m perimeters
 if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
+  fpa_250m <- st_parallel(bae, st_buffer, n_cores = parallel::detectCores(), dist = 250) %>%
+    st_set_precision(., precision = 0.001)
   
-  fpa_250m <- bae %>%
-    st_buffer(., dist = 250) 
-  fpa_250m <- st_erase(fpa_250m, bae)
+  fpa_250m_slim <- fpa_250m %>% 
+    dplyr::select(FPA_ID)
+  bae_slim <- bae %>% 
+    dplyr::select(FPA_ID)
+  
+  fpa_250m <- st_erase(fpa_250m_slim, y = bae_slim)
   
   st_write(fpa_250m, file.path(fire_poly, "fpa_buffer_250m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
@@ -65,10 +71,10 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_250m.gpkg'))) {
 
 # Buffered FPA 500m perimeters
 if (!file.exists(file.path(fire_poly, 'fpa_buffer_500m.gpkg'))) {
-  
-  fpa_500m <- bae %>%
-    st_buffer(., dist = 500)
-  fpa_500m <- st_erase(fpa_500m, fpa_250m)
+  rm(bae)
+  fpa_500m <- st_parallel(fpa_250m, st_buffer, n_cores = parallel::detectCores(), dist = fpa_250m) %>%
+    st_set_precision(., precision = 0.001)
+  fpa_500m <- st_parallel(fpa_500m, st_erase, n_cores = parallel::detectCores(), y = fpa_250m)
   
   st_write(fpa_500m, file.path(fire_poly, "fpa_buffer_500m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
@@ -81,9 +87,10 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_500m.gpkg'))) {
 
 # Buffered FPA 1000m perimeters
 if (!file.exists(file.path(fire_poly, 'fpa_buffer_1000m.gpkg'))) {
-  
-  fpa_1000m <- bae %>%
-    st_buffer(., dist = 1000)
+  rm(fpa_250m)
+  fpa_1000m <- fpa_500m %>%
+    st_buffer(., dist = 500)
+  # fpa_1000m <- st_parallel(fpa_1000m, st_erase, n_cores = parallel::detectCores(), y = fpa_500m)
   
   st_write(fpa_1000m, file.path(fire_poly, "fpa_buffer_1000m.gpkg"),
            driver = "GPKG", delete_layer = TRUE)
@@ -92,21 +99,6 @@ if (!file.exists(file.path(fire_poly, 'fpa_buffer_1000m.gpkg'))) {
   
 } else {
   fpa_1000m <- st_read(file.path(fire_poly, "fpa_buffer_1000m.gpkg")) 
-}
-
-# Buffered FPA 2400m perimeters
-if (!file.exists(file.path(fire_poly, 'fpa_buffer_2400m.gpkg'))) {
-  
-  fpa_2400m <- bae %>%
-    st_buffer(., dist = 2400)
-  
-  st_write(fpa_2400m, file.path(fire_poly, "fpa_buffer_2400m.gpkg"),
-           driver = "GPKG", delete_layer = TRUE)
-  
-  system(paste0("aws s3 sync ", fire_crt, " ", s3_fire_prefix))
-  
-} else {
-  fpa_2400m <- st_read(file.path(fire_poly, "fpa_buffer_2400m.gpkg")) 
 }
 
 # Buffered FPA perimeters intersected with the WUI data
